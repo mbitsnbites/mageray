@@ -29,6 +29,7 @@
 #ifndef RAYMAGE_TREE_H_
 #define RAYMAGE_TREE_H_
 
+#include <memory>
 #include <vector>
 
 #include "base/log.h"
@@ -38,6 +39,25 @@
 
 /// Axis aligned bounding box.
 struct AABB {
+  enum Axis {
+    X = 0,
+    Y = 1,
+    Z = 2
+  };
+
+  enum Bound {
+    XMIN = 0,
+    YMIN = 1,
+    ZMIN = 2,
+    XMAX = 3,
+    YMAX = 4,
+    ZMAX = 5
+  };
+
+  scalar bounds[6];
+
+  AABB() {}
+
   AABB(const vec3& min, const vec3& max) {
     bounds[XMIN] = min.x;
     bounds[YMIN] = min.y;
@@ -47,22 +67,44 @@ struct AABB {
     bounds[ZMAX] = max.z;
   }
 
-  vec3 min() const {
+  /// Minimum coordinate for this bounding box.
+  vec3 Min() const {
     return vec3(bounds[XMIN], bounds[YMIN], bounds[ZMIN]);
   }
 
-  vec3 max() const {
+  /// Maxium coordinate for this bounding box.
+  vec3 Max() const {
     return vec3(bounds[XMAX], bounds[YMAX], bounds[ZMAX]);
   }
 
-  static const int XMIN = 0;
-  static const int YMIN = 1;
-  static const int ZMIN = 2;
-  static const int XMAX = 3;
-  static const int YMAX = 4;
-  static const int ZMAX = 5;
+  /// Sum of Min() and Max().
+  vec3 Sum() const {
+    return vec3(bounds[XMIN] + bounds[XMAX], bounds[YMIN] + bounds[YMAX],
+        bounds[ZMIN] + bounds[ZMAX]);
+  }
 
-  scalar bounds[6];
+  /// Maxium side axis.
+  Axis LargestAxis() const {
+    scalar dx = bounds[XMAX] - bounds[XMIN];
+    scalar dy = bounds[YMAX] - bounds[YMIN];
+    scalar dz = bounds[ZMAX] - bounds[ZMIN];
+    if (dx > dy) {
+      return dx > dz ? X : Z;
+    } else {
+      return dy > dz ? Y : Z;
+    }
+  };
+
+  /// Union of two bounding boxes.
+  AABB& operator+=(const AABB& other) {
+    if (other.bounds[XMIN] < bounds[XMIN]) bounds[XMIN] = other.bounds[XMIN];
+    if (other.bounds[YMIN] < bounds[YMIN]) bounds[YMIN] = other.bounds[YMIN];
+    if (other.bounds[ZMIN] < bounds[ZMIN]) bounds[ZMIN] = other.bounds[ZMIN];
+    if (other.bounds[XMAX] > bounds[XMAX]) bounds[XMAX] = other.bounds[XMAX];
+    if (other.bounds[YMAX] > bounds[YMAX]) bounds[YMAX] = other.bounds[YMAX];
+    if (other.bounds[ZMAX] > bounds[ZMAX]) bounds[ZMAX] = other.bounds[ZMAX];
+    return *this;
+  }
 };
 
 /// Tree node class.
@@ -71,20 +113,25 @@ class Node {
   public:
     ~Node() {
       if (IsLeafNode()) {
-        delete Item();
         return;
       }
-      delete ChildA();
-      delete ChildB();
+      delete FirstChild();
+      delete SecondChild();
     }
 
     /// Constructor for leaf nodes.
-    Node(const vec3& min, const vec3& max, T* item) :
-        m_aabb(min, max), m_first(item), m_second(NULL) {}
+    Node(const vec3& min, const vec3& max, const T* item) :
+        m_aabb(min, max) {
+      m_leaf.item = item;
+      m_leaf.dummy = NULL;
+    }
 
     /// Constructor for branch nodes.
     Node(const vec3& min, const vec3& max, Node* first, Node* second) :
-        m_aabb(min, max), m_first(first), m_second(second) {}
+        m_aabb(min, max) {
+      m_branch.first = first;
+      m_branch.second = second;
+    }
 
     /// @returns The axis aligned bounding box for this node.
     const AABB& BoundingBox() const {
@@ -93,45 +140,56 @@ class Node {
 
     /// @returns True if this is a leaf node.
     bool IsLeafNode() const {
-      return m_second == NULL;
+      return m_leaf.dummy == NULL;
     }
 
     /// @returns The first child node of a branch node.
-    Node* ChildA() const {
+    Node<T>* FirstChild() const {
       ASSERT(!IsLeafNode(), "This is a leaf node.");
-      return static_cast<Node*>(m_first);
+      return m_branch.first;
     }
 
     /// @returns The second child node of a branch node.
-    Node* ChildB() const {
+    Node<T>* SecondChild() const {
       ASSERT(!IsLeafNode(), "This is a leaf node.");
-      return static_cast<Node*>(m_second);
+      return m_branch.second;
     }
 
     /// @returns The data item of a leaf node.
-    T* Item() const {
+    const T* Item() const {
       ASSERT(IsLeafNode(), "This is not a leaf node.");
-      return static_cast<T*>(m_first);
+      return m_leaf.item;
     }
 
   private:
     AABB m_aabb;
-    void* m_first;
-    void* m_second;
+
+    union {
+      struct {
+        Node<T>* first;
+        Node<T>* second;
+      } m_branch;
+      struct {
+        const T* item;
+        void* dummy;
+      } m_leaf;
+    };
+
+    FORBID_COPY(Node);
 };
 
 /// Binary axis aligned bounding box tree for triangles.
 class TriangleTree {
   public:
-    TriangleTree() : m_root(NULL) {}
-    ~TriangleTree();
-
     /// Build a triangle tree from raw mesh data.
     void Build(const std::vector<Triangle>& triangles,
         const std::vector<Vertex>& vertices);
 
   private:
-    Node<Triangle>* m_root;
+    std::unique_ptr<Node<Triangle> > m_root;
+    const std::vector<Vertex>* m_vertices;
+
+    FORBID_COPY(TriangleTree);
 };
 
 #endif // RAYMAGE_TREE_H_
