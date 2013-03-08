@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <list>
+#include <thread>
 
 #include "base/perf.h"
 
@@ -45,6 +46,43 @@ void BoundingBoxUnion(AABB& aabb, const std::vector<Node<T>*>& nodes, int start,
     aabb += nodes[i]->BoundingBox();
   }
 }
+
+/// A threaded subtree builder.
+/// When a SubtreeBuilder object is created, it starts a new thread where the actual
+/// processing is done.
+template <class T>
+class SubtreeBuilder {
+  public:
+    SubtreeBuilder(const AABB& aabb, std::vector<Node<T>*>& leaves,
+        int start, int stop, int depth) :
+        m_aabb(&aabb),
+        m_leaves(&leaves),
+        m_start(start),
+        m_stop(stop),
+        m_depth(depth) {
+      m_thread = std::thread(&SubtreeBuilder<T>::Run, this);
+    }
+
+    /// Get the result (blocking).
+    /// Wait for the thread to finish and retrieve the result.
+    Node<T>* GetResult() {
+      m_thread.join();
+      return m_result;
+    }
+
+  private:
+    void Run() {
+      m_result = BuildSubtree(*m_aabb, *m_leaves, m_start, m_stop, m_depth);
+    }
+
+    const AABB* m_aabb;
+    std::vector<Node<T>*>* m_leaves;
+    int m_start;
+    int m_stop;
+    int m_depth;
+    Node<T>* m_result;
+    std::thread m_thread;
+};
 
 /// Build a sub-tree from a list of leaf nodes.
 template <class T>
@@ -114,11 +152,25 @@ Node<T>* BuildSubtree(const AABB& aabb, std::vector<Node<T>*>& leaves,
   BoundingBoxUnion(second_aabb, leaves, start_second, stop);
 
   // Recursively build new sub-trees.
+#if 0
   // TODO(mage): Here we could spawn new threads when we're at the correct depth to
   // better utilize multi-core CPUs. E.g. run BuildSubtree() in separate threads
   // at depth == 1 would spawn 4 threads.
+  Node<T>* first_branch;
+  Node<T>* second_branch;
+  if (depth == 1) {
+    SubtreeBuilder<T> builder1(first_aabb, leaves, start, start_second, depth + 1);
+    SubtreeBuilder<T> builder2(second_aabb, leaves, start_second, stop, depth + 1);
+    first_branch = builder1.GetResult();
+    second_branch = builder2.GetResult();
+  } else {
+    first_branch = BuildSubtree(first_aabb, leaves, start, start_second, depth + 1);
+    second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, depth + 1);
+  }
+#else
   Node<T>* first_branch = BuildSubtree(first_aabb, leaves, start, start_second, depth + 1);
   Node<T>* second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, depth + 1);
+#endif
 
   // Create a new tree branch node, and return it.
   return new Node<T>(aabb, first_branch, second_branch);

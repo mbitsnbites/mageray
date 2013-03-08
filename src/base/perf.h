@@ -60,7 +60,7 @@ class ScopedPerf {
 
 class CumulativePerf {
   public:
-    CumulativePerf(const char* label) : m_label(label), m_total(0.0) {}
+    CumulativePerf(const char* label) : m_label(label), m_total(0.0), m_count(0) {}
 
     void Start() {
       m_start = Perf::GetTime();
@@ -68,15 +68,17 @@ class CumulativePerf {
 
     void Stop() {
       m_total += Perf::GetTime() - m_start;
+      m_count++;
     }
 
     void Report() const {
-      Perf::LogDelta(m_label, m_total);
+      Perf::LogDelta(m_label, m_total / static_cast<double>(m_count));
     }
 
   private:
     const char* m_label;
     double m_total;
+    int m_count;
     double m_start;
 };
 
