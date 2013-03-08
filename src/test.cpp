@@ -27,13 +27,64 @@
 //------------------------------------------------------------------------------
 
 #include <iostream>
+#include <vector>
+#include <cmath>
 
+#include "base/perf.h"
 #include "vec.h"
 #include "mat.h"
 #include "image.h"
+#include "tree.h"
+#include "triangle.h"
 
-int main(int argc, char** argv) {
-  // --- Vectors ---
+void MakeSphere(std::vector<Triangle>& triangles, std::vector<Vertex>& vertices,
+  int res, scalar radius) {
+  ScopedPerf _perf = ScopedPerf(__FUNCTION__);
+
+  // Make vertices
+  int vertex_span = res + 1;
+  int num_vertices = vertex_span * (res + 1);
+  vertices.resize(num_vertices);
+  scalar step = 1.0 / static_cast<scalar>(res);
+  scalar u = 0;
+  for (int i = 0, k = 0; i <= res; ++i) {
+    scalar cos_theta = std::cos(2*PI*u);
+    scalar sin_theta = std::sin(2*PI*u);
+    scalar v = 0;
+    for (int j = 0; j <= res; ++j) {
+      scalar cos_phi = std::cos(PI*v);
+      scalar sin_phi = std::sin(PI*v);
+      Vertex* vertex = &vertices[k++];
+      vertex->normal = vec3(
+        cos_theta * sin_phi,
+        sin_theta * sin_phi,
+        cos_phi
+      );
+      vertex->position = vertex->normal * radius;
+      vertex->uv = vec2(u, v);
+      v += step;
+    }
+    u += step;
+  }
+
+  // Make triangles
+  int num_triangles = res * res * 2;
+  triangles.resize(num_triangles);
+  for (int i = 0, k = 0; i < res; ++i) {
+    for (int j = 0; j < res; ++j) {
+      Triangle* triangle1 = &triangles[k++];
+      Triangle* triangle2 = &triangles[k++];
+      triangle1->a = triangle2->a = i * vertex_span + j;
+      triangle1->b = i * vertex_span + j + 1;
+      triangle1->c = triangle2->b = (i + 1) * vertex_span + j + 1;
+      triangle2->c = (i + 1) * vertex_span + j;
+    }
+  }
+
+  _perf.Done();
+}
+
+void TestVectors() {
   std::cout << "--- Vectors ---" << std::endl;
 
   vec3 x(1.0f, 0.0f, 1.0f), y;
@@ -58,13 +109,14 @@ int main(int argc, char** argv) {
   n += vec3(0.0f);
 
   std::cout << "(1,0,0) x (0,1,0) = " << n << std::endl;
+}
 
-  // --- Matrices ---
+void TestMatrices() {
   std::cout << std::endl << "--- Matrices ---" << std::endl;
 
   mat3x4 m = mat3x4::Scale(2.0f);
   std::cout << "Scale matrix = " << m << std::endl;
-  v = vec3(1.5f, 0.7f, -3.3f);
+  vec3 v = vec3(1.5f, 0.7f, -3.3f);
   std::cout << "Original vector = " << v << std::endl;
   std::cout << "Transformed vector = " << (m * v) << std::endl;
   m = mat3x4::Translate(5.1f, 5.2f, 4.3f) * m;
@@ -75,15 +127,20 @@ int main(int argc, char** argv) {
              -1, 9, 2, 2,
               1, 3, 3, 5);
   std::cout << "Original matrix = " << m << std::endl;
+  ScopedPerf _inv = ScopedPerf("Matrix inverse");
   mat3x4 mi = m.Inverse();
+  _inv.Done();
   std::cout << "Inverse matrix = " << mi << std::endl;
   std::cout << "Original * inverse matrix = " << (m * mi) << std::endl;
+}
 
-  // --- Images ---
+void TestImages() {
   std::cout << std::endl << "--- Images ---" << std::endl;
 
   Image img1;
+  ScopedPerf _load = ScopedPerf("Load image");
   if (img1.Load("../resources/autumn.png")) {
+    _load.Done();
     std::cout << "Source image: " << img1.Width() << " x " << img1.Height()
         << " First pixel = " << img1.PixelAt(0,0) << "." << std::endl;
 
@@ -96,6 +153,7 @@ int main(int argc, char** argv) {
       float s_step = 1.0f / static_cast<float>(img2.Width());
       float t_step = 1.0f / static_cast<float>(img2.Height());
       float t = 0.0f;
+      ScopedPerf _interp = ScopedPerf("Interpolate image");
       for (int y = 0; y < img2.Height(); ++y) {
         float s = 0.0f;
         for (int x = 0; x < img2.Width(); ++x) {
@@ -104,11 +162,43 @@ int main(int argc, char** argv) {
         }
         t += t_step;
       }
+      _interp.Done();
 
       std::cout << "Saving..." << std::endl;
+      ScopedPerf _save = ScopedPerf("Save image");
       img2.SavePNG("img_interpolated.png");
+      _save.Done();
     }
   }
+}
+
+void TestTrees() {
+  std::cout << std::endl << "--- Trees ---" << std::endl;
+
+  std::cout << "Creating a sphere mesh..." << std::endl;
+  std::vector<Triangle> triangles;
+  std::vector<Vertex> vertices;
+  MakeSphere(triangles, vertices, 1000, 4.0);
+  std::cout << triangles.size() << " triangles, " << vertices.size() << " vertices." << std::endl;
+
+  std::cout << "Creating a triangle tree..." << std::endl;
+  TriangleTree tree;
+  tree.Build(triangles, vertices);
+  std::cout << "Bounding box = " << tree.BoundingBox() << std::endl;
+}
+
+int main() {
+  // --- Vectors ---
+  TestVectors();
+
+  // --- Matrices ---
+  TestMatrices();
+
+  // --- Images ---
+  TestImages();
+
+  // --- Trees ---
+  TestTrees();
 
   return 0;
 }

@@ -30,6 +30,7 @@
 #define RAYMAGE_TREE_H_
 
 #include <memory>
+#include <ostream>
 #include <vector>
 
 #include "base/log.h"
@@ -88,10 +89,10 @@ struct AABB {
     scalar dx = bounds[XMAX] - bounds[XMIN];
     scalar dy = bounds[YMAX] - bounds[YMIN];
     scalar dz = bounds[ZMAX] - bounds[ZMIN];
-    if (dx > dy) {
-      return dx > dz ? X : Z;
+    if (dx >= dy) {
+      return dx >= dz ? X : Z;
     } else {
-      return dy > dz ? Y : Z;
+      return dy >= dz ? Y : Z;
     }
   };
 
@@ -104,6 +105,11 @@ struct AABB {
     if (other.bounds[YMAX] > bounds[YMAX]) bounds[YMAX] = other.bounds[YMAX];
     if (other.bounds[ZMAX] > bounds[ZMAX]) bounds[ZMAX] = other.bounds[ZMAX];
     return *this;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const AABB& aabb) {
+    os << aabb.Min() << "->" << aabb.Max();
+    return os;
   }
 };
 
@@ -127,8 +133,8 @@ class Node {
     }
 
     /// Constructor for branch nodes.
-    Node(const vec3& min, const vec3& max, Node* first, Node* second) :
-        m_aabb(min, max) {
+    Node(const AABB& aabb, Node* first, Node* second) :
+        m_aabb(aabb) {
       m_branch.first = first;
       m_branch.second = second;
     }
@@ -181,9 +187,17 @@ class Node {
 /// Binary axis aligned bounding box tree for triangles.
 class TriangleTree {
   public:
+    TriangleTree() {}
+
     /// Build a triangle tree from raw mesh data.
     void Build(const std::vector<Triangle>& triangles,
         const std::vector<Vertex>& vertices);
+
+    /// Get the bounding box for the tree.
+    const AABB& BoundingBox() {
+      ASSERT(m_root.get() != NULL, "The tree is undefined.")
+      return m_root->BoundingBox();
+    }
 
   private:
     std::unique_ptr<Node<Triangle> > m_root;

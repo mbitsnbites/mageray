@@ -26,18 +26,58 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_BASE_TYPES_H_
-#define RAYMAGE_BASE_TYPES_H_
+#ifndef RAYMAGE_BASE_PERF_H_
+#define RAYMAGE_BASE_PERF_H_
 
-// Floating point type used throughout the program.
-typedef float scalar;
+class Perf {
+  public:
+    static double GetTime();
+    static void LogDelta(const char* label, const double& time);
+};
 
-// Since we simply can't seem to get PI into the C++ standard (?), put it here.
-#define PI 3.1415926535897932384626433832795028841971693993751058209749445923078
+class ScopedPerf {
+  public:
+    ScopedPerf(const char* label) : m_label(label), m_done(false) {
+      m_start = Perf::GetTime();
+    }
 
-// Convenience macro for disabling assignment and copying for a class.
-#define FORBID_COPY(x)  \
-  x(const x&) = delete; \
-  void operator=(const x&) = delete
+    ~ScopedPerf() {
+      Done();
+    }
 
-#endif // RAYMAGE_BASE_TYPES_H_
+    void Done() {
+      if (m_done)
+        return;
+      Perf::LogDelta(m_label, Perf::GetTime() - m_start);
+      m_done = true;
+    }
+
+  private:
+    const char* m_label;
+    bool m_done;
+    double m_start;
+};
+
+class CumulativePerf {
+  public:
+    CumulativePerf(const char* label) : m_label(label), m_total(0.0) {}
+
+    void Start() {
+      m_start = Perf::GetTime();
+    }
+
+    void Stop() {
+      m_total += Perf::GetTime() - m_start;
+    }
+
+    void Report() const {
+      Perf::LogDelta(m_label, m_total);
+    }
+
+  private:
+    const char* m_label;
+    double m_total;
+    double m_start;
+};
+
+#endif // RAYMAGE_BASE_PERF_H_

@@ -26,18 +26,24 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_BASE_TYPES_H_
-#define RAYMAGE_BASE_TYPES_H_
+#include "base/perf.h"
 
-// Floating point type used throughout the program.
-typedef float scalar;
+#include <iostream>
+#include <sys/time.h>
 
-// Since we simply can't seem to get PI into the C++ standard (?), put it here.
-#define PI 3.1415926535897932384626433832795028841971693993751058209749445923078
+double Perf::GetTime() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return (double)tv.tv_sec + 0.000001 * (double)tv.tv_usec;
+}
 
-// Convenience macro for disabling assignment and copying for a class.
-#define FORBID_COPY(x)  \
-  x(const x&) = delete; \
-  void operator=(const x&) = delete
-
-#endif // RAYMAGE_BASE_TYPES_H_
+void Perf::LogDelta(const char* label, const double& time) {
+  std::cout << "[PERF] " << label << ": ";
+  if (time < 0.001)
+    std::cout << time * 1000000.0 << "us";
+  else if (time < 5.000)
+    std::cout << time * 1000.0 << "ms";
+  else
+    std::cout << time << "s";
+  std::cout << std::endl;
+}

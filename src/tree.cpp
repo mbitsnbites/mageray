@@ -31,133 +31,132 @@
 #include <algorithm>
 #include <list>
 
+#include "base/perf.h"
+
 namespace {
 
 /// Calculate bounding box union for a list of nodes.
 template <class T>
-void BoundingBoxUnion(AABB& aabb, const std::list<Node<T>*>& nodes) {
-  typename std::list<Node<T>*>::const_iterator it;
-  for (it = nodes.begin(); it != nodes.end(); it++) {
-    const Node<T>* node = *it;
-    if (it == nodes.begin()) {
-      aabb = node->BoundingBox();
-    } else {
-      aabb += node->BoundingBox();
-    }
+void BoundingBoxUnion(AABB& aabb, const std::vector<Node<T>*>& nodes, int start,
+    int stop) {
+  ASSERT(start < stop, "Empty union operation.");
+  aabb = nodes[start]->BoundingBox();
+  for (int i = start + 1; i != stop; ++i) {
+    aabb += nodes[i]->BoundingBox();
   }
 }
 
 /// Build a sub-tree from a list of leaf nodes.
 template <class T>
-Node<T>* BuildSubtree(const AABB& aabb, const std::list<Node<T>*>& leaves) {
-  if (leaves.size() == 1) {
+Node<T>* BuildSubtree(const AABB& aabb, std::vector<Node<T>*>& leaves,
+    int start, int stop, int depth) {
+  if ((stop - start) == 1) {
     // Return the leaf node.
-    return *leaves.begin();
+    return leaves[start];
   }
 
-  // Determine the split direction and middle point.
+  // Determine the split direction.
   AABB::Axis axis = aabb.LargestAxis();
-  vec3 mid2 = aabb.Sum();
-
-  // Split the list into two lists (first and second).
-  std::list<Node<T>*> first, second;
-  typename std::list<Node<T>*>::const_iterator it;
-  // TODO(mage): Can we do this efficiently without the outer switch?
+  AABB::Bound min_bound, max_bound;
   switch (axis) {
     case AABB::X: {
-      // Split along the X axis.
-      for (it = leaves.begin(); it != leaves.end(); it++) {
-        Node<T>* leaf = *it;
-        vec3 leaf_mid2 = leaf->BoundingBox().Sum();
-        if (leaf_mid2.x < mid2.x) {
-          first.push_back(leaf);
-        } else {
-          second.push_back(leaf);
-        }
-      }
+      min_bound = AABB::XMIN;
+      max_bound = AABB::XMAX;
       break;
     }
     case AABB::Y: {
-      // Split along the Y axis.
-      for (it = leaves.begin(); it != leaves.end(); it++) {
-        Node<T>* leaf = *it;
-        vec3 leaf_mid2 = leaf->BoundingBox().Sum();
-        if (leaf_mid2.y < mid2.y) {
-          first.push_back(leaf);
-        } else {
-          second.push_back(leaf);
-        }
-      }
+      min_bound = AABB::YMIN;
+      max_bound = AABB::YMAX;
       break;
     }
     case AABB::Z: {
-      // Split along the Z axis.
-      for (it = leaves.begin(); it != leaves.end(); it++) {
-        Node<T>* leaf = *it;
-        vec3 leaf_mid2 = leaf->BoundingBox().Sum();
-        if (leaf_mid2.z < mid2.z) {
-          first.push_back(leaf);
-        } else {
-          second.push_back(leaf);
-        }
-      }
+      min_bound = AABB::ZMIN;
+      max_bound = AABB::ZMAX;
       break;
     }
   }
 
-  // Handle degenerate cases (we must have at least one element in each list).
-  if (first.empty()) {
-    first.push_back(second.back());
-    second.pop_back();
-  } else if (second.empty()) {
-    second.push_back(first.back());
-    first.pop_back();
+  // Get the split threshold (2 x middle point along split axis).
+  scalar mid2 = aabb.bounds[min_bound] + aabb.bounds[max_bound];
+
+  // Sort the leaves vector into two new (sub-)vectors:
+  //  first sub-vector: start to start_second (exclusive)
+  //  second sub-vector: start_second to stop (exclusive)
+  int start_second = stop;
+  for (int i = start; i < start_second;) {
+    Node<T>* leaf = leaves[i];
+
+    // Check if this leaf is below or above the split threshold.
+    const AABB& leaf_aabb = leaf->BoundingBox();
+    scalar leaf_mid2 = leaf_aabb.bounds[min_bound] + leaf_aabb.bounds[max_bound];
+    if (leaf_mid2 < mid2) {
+      // Keep the leaf in the first half.
+      i++;
+    } else {
+      // Swap in the leaf into the second half.
+      start_second--;
+      Node<T>* tmp = leaves[start_second];
+      leaves[start_second] = leaf;
+      leaves[i] = tmp;
+    }
   }
 
-  // Calculate new bounding boxes for the first/second node lists.
-  AABB first_aabb, second_aabb;
-  BoundingBoxUnion(first_aabb, first);
-  BoundingBoxUnion(second_aabb, second);
+  // Handle degenerate cases (we must have at least one element in each vector).
+  if (start_second == start) {
+    start_second++;
+  } else if (start_second == stop) {
+    start_second--;
+  }
 
-  // Recursively build the new sub-trees.
-  Node<T>* first_branch = BuildSubtree(first_aabb, first);
-  Node<T>* second_branch = BuildSubtree(second_aabb, second);
+  // Calculate new bounding boxes for the first/second vectors.
+  AABB first_aabb, second_aabb;
+  BoundingBoxUnion(first_aabb, leaves, start, start_second);
+  BoundingBoxUnion(second_aabb, leaves, start_second, stop);
+
+  // Recursively build new sub-trees.
+  // TODO(mage): Here we could spawn new threads when we're at the correct depth to
+  // better utilize multi-core CPUs. E.g. run BuildSubtree() in separate threads
+  // at depth == 1 would spawn 4 threads.
+  Node<T>* first_branch = BuildSubtree(first_aabb, leaves, start, start_second, depth + 1);
+  Node<T>* second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, depth + 1);
 
   // Create a new tree branch node, and return it.
-  return new Node<T>(aabb.Min(), aabb.Max(), first_branch,
-      second_branch);
+  return new Node<T>(aabb, first_branch, second_branch);
 }
 
 }
 
 void TriangleTree::Build(const std::vector<Triangle>& triangles,
     const std::vector<Vertex>& vertices) {
+  ScopedPerf _perf = ScopedPerf(__FUNCTION__);
+
   // Clear the tree.
   m_root.reset(NULL);
+
+  // We keep a reference to the vertices.
+  m_vertices = &vertices;
 
   if (triangles.size() == 0) {
     LOG("No triangles to process.");
     return;
   }
 
-  // We keep a reference to the vertices.
-  m_vertices = &vertices;
-
-  // Create a list of nodes, and calculate the total bounding box while we're
+  // Create a vector of nodes, and calculate the total bounding box while we're
   // at it...
   AABB aabb;
-  std::list<Node<Triangle>*> leaves;
-  std::vector<Triangle>::const_iterator it;
-  for (it = triangles.begin(); it != triangles.end(); it++) {
+  std::vector<Node<Triangle>*> leaves(triangles.size());
+  std::vector<Triangle>::const_iterator tri_it;
+  std::vector<Node<Triangle>*>::iterator node_it = leaves.begin();
+  for (tri_it = triangles.begin(); tri_it != triangles.end(); tri_it++) {
     // Get triangle.
-    const Triangle* triangle = &(*it);
+    const Triangle* triangle = &(*tri_it);
 
     // Get the three vertex positions for the triangle.
     vec3 p1 = vertices[triangle->a].position;
     vec3 p2 = vertices[triangle->b].position;
     vec3 p3 = vertices[triangle->c].position;
 
-    // Calculate the boundingbox for the triangle.
+    // Calculate the boundingbox limits for the triangle.
     vec3 min(std::min(p1.x, std::min(p2.x, p3.x)),
              std::min(p1.y, std::min(p2.y, p3.y)),
              std::min(p1.z, std::min(p2.z, p3.z)));
@@ -167,10 +166,10 @@ void TriangleTree::Build(const std::vector<Triangle>& triangles,
 
     // Create a new tree leaf node, and add it to the list.
     Node<Triangle>* node = new Node<Triangle>(min, max, triangle);
-    leaves.push_back(node);
+    *node_it++ = node;
 
     // Update the union bounding box for all the triangles.
-    if (it == triangles.begin()) {
+    if (tri_it == triangles.begin()) {
       aabb = node->BoundingBox();
     } else {
       aabb += node->BoundingBox();
@@ -178,6 +177,7 @@ void TriangleTree::Build(const std::vector<Triangle>& triangles,
   }
 
   // Recursively build the tree, and the result is our root node.
-  m_root.reset(BuildSubtree(aabb, leaves));
-}
+  m_root.reset(BuildSubtree(aabb, leaves, 0, leaves.size(), 0));
 
+  _perf.Done();
+}

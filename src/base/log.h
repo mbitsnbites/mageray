@@ -51,7 +51,7 @@
 #ifdef _DEBUG
 # define DLOG(msg, ...) LOG_TO_STREAM(std::cout, "[DEBUG] ", msg, ##__VA_ARGS__)
 #else
-# define DLOG(x, msg, ...)
+# define DLOG(msg, ...)
 #endif
 
 // Assert macro with log to std err (debug only).

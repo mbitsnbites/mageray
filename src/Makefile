@@ -27,7 +27,7 @@
 #------------------------------------------------------------------------------
 
 CPP = g++
-CPPFLAGS = -c -O3 -W -Wall -std=c++0x
+CPPFLAGS = -c -O3 -ffast-math -W -Wall -std=c++0x -I.
 LFLAGS =
 LIBS = -lpng
 
@@ -42,6 +42,7 @@ LIB_OBJS = camera.o \
            material.o \
            mesh.o \
            object.o \
+           perf.o \
            scene.o \
            tree.o
 
@@ -78,6 +79,9 @@ mesh.o: mesh.cpp mesh.h
 
 object.o: object.cpp object.h
 	$(CPP) $(CPPFLAGS) object.cpp
+
+perf.o: base/perf.cpp base/perf.h
+	$(CPP) $(CPPFLAGS) base/perf.cpp
 
 scene.o: scene.cpp scene.h camera.h image.h mesh.h material.h light.h object.h
 	$(CPP) $(CPPFLAGS) scene.cpp
