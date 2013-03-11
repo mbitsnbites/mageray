@@ -114,7 +114,6 @@ struct AABB {
 };
 
 /// Tree node class.
-template <class T>
 class Node {
   public:
     ~Node() {
@@ -125,12 +124,7 @@ class Node {
       delete SecondChild();
     }
 
-    /// Constructor for leaf nodes.
-    Node(const vec3& min, const vec3& max, const T* item) :
-        m_aabb(min, max) {
-      m_leaf.item = item;
-      m_leaf.dummy = NULL;
-    }
+    Node() {}
 
     /// Constructor for branch nodes.
     Node(const AABB& aabb, Node* first, Node* second) :
@@ -150,33 +144,27 @@ class Node {
     }
 
     /// @returns The first child node of a branch node.
-    Node<T>* FirstChild() const {
+    Node* FirstChild() const {
       ASSERT(!IsLeafNode(), "This is a leaf node.");
       return m_branch.first;
     }
 
     /// @returns The second child node of a branch node.
-    Node<T>* SecondChild() const {
+    Node* SecondChild() const {
       ASSERT(!IsLeafNode(), "This is a leaf node.");
       return m_branch.second;
     }
 
-    /// @returns The data item of a leaf node.
-    const T* Item() const {
-      ASSERT(IsLeafNode(), "This is not a leaf node.");
-      return m_leaf.item;
-    }
-
-  private:
+  protected:
     AABB m_aabb;
 
     union {
       struct {
-        Node<T>* first;
-        Node<T>* second;
+        Node* first;
+        Node* second;
       } m_branch;
       struct {
-        const T* item;
+        const void* item;
         void* dummy;
       } m_leaf;
     };
@@ -184,14 +172,27 @@ class Node {
     FORBID_COPY(Node);
 };
 
-/// Binary axis aligned bounding box tree for triangles.
-class TriangleTree {
+/// Triangle tree node class.
+class TriangleNode : public Node {
   public:
-    TriangleTree() {}
+    /// Constructor for leaf nodes.
+    TriangleNode(const vec3& min, const vec3& max, const Triangle* item) {
+      m_aabb = AABB(min, max);
+      m_leaf.item = item;
+      m_leaf.dummy = NULL;
+    }
 
-    /// Build a triangle tree from raw mesh data.
-    void Build(const std::vector<Triangle>& triangles,
-        const std::vector<Vertex>& vertices);
+    /// @returns The data item of a leaf node.
+    const Triangle* Item() const {
+      ASSERT(IsLeafNode(), "This is not a leaf node.");
+      return static_cast<const Triangle*>(m_leaf.item);
+    }
+};
+
+/// Generic binary axis aligned bounding box tree.
+class Tree {
+  public:
+    Tree() {}
 
     /// Get the bounding box for the tree.
     const AABB& BoundingBox() {
@@ -199,11 +200,21 @@ class TriangleTree {
       return m_root->BoundingBox();
     }
 
-  private:
-    std::unique_ptr<Node<Triangle> > m_root;
-    const std::vector<Vertex>* m_vertices;
+  protected:
+    std::unique_ptr<Node> m_root;
 
-    FORBID_COPY(TriangleTree);
+    FORBID_COPY(Tree);
+};
+
+/// Binary axis aligned bounding box tree for triangles.
+class TriangleTree : public Tree {
+  public:
+    /// Build a triangle tree from raw mesh data.
+    void Build(const std::vector<Triangle>& triangles,
+        const std::vector<Vertex>& vertices);
+
+  private:
+    const std::vector<Vertex>* m_vertices;
 };
 
 #endif // RAYMAGE_TREE_H_
