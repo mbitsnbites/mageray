@@ -154,16 +154,16 @@ Node* BuildSubtree(const AABB& aabb, std::vector<Node*>& leaves,
   // Recursively build new sub-trees.
   Node* first_branch;
   Node* second_branch;
-  if (threaded_depth == 0) {
+  if (threaded_depth == 1) {
     // Spawn new threads when we're at the correct depth to better utilize
     // multi-core CPUs.
-    SubtreeBuilder builder1(first_aabb, leaves, start, start_second, threaded_depth + 1);
-    SubtreeBuilder builder2(second_aabb, leaves, start_second, stop, threaded_depth + 1);
+    SubtreeBuilder builder1(first_aabb, leaves, start, start_second, threaded_depth - 1);
+    SubtreeBuilder builder2(second_aabb, leaves, start_second, stop, threaded_depth - 1);
     first_branch = builder1.GetResult();
     second_branch = builder2.GetResult();
   } else {
-    first_branch = BuildSubtree(first_aabb, leaves, start, start_second, threaded_depth + 1);
-    second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, threaded_depth + 1);
+    first_branch = BuildSubtree(first_aabb, leaves, start, start_second, threaded_depth - 1);
+    second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, threaded_depth - 1);
   }
 
   // Create a new tree branch node, and return it.
@@ -224,22 +224,22 @@ void TriangleTree::Build(const std::vector<Triangle>& triangles,
 
   // Select at which tree depth to split execution into parallell threads.
   // threaded_depth interpretation:
-  //   1 -> Single threaded
-  //   0 -> 2 threads
-  //  -1 -> 4 threads
-  //  -2 -> 8 threads
-  //  -3 -> 16 threads
-  //  etc.
+  //   0 -> Single threaded
+  //   1 -> 2 threads
+  //   2 -> 4 threads
+  //   3 -> 8 threads
+  //   4 -> 16 threads
+  //   etc.
   int threaded_depth;
   int concurrency = std::thread::hardware_concurrency();
   if (concurrency >= 8)
-    threaded_depth = -2;
+    threaded_depth = 3;
   else if (concurrency >= 4)
-    threaded_depth = -1;
+    threaded_depth = 2;
   else if (concurrency >= 2)
-    threaded_depth = 0;
-  else
     threaded_depth = 1;
+  else
+    threaded_depth = 0;
   DLOG("Hardware concurrency=%d, threaded_depth=%d", concurrency, threaded_depth);
 
   // Recursively build the tree, and the result is our root node.
