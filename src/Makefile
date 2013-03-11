@@ -29,7 +29,7 @@
 CPP = g++
 CPPFLAGS = -c -O3 -ffast-math -W -Wall -std=c++0x -I.
 LFLAGS =
-LIBS = -lpng
+LIBS = -lpng -lpthread
 
 # Debug flags
 CPPFLAGS += -D_DEBUG -g

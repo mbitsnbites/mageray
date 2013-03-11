@@ -47,6 +47,10 @@ void BoundingBoxUnion(AABB& aabb, const std::vector<Node<T>*>& nodes, int start,
   }
 }
 
+template <class T>
+Node<T>* BuildSubtree(const AABB& aabb, std::vector<Node<T>*>& leaves,
+    int start, int stop, int depth);
+
 /// A threaded subtree builder.
 /// When a SubtreeBuilder object is created, it starts a new thread where the actual
 /// processing is done.
@@ -87,7 +91,7 @@ class SubtreeBuilder {
 /// Build a sub-tree from a list of leaf nodes.
 template <class T>
 Node<T>* BuildSubtree(const AABB& aabb, std::vector<Node<T>*>& leaves,
-    int start, int stop, int depth) {
+    int start, int stop, int threaded_depth) {
   if ((stop - start) == 1) {
     // Return the leaf node.
     return leaves[start];
@@ -152,25 +156,19 @@ Node<T>* BuildSubtree(const AABB& aabb, std::vector<Node<T>*>& leaves,
   BoundingBoxUnion(second_aabb, leaves, start_second, stop);
 
   // Recursively build new sub-trees.
-#if 0
-  // TODO(mage): Here we could spawn new threads when we're at the correct depth to
-  // better utilize multi-core CPUs. E.g. run BuildSubtree() in separate threads
-  // at depth == 1 would spawn 4 threads.
   Node<T>* first_branch;
   Node<T>* second_branch;
-  if (depth == 1) {
-    SubtreeBuilder<T> builder1(first_aabb, leaves, start, start_second, depth + 1);
-    SubtreeBuilder<T> builder2(second_aabb, leaves, start_second, stop, depth + 1);
+  if (threaded_depth == 0) {
+    // Spawn new threads when we're at the correct depth to better utilize
+    // multi-core CPUs.
+    SubtreeBuilder<T> builder1(first_aabb, leaves, start, start_second, threaded_depth + 1);
+    SubtreeBuilder<T> builder2(second_aabb, leaves, start_second, stop, threaded_depth + 1);
     first_branch = builder1.GetResult();
     second_branch = builder2.GetResult();
   } else {
-    first_branch = BuildSubtree(first_aabb, leaves, start, start_second, depth + 1);
-    second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, depth + 1);
+    first_branch = BuildSubtree(first_aabb, leaves, start, start_second, threaded_depth + 1);
+    second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, threaded_depth + 1);
   }
-#else
-  Node<T>* first_branch = BuildSubtree(first_aabb, leaves, start, start_second, depth + 1);
-  Node<T>* second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, depth + 1);
-#endif
 
   // Create a new tree branch node, and return it.
   return new Node<T>(aabb, first_branch, second_branch);
@@ -229,7 +227,15 @@ void TriangleTree::Build(const std::vector<Triangle>& triangles,
   }
 
   // Recursively build the tree, and the result is our root node.
-  m_root.reset(BuildSubtree(aabb, leaves, 0, leaves.size(), 0));
+  // threaded_depth interpretation:
+  //   1 -> Single threaded
+  //   0 -> 2 threads
+  //  -1 -> 4 threads
+  //  -2 -> 8 threads
+  //  -3 -> 16 threads
+  //  etc.
+  int threaded_depth = -1;
+  m_root.reset(BuildSubtree(aabb, leaves, 0, leaves.size(), threaded_depth));
 
   _perf.Done();
 }
