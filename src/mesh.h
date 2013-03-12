@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_MESH_H_
-#define RAYMAGE_MESH_H_
+#ifndef MAGERAY_MESH_H_
+#define MAGERAY_MESH_H_
 
 class Mesh {
   public:
@@ -39,4 +39,4 @@ class Mesh {
     void Reset();
 };
 
-#endif // RAYMAGE_MESH_H_
+#endif // MAGERAY_MESH_H_

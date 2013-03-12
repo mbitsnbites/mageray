@@ -56,7 +56,7 @@ clean:
 test: test.o $(LIB_OBJS)
 	$(CPP) -o test $(LFLAGS) test.o $(LIB_OBJS) $(LIBS)
 
-test.o: test.cpp vec.h mat.h image.h
+test.o: test.cpp vec.h mat.h image.h tree.h aabb.h triangle.h
 	$(CPP) $(CPPFLAGS) test.cpp
 
 camera.o: camera.cpp camera.h
@@ -86,6 +86,6 @@ perf.o: base/perf.cpp base/perf.h
 scene.o: scene.cpp scene.h camera.h image.h mesh.h material.h light.h object.h
 	$(CPP) $(CPPFLAGS) scene.cpp
 
-tree.o: tree.cpp tree.h
+tree.o: tree.cpp tree.h aabb.h
 	$(CPP) $(CPPFLAGS) tree.cpp
 

@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_VEC_H_
-#define RAYMAGE_VEC_H_
+#ifndef MAGERAY_VEC_H_
+#define MAGERAY_VEC_H_
 
 #include <cmath>
 #include <iostream>
@@ -134,5 +134,5 @@ struct vec2 {
   }
 };
 
-#endif // RAYMAGE_VEC_H_
+#endif // MAGERAY_VEC_H_
 

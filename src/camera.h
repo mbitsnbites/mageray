@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_CAMERA_H_
-#define RAYMAGE_CAMERA_H_
+#ifndef MAGERAY_CAMERA_H_
+#define MAGERAY_CAMERA_H_
 
 class Camera {
   public:
@@ -39,4 +39,4 @@ class Camera {
     void Reset();
 };
 
-#endif // RAYMAGE_CAMERA_H_
+#endif // MAGERAY_CAMERA_H_

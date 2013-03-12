@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_IMAGE_H_
-#define RAYMAGE_IMAGE_H_
+#ifndef MAGERAY_IMAGE_H_
+#define MAGERAY_IMAGE_H_
 
 #include <istream>
 #include <memory>
@@ -130,4 +130,4 @@ class Image {
     FORBID_COPY(Image);
 };
 
-#endif // RAYMAGE_IMAGE_H_
+#endif // MAGERAY_IMAGE_H_

@@ -26,94 +26,20 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_TREE_H_
-#define RAYMAGE_TREE_H_
+#ifndef MAGERAY_TREE_H_
+#define MAGERAY_TREE_H_
 
 #include <memory>
-#include <ostream>
 #include <vector>
 
+#include "aabb.h"
 #include "base/log.h"
 #include "base/types.h"
 #include "vec.h"
 #include "triangle.h"
 
-/// Axis aligned bounding box.
-struct AABB {
-  enum Axis {
-    X = 0,
-    Y = 1,
-    Z = 2
-  };
-
-  enum Bound {
-    XMIN = 0,
-    YMIN = 1,
-    ZMIN = 2,
-    XMAX = 3,
-    YMAX = 4,
-    ZMAX = 5
-  };
-
-  scalar bounds[6];
-
-  AABB() {}
-
-  AABB(const vec3& min, const vec3& max) {
-    bounds[XMIN] = min.x;
-    bounds[YMIN] = min.y;
-    bounds[ZMIN] = min.z;
-    bounds[XMAX] = max.x;
-    bounds[YMAX] = max.y;
-    bounds[ZMAX] = max.z;
-  }
-
-  /// Minimum coordinate for this bounding box.
-  vec3 Min() const {
-    return vec3(bounds[XMIN], bounds[YMIN], bounds[ZMIN]);
-  }
-
-  /// Maxium coordinate for this bounding box.
-  vec3 Max() const {
-    return vec3(bounds[XMAX], bounds[YMAX], bounds[ZMAX]);
-  }
-
-  /// Sum of Min() and Max().
-  vec3 Sum() const {
-    return vec3(bounds[XMIN] + bounds[XMAX], bounds[YMIN] + bounds[YMAX],
-        bounds[ZMIN] + bounds[ZMAX]);
-  }
-
-  /// Maxium side axis.
-  Axis LargestAxis() const {
-    scalar dx = bounds[XMAX] - bounds[XMIN];
-    scalar dy = bounds[YMAX] - bounds[YMIN];
-    scalar dz = bounds[ZMAX] - bounds[ZMIN];
-    if (dx >= dy) {
-      return dx >= dz ? X : Z;
-    } else {
-      return dy >= dz ? Y : Z;
-    }
-  };
-
-  /// Union of two bounding boxes.
-  AABB& operator+=(const AABB& other) {
-    if (other.bounds[XMIN] < bounds[XMIN]) bounds[XMIN] = other.bounds[XMIN];
-    if (other.bounds[YMIN] < bounds[YMIN]) bounds[YMIN] = other.bounds[YMIN];
-    if (other.bounds[ZMIN] < bounds[ZMIN]) bounds[ZMIN] = other.bounds[ZMIN];
-    if (other.bounds[XMAX] > bounds[XMAX]) bounds[XMAX] = other.bounds[XMAX];
-    if (other.bounds[YMAX] > bounds[YMAX]) bounds[YMAX] = other.bounds[YMAX];
-    if (other.bounds[ZMAX] > bounds[ZMAX]) bounds[ZMAX] = other.bounds[ZMAX];
-    return *this;
-  }
-
-  friend std::ostream& operator<<(std::ostream& os, const AABB& aabb) {
-    os << aabb.Min() << "->" << aabb.Max();
-    return os;
-  }
-};
-
-/// Tree node class.
+/// Generic tree node class.
+/// @note This class is intended to be extended.
 class Node {
   public:
     ~Node() {
@@ -123,8 +49,6 @@ class Node {
       delete FirstChild();
       delete SecondChild();
     }
-
-    Node() {}
 
     /// Constructor for branch nodes.
     Node(const AABB& aabb, Node* first, Node* second) :
@@ -156,6 +80,8 @@ class Node {
     }
 
   protected:
+    Node(const AABB& aabb) : m_aabb(aabb) {}
+
     AABB m_aabb;
 
     union {
@@ -176,8 +102,8 @@ class Node {
 class TriangleNode : public Node {
   public:
     /// Constructor for leaf nodes.
-    TriangleNode(const vec3& min, const vec3& max, const Triangle* item) {
-      m_aabb = AABB(min, max);
+    TriangleNode(const AABB& aabb, const Triangle* item) :
+        Node(aabb) {
       m_leaf.item = item;
       m_leaf.dummy = NULL;
     }
@@ -190,17 +116,20 @@ class TriangleNode : public Node {
 };
 
 /// Generic binary axis aligned bounding box tree.
+/// @note This class is intended to be extended.
 class Tree {
   public:
     Tree() {}
 
     /// Get the bounding box for the tree.
     const AABB& BoundingBox() {
-      ASSERT(m_root.get() != NULL, "The tree is undefined.")
+      ASSERT(m_root.get() != NULL, "The tree is undefined.");
       return m_root->BoundingBox();
     }
 
   protected:
+    void Build(std::vector<Node*>& leaves, const AABB& aabb);
+
     std::unique_ptr<Node> m_root;
 
     FORBID_COPY(Tree);
@@ -217,4 +146,4 @@ class TriangleTree : public Tree {
     const std::vector<Vertex>* m_vertices;
 };
 
-#endif // RAYMAGE_TREE_H_
+#endif // MAGERAY_TREE_H_

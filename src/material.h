@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_MATERIAL_H_
-#define RAYMAGE_MATERIAL_H_
+#ifndef MAGERAY_MATERIAL_H_
+#define MAGERAY_MATERIAL_H_
 
 class Material {
   public:
@@ -39,4 +39,4 @@ class Material {
     void Reset();
 };
 
-#endif // RAYMAGE_MATERIAL_H_
+#endif // MAGERAY_MATERIAL_H_

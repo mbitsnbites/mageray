@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_TRIANGLE_H_
-#define RAYMAGE_TRIANGLE_H_
+#ifndef MAGERAY_TRIANGLE_H_
+#define MAGERAY_TRIANGLE_H_
 
 /// A triangle.
 /// A triangle is defined by three vertex indices. The vertext array itself is
@@ -50,4 +50,4 @@ struct Vertex {
   vec2 uv;
 };
 
-#endif // RAYMAGE_TRIANGLE_H_
+#endif // MAGERAY_TRIANGLE_H_

@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_OBJECT_H_
-#define RAYMAGE_OBJECT_H_
+#ifndef MAGERAY_OBJECT_H_
+#define MAGERAY_OBJECT_H_
 
 class Object {
   public:
@@ -39,4 +39,4 @@ class Object {
     void Reset();
 };
 
-#endif // RAYMAGE_OBJECT_H_
+#endif // MAGERAY_OBJECT_H_

@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_MAT_H_
-#define RAYMAGE_MAT_H_
+#ifndef MAGERAY_MAT_H_
+#define MAGERAY_MAT_H_
 
 #include <cmath>
 #include <iostream>
@@ -153,5 +153,5 @@ class mat3x4 {
     scalar m31, m32, m33, m34;
 };
 
-#endif // RAYMAGE_VEC_H_
+#endif // MAGERAY_VEC_H_
 

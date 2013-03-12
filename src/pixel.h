@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_PIXEL_H_
-#define RAYMAGE_PIXEL_H_
+#ifndef MAGERAY_PIXEL_H_
+#define MAGERAY_PIXEL_H_
 
 #include <cstdint>
 #include <ostream>

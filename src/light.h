@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_LIGHT_H_
-#define RAYMAGE_LIGHT_H_
+#ifndef MAGERAY_LIGHT_H_
+#define MAGERAY_LIGHT_H_
 
 class Light {
   public:
@@ -39,4 +39,4 @@ class Light {
     void Reset();
 };
 
-#endif // RAYMAGE_LIGHT_H_
+#endif // MAGERAY_LIGHT_H_

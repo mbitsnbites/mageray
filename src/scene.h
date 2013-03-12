@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_SCENE_H_
-#define RAYMAGE_SCENE_H_
+#ifndef MAGERAY_SCENE_H_
+#define MAGERAY_SCENE_H_
 
 #include <istream>
 #include <list>
@@ -61,4 +61,4 @@ class Scene {
     FORBID_COPY(Scene);
 };
 
-#endif // RAYMAGE_SCENE_H_
+#endif // MAGERAY_SCENE_H_
