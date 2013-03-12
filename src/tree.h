@@ -36,6 +36,7 @@
 #include "base/log.h"
 #include "base/types.h"
 #include "vec.h"
+#include "ray.h"
 #include "triangle.h"
 
 /// Generic tree node class.
@@ -79,6 +80,10 @@ class Node {
       return m_branch.second;
     }
 
+    /// Recursively intersect a ray with this node and its subtree.
+    Node* Intersect(const Ray& ray, const AABB::Bound* sides,
+        const vec3& inv_dir, scalar& closest_t);
+
   protected:
     Node(const AABB& aabb) : m_aabb(aabb) {}
 
@@ -98,20 +103,21 @@ class Node {
     FORBID_COPY(Node);
 };
 
-/// Triangle tree node class.
-class TriangleNode : public Node {
+/// Template tree node class that supports leaf nodes.
+template <class T>
+class TypedNode : public Node {
   public:
     /// Constructor for leaf nodes.
-    TriangleNode(const AABB& aabb, const Triangle* item) :
+    TypedNode(const AABB& aabb, const T* item) :
         Node(aabb) {
       m_leaf.item = item;
       m_leaf.dummy = NULL;
     }
 
     /// @returns The data item of a leaf node.
-    const Triangle* Item() const {
+    const T* Item() const {
       ASSERT(IsLeafNode(), "This is not a leaf node.");
-      return static_cast<const Triangle*>(m_leaf.item);
+      return static_cast<const T*>(m_leaf.item);
     }
 };
 
@@ -121,13 +127,24 @@ class Tree {
   public:
     Tree() {}
 
-    /// Get the bounding box for the tree.
+    /// @returns The bounding box for the tree.
     const AABB& BoundingBox() {
       ASSERT(m_root.get() != NULL, "The tree is undefined.");
       return m_root->BoundingBox();
     }
 
+    /// Find intersection between tree and ray.
+    /// @param ray The ray to shoot into the AABB tree.
+    /// @param[in,out] closest_t The closest intersection distance.
+    /// @returns The node closest to the ray origin that intersects with the
+    /// ray, or NULL if no intersection was found.
+    // TODO(mage): This should be protected.
+    Node* Intersect(const Ray& ray, scalar& closest_t);
+
   protected:
+    /// Build a bounding box tree.
+    /// @param leaves The leaf nodes to construct the tree from.
+    /// @param aabb The total bounding box for all the nodes.
     void Build(std::vector<Node*>& leaves, const AABB& aabb);
 
     std::unique_ptr<Node> m_root;
@@ -135,10 +152,15 @@ class Tree {
     FORBID_COPY(Tree);
 };
 
+/// Triangle tree node class.
+typedef TypedNode<Triangle> TriangleNode;
+
 /// Binary axis aligned bounding box tree for triangles.
 class TriangleTree : public Tree {
   public:
     /// Build a triangle tree from raw mesh data.
+    /// @param triangles An array of the triangles to put into the tree.
+    /// @param vertices The vertex array used by the triangles.
     void Build(const std::vector<Triangle>& triangles,
         const std::vector<Vertex>& vertices);
 

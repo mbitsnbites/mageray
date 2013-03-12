@@ -185,6 +185,13 @@ void TestTrees() {
   TriangleTree tree;
   tree.Build(triangles, vertices);
   std::cout << "Bounding box = " << tree.BoundingBox() << std::endl;
+
+  std::cout << "Intersection test..." << std::endl;
+  Ray ray(vec3(0.2,-10,-0.3), vec3(0.0,1.0,0.0));
+  std::cout << "ray = " << ray << std::endl;
+  scalar closest_t = 1e10;
+  Node* node = tree.Intersect(ray, closest_t);
+  std::cout << "node = " << node << " closest_t = " << closest_t << std::endl;
 }
 
 int main() {
