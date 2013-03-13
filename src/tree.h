@@ -146,6 +146,8 @@ class Tree {
     /// @param ray The ray to shoot into the tree.
     /// @param[in,out] closest_t The closest intersection distance.
     /// @returns True if the ray intersects with a primitive in the tree.
+    /// @note This method assumes that the bounding box for the node has
+    /// already been positively checked for intersection with the ray.
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
         scalar& closest_t) = 0;
 

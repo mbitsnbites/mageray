@@ -68,7 +68,6 @@ bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
 
   // Calculate intersection point, and check if we're inside the bounds of the
   // side.
-#if 1
   switch (axis) {
     case X: {
       scalar y = ray.Origin().y + t * ray.Direction().y;
@@ -104,17 +103,6 @@ bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
       break;
     }
   }
-#else
-  // Less iffy but slightly uglier solution...
-  Axis axis1 = static_cast<Axis>((axis + 1) % 3);
-  Axis axis2 = static_cast<Axis>((axis + 2) % 3);
-  scalar a = ray.Origin()[axis1] + t * ray.Direction()[axis1];
-  scalar b = ray.Origin()[axis2] + t * ray.Direction()[axis2];
-  if (a < m_bounds[MinBound(axis1)] || a > m_bounds[MaxBound(axis1)] ||
-      b < m_bounds[MinBound(axis2)] || b > m_bounds[MaxBound(axis2)]) {
-    return false;
-  }
-#endif
 
   // If the intersection point was behind the ray origin, check that the
   // bounding box is not completely behind the ray origin.

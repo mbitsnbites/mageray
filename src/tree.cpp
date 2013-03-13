@@ -178,6 +178,13 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
 bool Tree::Intersect(const Ray& ray, scalar& closest_t) {
   ASSERT(m_root.get() != NULL, "The tree is undefined.");
 
+  // Check intersection against root node bounding box.
+  Node* node = m_root.get();
+  scalar aabb_t = closest_t;
+  if (!node->BoundingBox().Intersect(ray, aabb_t)) {
+    return false;
+  }
+
   // Recursively intersect with the entire tree.
   return RecursiveIntersect(m_root.get(), ray, closest_t);
 }
@@ -285,12 +292,6 @@ bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
 
 bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
     scalar& closest_t) {
-  // Check intersection with bounding box.
-  scalar aabb_t = closest_t;
-  if (!node->BoundingBox().Intersect(ray, aabb_t)) {
-    return false;
-  }
-
   // Was this a leaf node?
   if (node->IsLeafNode()) {
     // Get the triangle of this leaf node.
@@ -301,10 +302,27 @@ bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
     return IntersectTriangle(ray, triangle, closest_t);
   }
 
-  // Recurse further.
-  // TODO(mage): Intelligently choose the smartest path based on ray direction?
-  bool hit1 = RecursiveIntersect(node->FirstChild(), ray, closest_t);
-  bool hit2 = RecursiveIntersect(node->SecondChild(), ray, closest_t);
+  // Check intersection with children bounding boxes.
+  Node* children[2];
+  children[0] = node->FirstChild();
+  children[1] = node->SecondChild();
+  scalar t1 = closest_t, t2 = closest_t;
+  bool hit[2];
+  hit[0] = children[0]->BoundingBox().Intersect(ray, t1);
+  hit[1] = children[1]->BoundingBox().Intersect(ray, t2);
 
-  return hit1 || hit2;
+  // Select optimal recursion based on bounding box intersection results.
+  int first = 0, second = 1;
+  if (t2 < t1) {
+    first = 1;
+    second = 0;
+  }
+  if (hit[first]) {
+    hit[first] = RecursiveIntersect(children[first], ray, closest_t);
+  }
+  if (hit[second]) {
+    hit[second] = RecursiveIntersect(children[second], ray, closest_t);
+  }
+
+  return hit[0] || hit[1];
 }
