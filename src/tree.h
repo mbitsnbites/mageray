@@ -80,10 +80,6 @@ class Node {
       return m_branch.second;
     }
 
-    /// Recursively intersect a ray with this node and its subtree.
-    Node* Intersect(const Ray& ray, const AABB::Bound* sides,
-        const vec3& inv_dir, scalar& closest_t);
-
   protected:
     Node(const AABB& aabb) : m_aabb(aabb) {}
 
@@ -134,18 +130,24 @@ class Tree {
     }
 
     /// Find intersection between tree and ray.
-    /// @param ray The ray to shoot into the AABB tree.
+    /// @param ray The ray to shoot into the tree.
     /// @param[in,out] closest_t The closest intersection distance.
-    /// @returns The node closest to the ray origin that intersects with the
-    /// ray, or NULL if no intersection was found.
-    // TODO(mage): This should be protected.
-    Node* Intersect(const Ray& ray, scalar& closest_t);
+    /// @returns True if the ray intersects with a primitive in the tree.
+    bool Intersect(const Ray& ray, scalar& closest_t);
 
   protected:
     /// Build a bounding box tree.
     /// @param leaves The leaf nodes to construct the tree from.
     /// @param aabb The total bounding box for all the nodes.
     void Build(std::vector<Node*>& leaves, const AABB& aabb);
+
+    /// Recursively intersect a ray against a sub tree.
+    /// @param node The root node of the sub tree to intersect.
+    /// @param ray The ray to shoot into the tree.
+    /// @param[in,out] closest_t The closest intersection distance.
+    /// @returns True if the ray intersects with a primitive in the tree.
+    virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
+        scalar& closest_t) = 0;
 
     std::unique_ptr<Node> m_root;
 
@@ -164,7 +166,19 @@ class TriangleTree : public Tree {
     void Build(const std::vector<Triangle>& triangles,
         const std::vector<Vertex>& vertices);
 
+  protected:
+    virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
+        scalar& closest_t);
+
   private:
+    /// Check intersection between ray and triangle.
+    /// @param ray The ray.
+    /// @param triangle The triangle to intersect.
+    /// @param[in,out] closest_t The closest intersection distance.
+    /// @returns True if the ray intersects with the triangle.
+    bool IntersectTriangle(const Ray& ray, const Triangle* triangle,
+        scalar& closest_t);
+
     const std::vector<Vertex>* m_vertices;
 };
 

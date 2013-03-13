@@ -52,6 +52,17 @@ class mat3x4 {
         m21(m21_), m22(m22_), m23(m23_), m24(m24_),
         m31(m31_), m32(m32_), m33(m33_), m34(m34_) {}
 
+    /// Construct a matrix from a coordinate system.
+    /// @param e1 Basis vector 1 (the "right" axis).
+    /// @param e2 Basis vector 2 (the "forward" axis).
+    /// @param e3 Basis vector 3 (the "up" axis).
+    /// @param t Translation.
+    mat3x4(const vec3& e1, const vec3& e2, const vec3& e3, const vec3& t) :
+        m11(e1.x), m12(e2.x), m13(e3.x), m14(t.x),
+        m21(e1.y), m22(e2.y), m23(e3.y), m24(t.y),
+        m31(e1.z), m32(e2.z), m33(e3.z), m34(t.z) {}
+
+
     /// Create an identity matrix.
     static mat3x4 Identity() {
       return mat3x4(
@@ -129,8 +140,13 @@ class mat3x4 {
       );
     }
 
-    /// Transform normal (no translation).
-    vec3 TransformNormal(const vec3& n) const {
+    /// Transform point.
+    vec3 TransformPoint(const vec3& p) const {
+      return *this * p;
+    }
+
+    /// Transform direction (no translation).
+    vec3 TransformDirection(const vec3& n) const {
       return vec3(
           m11 * n.x + m12 * n.y + m13 * n.z,
           m21 * n.x + m22 * n.y + m23 * n.z,

@@ -175,108 +175,11 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
   m_root.reset(BuildSubtree(aabb, leaves.begin(), leaves.end(), threaded_depth));
 }
 
-Node* Node::Intersect(const Ray& ray, const AABB::Bound* sides,
-    const vec3& inv_dir, scalar& closest_t) {
-  // Calculat the intersections with the three closest sides of the bounding
-  // box.
-  scalar t_x = (m_aabb[sides[0]] - ray.Origin().x) * inv_dir.x;
-  scalar t_y = (m_aabb[sides[1]] - ray.Origin().y) * inv_dir.y;
-  scalar t_z = (m_aabb[sides[2]] - ray.Origin().z) * inv_dir.z;
-
-  // The furthest hit is our candidate.
-  AABB::Axis axis;
-  scalar t;
-  if (t_x > t_y) {
-    if (t_x > t_z) {
-      axis = AABB::X;
-      t = t_x;
-    } else {
-      axis = AABB::Z;
-      t = t_z;
-    }
-  } else {
-    if (t_y > t_z) {
-      axis = AABB::Y;
-      t = t_y;
-    } else {
-      axis = AABB::Z;
-      t = t_z;
-    }
-  }
-
-  // Is this even a candidate?
-  if (t > closest_t) {
-    return NULL;
-  }
-
-  // Calculate intersection point, and check if we're inside the bounds of the
-  // side.
-  switch (axis) {
-    case AABB::X: {
-      scalar y = ray.Origin().y + t * ray.Direction().y;
-      if (y < m_aabb[AABB::YMIN] || y > m_aabb[AABB::YMAX]) {
-        return NULL;
-      }
-      scalar z = ray.Origin().z + t * ray.Direction().z;
-      if (z < m_aabb[AABB::ZMIN] || z > m_aabb[AABB::ZMAX]) {
-        return NULL;
-      }
-      break;
-    }
-    case AABB::Y: {
-      scalar x = ray.Origin().x + t * ray.Direction().x;
-      if (x < m_aabb[AABB::XMIN] || x > m_aabb[AABB::XMAX]) {
-        return NULL;
-      }
-      scalar z = ray.Origin().z + t * ray.Direction().z;
-      if (z < m_aabb[AABB::ZMIN] || z > m_aabb[AABB::ZMAX]) {
-        return NULL;
-      }
-      break;
-    }
-    case AABB::Z: {
-      scalar x = ray.Origin().x + t * ray.Direction().x;
-      if (x < m_aabb[AABB::XMIN] || x > m_aabb[AABB::XMAX]) {
-        return NULL;
-      }
-      scalar y = ray.Origin().y + t * ray.Direction().y;
-      if (y < m_aabb[AABB::YMIN] || y > m_aabb[AABB::YMAX]) {
-        return NULL;
-      }
-      break;
-    }
-  }
-
-  // Was this a leaf node?
-  if (IsLeafNode()) {
-    closest_t = t;
-    return this;
-  }
-
-  // Recurse further.
-  // TODO(mage): Intelligently choose the smartest path based on ray direction.
-  Node* node1 = FirstChild()->Intersect(ray, sides, inv_dir, closest_t);
-  Node* node2 = SecondChild()->Intersect(ray, sides, inv_dir, closest_t);
-
-  return node2 ? node2 : node1;
-}
-
-Node* Tree::Intersect(const Ray& ray, scalar& closest_t) {
+bool Tree::Intersect(const Ray& ray, scalar& closest_t) {
   ASSERT(m_root.get() != NULL, "The tree is undefined.");
 
-  const vec3 dir = ray.Direction();
-
-  // Calculate inverse of the ray direction.
-  vec3 inv_dir = vec3(1.0 / dir.x, 1.0 / dir.y, 1.0 / dir.z);
-
-  // Determine which three sides of the bounding boxes to intersect with.
-  AABB::Bound sides[3];
-  sides[0] = dir.x >= 0 ? AABB::XMIN : AABB::XMAX;
-  sides[1] = dir.y >= 0 ? AABB::YMIN : AABB::YMAX;
-  sides[2] = dir.z >= 0 ? AABB::ZMIN : AABB::ZMAX;
-
   // Recursively intersect with the entire tree.
-  return m_root->Intersect(ray, sides, inv_dir, closest_t);
+  return RecursiveIntersect(m_root.get(), ray, closest_t);
 }
 
 void TriangleTree::Build(const std::vector<Triangle>& triangles,
@@ -329,4 +232,79 @@ void TriangleTree::Build(const std::vector<Triangle>& triangles,
   Tree::Build(leaves, aabb);
 
   _perf.Done();
+}
+
+bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
+    scalar& closest_t) {
+  // NOTE: This is an implementation of the Möller / Trumbone fast triangle
+  // intersection algorithm.
+
+  // Get the three vertex positions for the triangle.
+  const vec3 p1 = (*m_vertices)[triangle->a].position;
+  const vec3 p2 = (*m_vertices)[triangle->b].position;
+  const vec3 p3 = (*m_vertices)[triangle->c].position;
+
+  // Triangle basis vectors.
+  const vec3 e1 = p2 - p1;
+  const vec3 e2 = p3 - p1;
+
+  vec3 h = ray.Direction().Cross(e2);
+  scalar scale = e1.Dot(h);
+  if (scale > -EPSILON && scale < EPSILON) {
+    return false;
+  }
+  scale = 1.0 / scale;
+
+  // Calculate u coordinate of the intersection.
+  vec3 s = ray.Origin() - p1;
+  scalar u = scale * s.Dot(h);
+  if (u < 0.0 || u > 1.0) {
+    return false;
+  }
+
+  // Calculate v coordinate of the intersection.
+  vec3 q = s.Cross(e1);
+  scalar v = scale * ray.Direction().Dot(q);
+  if (v < 0.0 || u + v > 1.0) {
+    return false;
+  }
+
+  // We have an intersection. Now check if the distance is within the avaliable
+  // bounds (0, closest_t).
+  scalar t = scale * e2.Dot(q);
+  if (t > EPSILON && t < closest_t) {
+    // TODO(mage): We might want to preserve the u/v coordinates for later use,
+    // e.g. texture mapping or normal interpolation.
+    closest_t = t;
+    return true;
+  }
+
+  // No intersection.
+  return false;
+}
+
+bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
+    scalar& closest_t) {
+  // Check intersection with bounding box.
+  scalar aabb_t = closest_t;
+  if (!node->BoundingBox().Intersect(ray, aabb_t)) {
+    return false;
+  }
+
+  // Was this a leaf node?
+  if (node->IsLeafNode()) {
+    // Get the triangle of this leaf node.
+    const Triangle* triangle =
+        reinterpret_cast<const TriangleNode*>(node)->Item();
+
+    // Calculate intersection with the triangle.
+    return IntersectTriangle(ray, triangle, closest_t);
+  }
+
+  // Recurse further.
+  // TODO(mage): Intelligently choose the smartest path based on ray direction?
+  bool hit1 = RecursiveIntersect(node->FirstChild(), ray, closest_t);
+  bool hit2 = RecursiveIntersect(node->SecondChild(), ray, closest_t);
+
+  return hit1 || hit2;
 }

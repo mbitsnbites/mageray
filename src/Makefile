@@ -35,7 +35,8 @@ LIBS = -lpng -lpthread
 CPPFLAGS += -D_DEBUG -g
 LFLAGS += -g
 
-LIB_OBJS = camera.o \
+LIB_OBJS = aabb.o \
+           camera.o \
            image.o \
            light.o \
            mat.o \
@@ -58,6 +59,9 @@ test: test.o $(LIB_OBJS)
 
 test.o: test.cpp vec.h mat.h image.h tree.h aabb.h triangle.h
 	$(CPP) $(CPPFLAGS) test.cpp
+
+aabb.o: aabb.cpp aabb.h ray.h
+	$(CPP) $(CPPFLAGS) aabb.cpp
 
 camera.o: camera.cpp camera.h
 	$(CPP) $(CPPFLAGS) camera.cpp
@@ -86,6 +90,6 @@ perf.o: base/perf.cpp base/perf.h
 scene.o: scene.cpp scene.h camera.h image.h mesh.h material.h light.h object.h
 	$(CPP) $(CPPFLAGS) scene.cpp
 
-tree.o: tree.cpp tree.h aabb.h
+tree.o: tree.cpp tree.h aabb.h ray.h vec.h
 	$(CPP) $(CPPFLAGS) tree.cpp
 

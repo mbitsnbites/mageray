@@ -30,10 +30,25 @@
 #define RAYMAGE_BASE_TYPES_H_
 
 // Floating point type used throughout the program.
+#define SCALAR_IS_FLOAT
+//#define SCALAR_IS_DOUBLE
+
+#ifdef SCALAR_IS_FLOAT
 typedef float scalar;
+#else
+typedef double scalar;
+#endif
+
+// We need a very small distance at times (e.g. for checking if we're > 0, but
+// accounting for numerical rounding errors).
+#ifdef SCALAR_IS_FLOAT
+# define EPSILON 1e-5
+#else
+# define EPSILON 1e-10
+#endif
 
 // Since we simply can't seem to get PI into the C++ standard (?), put it here.
-#define PI 3.1415926535897932384626433832795028841971693993751058209749445923078
+#define PI 3.141592653589793238462643383279502884197169399375105820974944592308
 
 // Convenience macro for disabling assignment and copying for a class.
 #define FORBID_COPY(x)  \

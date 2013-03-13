@@ -31,6 +31,7 @@
 #include <cmath>
 
 #include "base/perf.h"
+#include "camera.h"
 #include "vec.h"
 #include "mat.h"
 #include "image.h"
@@ -98,14 +99,14 @@ void TestVectors() {
   h = g + vec3(0.01, 2.1, -0.3);
   h = h + vec3(1);
 
-  std::cout << "x=" << x << ", z=" << z << " |g|=" << g.abs() << " |h|=" << h.abs() << std::endl;
+  std::cout << "x=" << x << ", z=" << z << " |g|=" << g.Abs() << " |h|=" << h.Abs() << std::endl;
 
-  double d = x.dot(g);
-  vec3 v = x.cross(vec3(1,0,0));
+  double d = x.Dot(g);
+  vec3 v = x.Cross(vec3(1,0,0));
 
   std::cout << "d=" << d << " v=" << v << std::endl;
 
-  vec3 n = vec3(1.0f,0.0f,0.0f).cross(vec3(0.0f,1.0f,0.0f));
+  vec3 n = vec3(1.0f,0.0f,0.0f).Cross(vec3(0.0f,1.0f,0.0f));
   n += vec3(0.0f);
 
   std::cout << "(1,0,0) x (0,1,0) = " << n << std::endl;
@@ -190,8 +191,65 @@ void TestTrees() {
   Ray ray(vec3(0.2,-10,-0.3), vec3(0.0,1.0,0.0));
   std::cout << "ray = " << ray << std::endl;
   scalar closest_t = 1e10;
-  Node* node = tree.Intersect(ray, closest_t);
-  std::cout << "node = " << node << " closest_t = " << closest_t << std::endl;
+  bool hit = tree.Intersect(ray, closest_t);
+  std::cout << "hit = " << hit << " closest_t = " << closest_t << std::endl;
+
+  std::cout << std::endl << "Camera test..." << std::endl;
+  {
+    // Create a target image.
+    Image img;
+    if (img.Allocate(1024, 768)) {
+      // Set up camera.
+      Camera cam;
+      cam.Position(vec3(1.0, -10, 1.0));
+      cam.LookAt(vec3(0, 0, 0));
+
+      // Main camera loop.
+      vec3 cam_pos = cam.Matrix().TransformPoint(vec3(0));
+      vec3 forward = cam.Matrix().TransformDirection(vec3(0,1,0));
+      vec3 right = cam.Matrix().TransformDirection(vec3(1,0,0));
+      vec3 up = cam.Matrix().TransformDirection(vec3(0,0,1));
+      std::cout << "Camera: pos=" << cam_pos << " forward=" << forward << " right=" << right << " up=" << up << std::endl;
+
+      scalar width = static_cast<scalar>(img.Width());
+      scalar height = static_cast<scalar>(img.Height());
+      vec3 u_step = right * (1.0 / height);
+      vec3 v_step = up * (1.0 / height);
+      std::cout << "Camera: x_step=" << u_step << " y_step=" << v_step << std::endl;
+
+      ScopedPerf _raytrace = ScopedPerf("Raytracing image");
+
+      int hits = 0, misses = 0;
+      for (int v = 0; v < img.Height(); ++v) {
+        vec3 dir = forward + u_step * (-0.5 * width) +
+          v_step * (static_cast<scalar>(v) - 0.5 * height);
+        for (int u = 0; u < img.Width(); ++u) {
+          // Construct a ray.
+          Ray ray(cam_pos, dir);
+
+          // Shoot a ray.
+          scalar closest_t = 1e10;
+          if (tree.Intersect(ray, closest_t)) {
+            scalar s = 1.0 - std::min(closest_t * 0.1, 1.0);
+            img.PixelAt(u, v) = Pixel(s, s, s);
+            ++hits;
+          } else {
+            img.PixelAt(u, v) = Pixel(0, 0, 50);
+            ++misses;
+          }
+
+          dir += u_step;
+        }
+      }
+
+      _raytrace.Done();
+
+      std::cout << "hits=" << hits << " misses=" << misses << std::endl;
+
+      // Save image.
+      img.SavePNG("raytraced.png");
+    }
+  }
 }
 
 int main() {

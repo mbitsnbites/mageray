@@ -28,6 +28,35 @@
 
 #include "camera.h"
 
+#include "base/log.h"
+#include "base/types.h"
+
 void Camera::Reset() {
+  // Set default properties.
+  m_look_at = vec3(0, 0, 0);
+  m_position = vec3(1, -10, 1);
+  m_nominal_up = vec3(0, 0, 1);
+
+  // Update transformation matrices.
+  UpdateMatrices();
 }
 
+void Camera::UpdateMatrices() {
+  // Forward direction.
+  vec3 forward = (m_look_at - m_position).Normalize();
+  ASSERT(forward.AbsSqr() > EPSILON, "Undefined direction.");
+
+  // Right direction.
+  ASSERT(m_nominal_up.AbsSqr() > EPSILON, "Undefined nominal up direction.");
+  vec3 right = forward.Cross(m_nominal_up).Normalize();
+  ASSERT(right.AbsSqr() > EPSILON, "Undefined right direction.");
+
+  // Actual up direction (no need to normalize).
+  vec3 up = right.Cross(forward);
+
+  // Construct transformation matrix.
+  m_matrix = mat3x4(right, forward, up, m_position);
+
+  // ...and the inverse transformation matrix.
+  m_inv_matrix = m_matrix.Inverse();
+}

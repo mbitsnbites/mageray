@@ -31,6 +31,7 @@
 
 #include <ostream>
 
+#include "aabb.h"
 #include "vec.h"
 
 /// Axis aligned bounding box.
@@ -40,22 +41,81 @@ class Ray {
 
     Ray(const vec3& origin, const vec3& direction) :
         m_origin(origin),
-        m_direction(direction) {}
+        m_direction(direction) {
+      // Calculate inverse of the ray direction.
+      m_inv_direction = vec3(1.0 / direction.x, 1.0 / direction.y,
+          1.0 / direction.z);
 
+      // Determine closest and farthest AABB sides for the given direction.
+      if (direction.x >= 0) {
+        m_close_sides[AABB::X] = AABB::XMIN;
+        m_far_sides[AABB::X] = AABB::XMAX;
+      } else {
+        m_close_sides[AABB::X] = AABB::XMAX;
+        m_far_sides[AABB::X] = AABB::XMIN;
+      }
+      if (direction.y >= 0) {
+        m_close_sides[AABB::Y] = AABB::YMIN;
+        m_far_sides[AABB::Y] = AABB::YMAX;
+      } else {
+        m_close_sides[AABB::Y] = AABB::YMAX;
+        m_far_sides[AABB::Y] = AABB::YMIN;
+      }
+      if (direction.z >= 0) {
+        m_close_sides[AABB::Z] = AABB::ZMIN;
+        m_far_sides[AABB::Z] = AABB::ZMAX;
+      } else {
+        m_close_sides[AABB::Z] = AABB::ZMAX;
+        m_far_sides[AABB::Z] = AABB::ZMIN;
+      }
+
+      // Calculate the plane equation parameter for the plane that has the ray
+      // direction as normal and the ray origin as one of its points.
+      m_plane_d = origin.Dot(direction);
+    }
+
+    /// @returns The ray origin.
     vec3& Origin() {
       return m_origin;
     }
 
+    /// @returns The ray origin.
     const vec3& Origin() const {
       return m_origin;
     }
 
+    /// @returns The ray direction.
     vec3& Direction() {
       return m_direction;
     }
 
+    /// @returns The ray direction.
     const vec3& Direction() const {
       return m_direction;
+    }
+
+    /// @returns The inverse ray direction.
+    const vec3& InvDirection() const {
+      return m_inv_direction;
+    }
+
+    /// Check if a point is behind the ray origin.
+    /// @returns True if the given point is behind the plane described by the
+    /// ray origin and the ray direction.
+    bool PointBehind(const vec3& point) const {
+      return m_direction.Dot(point) < m_plane_d;
+    }
+
+    /// @returns A three element array (x, y, z) holding the closest sides of
+    /// an AABB for this ray's direction.
+    const AABB::Bound* CloseSides() const {
+      return m_close_sides;
+    }
+
+    /// @returns A three element array (x, y, z) holding the farthest sides of
+    /// an AABB for this ray's direction.
+    const AABB::Bound* FarSides() const {
+      return m_far_sides;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Ray& ray) {
@@ -66,6 +126,10 @@ class Ray {
   private:
     vec3 m_origin;
     vec3 m_direction;
+    vec3 m_inv_direction;
+    AABB::Bound m_close_sides[3];
+    AABB::Bound m_far_sides[3];
+    scalar m_plane_d;
 };
 
 #endif // MAGERAY_RAY_H_

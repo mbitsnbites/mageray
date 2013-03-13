@@ -29,6 +29,9 @@
 #ifndef MAGERAY_CAMERA_H_
 #define MAGERAY_CAMERA_H_
 
+#include "vec.h"
+#include "mat.h"
+
 class Camera {
   public:
     Camera() {
@@ -37,6 +40,45 @@ class Camera {
     ~Camera() {}
 
     void Reset();
+
+    /// Set the camera position.
+    void Position(const vec3& position) {
+      m_position = position;
+      UpdateMatrices();
+    }
+
+    /// Set the observation point.
+    void LookAt(const vec3& look_at) {
+      m_look_at = look_at;
+      UpdateMatrices();
+    }
+
+    /// Set the nominal up direction.
+    void NominalUp(const vec3& up) {
+      m_nominal_up = up;
+      UpdateMatrices();
+    }
+
+    /// Get the transformation matrix.
+    const mat3x4 Matrix() const {
+      return m_matrix;
+    }
+
+    /// Get the inverse transformation matrix.
+    const mat3x4 InvMatrix() const {
+      return m_inv_matrix;
+    }
+
+  private:
+    /// Update the transformation matrices.
+    void UpdateMatrices();
+
+    vec3 m_position;
+    vec3 m_look_at;
+    vec3 m_nominal_up;
+
+    mat3x4 m_matrix;
+    mat3x4 m_inv_matrix;
 };
 
 #endif // MAGERAY_CAMERA_H_

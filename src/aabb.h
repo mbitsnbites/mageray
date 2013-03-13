@@ -34,6 +34,8 @@
 #include "base/types.h"
 #include "vec.h"
 
+class Ray;
+
 /// Axis aligned bounding box.
 class AABB {
   public:
@@ -63,6 +65,14 @@ class AABB {
       Y = 1,
       Z = 2
     };
+
+    static Bound MinBound(const Axis axis) {
+      return static_cast<Bound>(axis);
+    }
+
+    static Bound MaxBound(const Axis axis) {
+      return static_cast<Bound>(axis + 3);
+    }
 
     /// Minimum coordinate for this bounding box.
     vec3 Min() const {
@@ -104,6 +114,12 @@ class AABB {
     const scalar& operator[](Bound bound) const {
       return m_bounds[bound];
     }
+
+    /// Check if a ray intersects this bounding box.
+    /// @param ray The ray.
+    /// @param[in,out] closest_t The closes intersection distance this far.
+    /// If an intersection occurred, closest_t will be updated accordingly.
+    bool Intersect(const Ray& ray, scalar& closest_t) const;
 
     friend std::ostream& operator<<(std::ostream& os, const AABB& aabb) {
       os << aabb.Min() << "->" << aabb.Max();

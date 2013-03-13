@@ -87,29 +87,47 @@ struct vec3 {
     return *this;
   }
 
+  /// Array access to the elements.
+  /// @note There are no bounds checks!
+  scalar& operator[](const int idx) {
+    return (&x)[idx];
+  }
+
+  const scalar& operator[](const int idx) const {
+    return (&x)[idx];
+  }
+
   /// @returns The negative vector (scaled by -1).
-  vec3 neg() const {
+  vec3 Neg() const {
     return vec3(-x, -y, -z);
   }
 
   /// @returns The squared absolute value of the vector, |v|^2.
-  scalar abs_sqr() const {
+  scalar AbsSqr() const {
     return x * x + y * y + z * z;
   }
 
   /// @returns The absolute value of the vector, |v|.
-  scalar abs() const {
-    return std::sqrt(abs_sqr());
+  scalar Abs() const {
+    return std::sqrt(AbsSqr());
   }
 
   /// @returns The dot product of two vectors.
-  scalar dot(const vec3& v) const {
+  scalar Dot(const vec3& v) const {
     return x * v.x + y * v.y + z * v.z;
   }
 
   /// @returns The cross product of two vectors.
-  vec3 cross(const vec3& v) const {
+  vec3 Cross(const vec3& v) const {
     return vec3(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
+  }
+
+  vec3 Normalize() const {
+    scalar denom = this->Abs();
+    if (denom < EPSILON) {
+      return *this;
+    }
+    return *this * (1.0 / denom);
   }
 
   friend std::ostream& operator<<(std::ostream& os, const vec3& v) {
