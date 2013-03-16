@@ -201,8 +201,8 @@ void TestTrees() {
     if (img.Allocate(1024, 768)) {
       // Set up camera.
       Camera cam;
-      cam.Position(vec3(1.0, -10, 1.0));
-      cam.LookAt(vec3(0, 0, 0));
+      cam.SetPosition(vec3(1.0, -10, 1.0));
+      cam.SetLookAt(vec3(0, 0, 0));
 
       // Main camera loop.
       vec3 cam_pos = cam.Matrix().TransformPoint(vec3(0));

@@ -42,7 +42,9 @@
 
 class Scene {
   public:
-    Scene() {}
+    Scene() {
+      Reset();
+    }
     ~Scene() {}
 
     void Reset();

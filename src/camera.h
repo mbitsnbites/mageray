@@ -42,19 +42,19 @@ class Camera {
     void Reset();
 
     /// Set the camera position.
-    void Position(const vec3& position) {
+    void SetPosition(const vec3& position) {
       m_position = position;
       UpdateMatrices();
     }
 
     /// Set the observation point.
-    void LookAt(const vec3& look_at) {
+    void SetLookAt(const vec3& look_at) {
       m_look_at = look_at;
       UpdateMatrices();
     }
 
     /// Set the nominal up direction.
-    void NominalUp(const vec3& up) {
+    void SetNominalUp(const vec3& up) {
       m_nominal_up = up;
       UpdateMatrices();
     }

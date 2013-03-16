@@ -29,6 +29,8 @@
 #ifndef MAGERAY_MATERIAL_H_
 #define MAGERAY_MATERIAL_H_
 
+#include "vec.h"
+
 class Material {
   public:
     Material() {
@@ -37,6 +39,80 @@ class Material {
     ~Material() {}
 
     void Reset();
+
+    void SetColor(const vec3& color) {
+      m_color = color;
+    }
+
+    const vec3& Color() const {
+      return m_color;
+    }
+
+    void SetAmbient(const scalar& ambient) {
+      m_ambient = ambient;
+    }
+
+    const scalar& Ambient() const {
+      return m_ambient;
+    }
+
+    void SetDiffuse(const scalar& diffuse) {
+      m_diffuse = diffuse;
+    }
+
+    const scalar& Diffuse() const {
+      return m_diffuse;
+    }
+
+    void SetSpecular(const scalar& specular) {
+      m_specular = specular;
+    }
+
+    const scalar& Specular() const {
+      return m_specular;
+    }
+
+    void SetHardness(const scalar& hardness) {
+      m_hardness = hardness;
+    }
+
+    const scalar& Hardness() const {
+      return m_hardness;
+    }
+
+    void SetMirror(const scalar& mirror) {
+      m_mirror = mirror;
+    }
+
+    const scalar& Mirror() const {
+      return m_mirror;
+    }
+
+    void SetAlpha(const scalar& alpha) {
+      m_alpha = alpha;
+    }
+
+    const scalar& Alpha() const {
+      return m_alpha;
+    }
+
+    void SetIor(const scalar& ior) {
+      m_ior = ior;
+    }
+
+    const scalar& Ior() const {
+      return m_ior;
+    }
+
+  private:
+    vec3 m_color;
+    scalar m_ambient;
+    scalar m_diffuse;
+    scalar m_specular;
+    scalar m_hardness;
+    scalar m_mirror;
+    scalar m_alpha;
+    scalar m_ior;
 };
 
 #endif // MAGERAY_MATERIAL_H_

@@ -29,6 +29,8 @@
 #ifndef MAGERAY_LIGHT_H_
 #define MAGERAY_LIGHT_H_
 
+#include "vec.h"
+
 class Light {
   public:
     Light() {
@@ -37,6 +39,35 @@ class Light {
     ~Light() {}
 
     void Reset();
+
+    void SetPosition(const vec3& position) {
+      m_position = position;
+    }
+
+    const vec3& Position() const {
+      return m_position;
+    }
+
+    void SetColor(const vec3& color) {
+      m_color = color;
+    }
+
+    const vec3& Color() const {
+      return m_color;
+    }
+
+    void SetDistance(const scalar& distance) {
+      m_distance = distance;
+    }
+
+    const scalar& Distance() const {
+      return m_distance;
+    }
+
+  private:
+    vec3 m_position;
+    vec3 m_color;
+    scalar m_distance;
 };
 
 #endif // MAGERAY_LIGHT_H_

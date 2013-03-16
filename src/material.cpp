@@ -29,5 +29,12 @@
 #include "material.h"
 
 void Material::Reset() {
+  m_color = vec3(1.0, 1.0, 1.0);
+  m_ambient = 0.2;
+  m_diffuse = 0.8;
+  m_specular = 0.5;
+  m_hardness = 50.0;
+  m_mirror = 0.0;
+  m_alpha = 1.0;
+  m_ior = 1.0;
 }
-
