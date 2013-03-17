@@ -26,14 +26,31 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #------------------------------------------------------------------------------
 
+OPENCTM_PATH = third_party/openctm/lib
+LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.so
+
 CPP = g++
-CPPFLAGS = -c -O3 -ffast-math -W -Wall -std=c++0x -I.
-LFLAGS =
-LIBS = -lpng -lpthread
+CPPFLAGS = -c -O3 -ffast-math -W -Wall -std=c++0x -I. -I$(OPENCTM_PATH)
+LFLAGS = -L$(OPENCTM_PATH) -Wl,-rpath,.
+LIBS = -lpng -lpthread -lopenctm2
+
+DEPEND = $(CPP) -MM
 
 # Debug flags
 CPPFLAGS += -D_DEBUG -g
 LFLAGS += -g
+
+LIB_SRCS = aabb.cpp \
+           camera.cpp \
+           image.cpp \
+           light.cpp \
+           mat.cpp \
+           material.cpp \
+           mesh.cpp \
+           object.cpp \
+           scene.cpp \
+           test.cpp \
+           tree.cpp
 
 LIB_OBJS = aabb.o \
            camera.o \
@@ -47,49 +64,32 @@ LIB_OBJS = aabb.o \
            scene.o \
            tree.o
 
-.PHONY: all clean
+.PHONY: all clean depend
 
 all: test
 
 clean:
-	rm -rf test test.o $(LIB_OBJS)
+	rm -rf test test.o $(LIB_OBJS) libopenctm2.so make.depend
 
-test: test.o $(LIB_OBJS)
+test: test.o $(LIB_OBJS) libopenctm2.so
 	$(CPP) -o test $(LFLAGS) test.o $(LIB_OBJS) $(LIBS)
 
 test.o: test.cpp vec.h mat.h image.h tree.h aabb.h triangle.h
 	$(CPP) $(CPPFLAGS) test.cpp
 
-aabb.o: aabb.cpp aabb.h ray.h
-	$(CPP) $(CPPFLAGS) aabb.cpp
+libopenctm2.so: $(LIBOPENCTM)
+	cp $< $@
 
-camera.o: camera.cpp camera.h
-	$(CPP) $(CPPFLAGS) camera.cpp
+$(LIBOPENCTM):
+	cd $(OPENCTM_PATH) && $(MAKE) -f Makefile.linux depend && $(MAKE) -f Makefile.linux
 
-image.o: image.cpp image.h pixel.h
-	$(CPP) $(CPPFLAGS) image.cpp
+%.o: %.cpp
+	$(CPP) $(CPPFLAGS) -o $@ $<
 
-light.o: light.cpp light.h
-	$(CPP) $(CPPFLAGS) light.cpp
+%.o: base/%.cpp
+	$(CPP) $(CPPFLAGS) -o $@ $<
 
-mat.o: mat.cpp mat.h
-	$(CPP) $(CPPFLAGS) mat.cpp
+depend:
+	$(DEPEND) $(CPPFLAGS) $(LIB_SRCS) > make.depend
 
-material.o: material.cpp material.h
-	$(CPP) $(CPPFLAGS) material.cpp
-
-mesh.o: mesh.cpp mesh.h
-	$(CPP) $(CPPFLAGS) mesh.cpp
-
-object.o: object.cpp object.h
-	$(CPP) $(CPPFLAGS) object.cpp
-
-perf.o: base/perf.cpp base/perf.h
-	$(CPP) $(CPPFLAGS) base/perf.cpp
-
-scene.o: scene.cpp scene.h camera.h image.h mesh.h material.h light.h object.h
-	$(CPP) $(CPPFLAGS) scene.cpp
-
-tree.o: tree.cpp tree.h aabb.h ray.h vec.h
-	$(CPP) $(CPPFLAGS) tree.cpp
-
+-include make.depend
