@@ -27,12 +27,12 @@
 #------------------------------------------------------------------------------
 
 OPENCTM_PATH = third_party/openctm/lib
-LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.so
+LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.a
 
 CPP = g++
 CPPFLAGS = -c -O3 -ffast-math -W -Wall -std=c++0x -I. -I$(OPENCTM_PATH)
-LFLAGS = -L$(OPENCTM_PATH) -Wl,-rpath,.
-LIBS = -lpng -lpthread -lopenctm2
+LFLAGS = -L$(OPENCTM_PATH)
+LIBS = -lpng -lopenctm2 -lpthread -lm
 
 DEPEND = $(CPP) -MM
 
@@ -69,19 +69,16 @@ LIB_OBJS = aabb.o \
 all: test
 
 clean:
-	rm -rf test test.o $(LIB_OBJS) libopenctm2.so make.depend
+	rm -rf test test.o $(LIB_OBJS) make.depend
 
-test: test.o $(LIB_OBJS) libopenctm2.so
+test: test.o $(LIB_OBJS) $(LIBOPENCTM)
 	$(CPP) -o test $(LFLAGS) test.o $(LIB_OBJS) $(LIBS)
 
 test.o: test.cpp vec.h mat.h image.h tree.h aabb.h triangle.h
 	$(CPP) $(CPPFLAGS) test.cpp
 
-libopenctm2.so: $(LIBOPENCTM)
-	cp $< $@
-
 $(LIBOPENCTM):
-	cd $(OPENCTM_PATH) && $(MAKE) -f Makefile.linux depend && $(MAKE) -f Makefile.linux
+	cd $(OPENCTM_PATH) && $(MAKE) -f Makefile.linux depend && $(MAKE) -f Makefile.linux libopenctm2.a
 
 %.o: %.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
