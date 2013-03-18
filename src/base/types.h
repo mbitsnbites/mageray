@@ -30,8 +30,9 @@
 #define RAYMAGE_BASE_TYPES_H_
 
 // Floating point type used throughout the program.
-#define SCALAR_IS_FLOAT
-//#define SCALAR_IS_DOUBLE
+#if !defined(SCALAR_IS_FLOAT) && !defined(SCALAR_IS_DOUBLE)
+# define SCALAR_IS_FLOAT
+#endif
 
 #ifdef SCALAR_IS_FLOAT
 typedef float scalar;
