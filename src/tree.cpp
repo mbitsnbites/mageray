@@ -242,7 +242,7 @@ void TriangleTree::Build(const std::vector<Triangle>& triangles,
 }
 
 bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
-    scalar& closest_t) {
+    scalar& closest_t) const {
   // NOTE: This is an implementation of the Möller / Trumbone fast triangle
   // intersection algorithm.
 
@@ -291,7 +291,7 @@ bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
 }
 
 bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
-    scalar& closest_t) {
+    scalar& closest_t) const {
   // Was this a leaf node?
   if (node->IsLeafNode()) {
     // Get the triangle of this leaf node.

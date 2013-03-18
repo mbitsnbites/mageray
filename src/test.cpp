@@ -35,55 +35,9 @@
 #include "vec.h"
 #include "mat.h"
 #include "image.h"
+#include "mesh.h"
 #include "tree.h"
 #include "triangle.h"
-
-void MakeSphere(std::vector<Triangle>& triangles, std::vector<Vertex>& vertices,
-  int res, scalar radius) {
-  ScopedPerf _perf = ScopedPerf(__FUNCTION__);
-
-  // Make vertices
-  int vertex_span = res + 1;
-  int num_vertices = vertex_span * (res + 1);
-  vertices.resize(num_vertices);
-  scalar step = 1.0 / static_cast<scalar>(res);
-  scalar u = 0;
-  for (int i = 0, k = 0; i <= res; ++i) {
-    scalar cos_theta = std::cos(2*PI*u);
-    scalar sin_theta = std::sin(2*PI*u);
-    scalar v = 0;
-    for (int j = 0; j <= res; ++j) {
-      scalar cos_phi = std::cos(PI*v);
-      scalar sin_phi = std::sin(PI*v);
-      Vertex* vertex = &vertices[k++];
-      vertex->normal = vec3(
-        cos_theta * sin_phi,
-        sin_theta * sin_phi,
-        cos_phi
-      );
-      vertex->position = vertex->normal * radius;
-      vertex->uv = vec2(u, v);
-      v += step;
-    }
-    u += step;
-  }
-
-  // Make triangles
-  int num_triangles = res * res * 2;
-  triangles.resize(num_triangles);
-  for (int i = 0, k = 0; i < res; ++i) {
-    for (int j = 0; j < res; ++j) {
-      Triangle* triangle1 = &triangles[k++];
-      Triangle* triangle2 = &triangles[k++];
-      triangle1->a = triangle2->a = i * vertex_span + j;
-      triangle1->b = i * vertex_span + j + 1;
-      triangle1->c = triangle2->b = (i + 1) * vertex_span + j + 1;
-      triangle2->c = (i + 1) * vertex_span + j;
-    }
-  }
-
-  _perf.Done();
-}
 
 void TestVectors() {
   std::cout << "--- Vectors ---" << std::endl;
@@ -176,78 +130,66 @@ void TestImages() {
 void TestTrees() {
   std::cout << std::endl << "--- Trees ---" << std::endl;
 
-  std::cout << "Creating a sphere mesh..." << std::endl;
-  std::vector<Triangle> triangles;
-  std::vector<Vertex> vertices;
-  MakeSphere(triangles, vertices, 1000, 4.0);
-  std::cout << triangles.size() << " triangles, " << vertices.size() << " vertices." << std::endl;
+  Mesh mesh;
+  if (mesh.Load("../resources/bunny.ctm")) {
+    Tree* tree = &mesh.Tree();
+    std::cout << "Bounding box = " << tree->BoundingBox() << std::endl;
 
-  std::cout << "Creating a triangle tree..." << std::endl;
-  TriangleTree tree;
-  tree.Build(triangles, vertices);
-  std::cout << "Bounding box = " << tree.BoundingBox() << std::endl;
+    std::cout << std::endl << "Camera test..." << std::endl;
+    {
+      // Create a target image.
+      Image img;
+      if (img.Allocate(1024, 768)) {
+        // Set up camera.
+        Camera cam;
+        cam.SetPosition(vec3(1.0, -5.0, 3.0));
+        cam.SetLookAt(vec3(0, 0, 2.0));
 
-  std::cout << "Intersection test..." << std::endl;
-  Ray ray(vec3(0.2,-10,-0.3), vec3(0.0,1.0,0.0));
-  std::cout << "ray = " << ray << std::endl;
-  scalar closest_t = 1e10;
-  bool hit = tree.Intersect(ray, closest_t);
-  std::cout << "hit = " << hit << " closest_t = " << closest_t << std::endl;
+        // Main camera loop.
+        vec3 cam_pos = cam.Matrix().TransformPoint(vec3(0));
+        vec3 forward = cam.Matrix().TransformDirection(vec3(0,1,0));
+        vec3 right = cam.Matrix().TransformDirection(vec3(1,0,0));
+        vec3 up = cam.Matrix().TransformDirection(vec3(0,0,1));
+        std::cout << "Camera: pos=" << cam_pos << " forward=" << forward << " right=" << right << " up=" << up << std::endl;
 
-  std::cout << std::endl << "Camera test..." << std::endl;
-  {
-    // Create a target image.
-    Image img;
-    if (img.Allocate(1024, 768)) {
-      // Set up camera.
-      Camera cam;
-      cam.SetPosition(vec3(1.0, -10, 1.0));
-      cam.SetLookAt(vec3(0, 0, 0));
+        scalar width = static_cast<scalar>(img.Width());
+        scalar height = static_cast<scalar>(img.Height());
+        vec3 u_step = right * (1.0 / height);
+        vec3 v_step = up * (-1.0 / height);
+        std::cout << "Camera: x_step=" << u_step << " y_step=" << v_step << std::endl;
 
-      // Main camera loop.
-      vec3 cam_pos = cam.Matrix().TransformPoint(vec3(0));
-      vec3 forward = cam.Matrix().TransformDirection(vec3(0,1,0));
-      vec3 right = cam.Matrix().TransformDirection(vec3(1,0,0));
-      vec3 up = cam.Matrix().TransformDirection(vec3(0,0,1));
-      std::cout << "Camera: pos=" << cam_pos << " forward=" << forward << " right=" << right << " up=" << up << std::endl;
+        ScopedPerf _raytrace = ScopedPerf("Raytracing image");
 
-      scalar width = static_cast<scalar>(img.Width());
-      scalar height = static_cast<scalar>(img.Height());
-      vec3 u_step = right * (1.0 / height);
-      vec3 v_step = up * (1.0 / height);
-      std::cout << "Camera: x_step=" << u_step << " y_step=" << v_step << std::endl;
+        int hits = 0, misses = 0;
+        for (int v = 0; v < img.Height(); ++v) {
+          vec3 dir = forward + u_step * (-0.5 * width) +
+            v_step * (static_cast<scalar>(v) - 0.5 * height);
+          for (int u = 0; u < img.Width(); ++u) {
+            // Construct a ray.
+            Ray ray(cam_pos, dir);
 
-      ScopedPerf _raytrace = ScopedPerf("Raytracing image");
+            // Shoot a ray.
+            scalar closest_t = 1e10;
+            if (tree->Intersect(ray, closest_t)) {
+              scalar s = 1.0 - std::min(closest_t * 0.1, 1.0);
+              img.PixelAt(u, v) = Pixel(s, s, s);
+              ++hits;
+            } else {
+              img.PixelAt(u, v) = Pixel(0, 0, 50);
+              ++misses;
+            }
 
-      int hits = 0, misses = 0;
-      for (int v = 0; v < img.Height(); ++v) {
-        vec3 dir = forward + u_step * (-0.5 * width) +
-          v_step * (static_cast<scalar>(v) - 0.5 * height);
-        for (int u = 0; u < img.Width(); ++u) {
-          // Construct a ray.
-          Ray ray(cam_pos, dir);
-
-          // Shoot a ray.
-          scalar closest_t = 1e10;
-          if (tree.Intersect(ray, closest_t)) {
-            scalar s = 1.0 - std::min(closest_t * 0.1, 1.0);
-            img.PixelAt(u, v) = Pixel(s, s, s);
-            ++hits;
-          } else {
-            img.PixelAt(u, v) = Pixel(0, 0, 50);
-            ++misses;
+            dir += u_step;
           }
-
-          dir += u_step;
         }
+
+        _raytrace.Done();
+
+        std::cout << "hits=" << hits << " misses=" << misses << std::endl;
+
+        // Save image.
+        img.SavePNG("raytraced.png");
       }
-
-      _raytrace.Done();
-
-      std::cout << "hits=" << hits << " misses=" << misses << std::endl;
-
-      // Save image.
-      img.SavePNG("raytraced.png");
     }
   }
 }

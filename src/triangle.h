@@ -29,6 +29,8 @@
 #ifndef MAGERAY_TRIANGLE_H_
 #define MAGERAY_TRIANGLE_H_
 
+#include "vec.h"
+
 /// A triangle.
 /// A triangle is defined by three vertex indices. The vertext array itself is
 /// managed elsewhere.

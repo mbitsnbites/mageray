@@ -149,7 +149,7 @@ class Tree {
     /// @note This method assumes that the bounding box for the node has
     /// already been positively checked for intersection with the ray.
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
-        scalar& closest_t) = 0;
+        scalar& closest_t) const = 0;
 
     std::unique_ptr<Node> m_root;
 
@@ -170,7 +170,7 @@ class TriangleTree : public Tree {
 
   protected:
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
-        scalar& closest_t);
+        scalar& closest_t) const;
 
   private:
     /// Check intersection between ray and triangle.
@@ -179,7 +179,7 @@ class TriangleTree : public Tree {
     /// @param[in,out] closest_t The closest intersection distance.
     /// @returns True if the ray intersects with the triangle.
     bool IntersectTriangle(const Ray& ray, const Triangle* triangle,
-        scalar& closest_t);
+        scalar& closest_t) const;
 
     const std::vector<Vertex>* m_vertices;
 };

@@ -29,14 +29,35 @@
 #ifndef MAGERAY_MESH_H_
 #define MAGERAY_MESH_H_
 
+#include <vector>
+
+#include "tree.h"
+#include "triangle.h"
+
 class Mesh {
   public:
-    Mesh() {
-      Reset();
-    }
+    Mesh() {}
     ~Mesh() {}
 
-    void Reset();
+    /// Load a mesh from a file.
+    /// @param file_name File to load.
+    /// @returns true if the file could be loaded.
+    bool Load(const char* file_name);
+
+    /// Build a sphere mesh.
+    /// @param res Sphere resolution.
+    /// @param radius The sphere radius.
+    void MakeSphere(int res, scalar radius);
+
+    /// @returns The tree for this mesh.
+    TriangleTree& Tree() {
+      return m_tree;
+    }
+
+  private:
+    std::vector<Triangle> m_triangles;
+    std::vector<Vertex> m_vertices;
+    TriangleTree m_tree;
 };
 
 #endif // MAGERAY_MESH_H_

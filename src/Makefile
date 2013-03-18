@@ -78,7 +78,7 @@ test.o: test.cpp vec.h mat.h image.h tree.h aabb.h triangle.h
 	$(CPP) $(CPPFLAGS) test.cpp
 
 $(LIBOPENCTM):
-	cd $(OPENCTM_PATH) && $(MAKE) -f Makefile.linux depend && $(MAKE) -f Makefile.linux libopenctm2.a
+	cd $(OPENCTM_PATH) && $(MAKE) -f Makefile.linux libopenctm2.a
 
 %.o: %.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
