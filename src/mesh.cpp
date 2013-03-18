@@ -82,6 +82,12 @@ void Mesh::MakeSphere(int res, scalar radius) {
 bool Mesh::Load(const char* file_name) {
   ScopedPerf _perf = ScopedPerf("Load mesh");
 
+#ifdef SCALAR_IS_FLOAT
+  const CTMenum scalar_type = CTM_FLOAT;
+#else
+  const CTMenum scalar_type = CTM_DOUBLE;
+#endif
+
   CTMenum err;
 
   // Create OpenCTM import context.
@@ -109,12 +115,12 @@ bool Mesh::Load(const char* file_name) {
   m_triangles.resize(num_triangles);
   m_vertices.resize(num_vertices);
   ctmArrayPointer(ctm, CTM_INDICES, 3, CTM_UINT, 0, &m_triangles[0]);
-  ctmArrayPointer(ctm, CTM_VERTICES, 3, CTM_FLOAT, sizeof(Vertex), &m_vertices[0].position);
+  ctmArrayPointer(ctm, CTM_VERTICES, 3, scalar_type, sizeof(Vertex), &m_vertices[0].position);
   if (has_normals) {
-    ctmArrayPointer(ctm, CTM_NORMALS, 3, CTM_FLOAT, sizeof(Vertex), &m_vertices[0].normal);
+    ctmArrayPointer(ctm, CTM_NORMALS, 3, scalar_type, sizeof(Vertex), &m_vertices[0].normal);
   }
   if (has_uv_coords) {
-    ctmArrayPointer(ctm, CTM_UV_MAP_1, 2, CTM_FLOAT, sizeof(Vertex), &m_vertices[0].uv);
+    ctmArrayPointer(ctm, CTM_UV_MAP_1, 2, scalar_type, sizeof(Vertex), &m_vertices[0].uv);
   }
 
   // Read mesh data.
