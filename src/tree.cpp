@@ -175,18 +175,18 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
   m_root.reset(BuildSubtree(aabb, leaves.begin(), leaves.end(), threaded_depth));
 }
 
-bool Tree::Intersect(const Ray& ray, scalar& closest_t) {
+bool Tree::Intersect(const Ray& ray, HitInfo& hit) {
   ASSERT(m_root.get() != NULL, "The tree is undefined.");
 
   // Check intersection against root node bounding box.
   Node* node = m_root.get();
-  scalar aabb_t = closest_t;
+  scalar aabb_t = hit.t;
   if (!node->BoundingBox().Intersect(ray, aabb_t)) {
     return false;
   }
 
   // Recursively intersect with the entire tree.
-  return RecursiveIntersect(m_root.get(), ray, closest_t);
+  return RecursiveIntersect(m_root.get(), ray, hit);
 }
 
 void TriangleTree::Build(const std::vector<Triangle>& triangles,
@@ -242,7 +242,7 @@ void TriangleTree::Build(const std::vector<Triangle>& triangles,
 }
 
 bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
-    scalar& closest_t) const {
+    HitInfo& hit) const {
   // NOTE: This is an implementation of the Möller / Trumbone fast triangle
   // intersection algorithm.
 
@@ -277,12 +277,15 @@ bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
   }
 
   // We have an intersection. Now check if the distance is within the avaliable
-  // bounds (0, closest_t).
+  // bounds (0, hit.t).
   scalar t = scale * e2.Dot(q);
-  if (t > EPSILON && t < closest_t) {
-    // TODO(mage): We might want to preserve the u/v coordinates for later use,
-    // e.g. texture mapping or normal interpolation.
-    closest_t = t;
+  if (t > EPSILON && t < hit.t) {
+    // New closest t.
+    hit.t = t;
+
+    // We store the u/v coordinates for later (e.g. normal interpolation).
+    hit.uv = vec2(u, v);
+
     return true;
   }
 
@@ -291,7 +294,7 @@ bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
 }
 
 bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
-    scalar& closest_t) const {
+    HitInfo& hit) const {
   // Was this a leaf node?
   if (node->IsLeafNode()) {
     // Get the triangle of this leaf node.
@@ -299,17 +302,17 @@ bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
         reinterpret_cast<const TriangleNode*>(node)->Item();
 
     // Calculate intersection with the triangle.
-    return IntersectTriangle(ray, triangle, closest_t);
+    return IntersectTriangle(ray, triangle, hit);
   }
 
   // Check intersection with children bounding boxes.
   Node* children[2];
   children[0] = node->FirstChild();
   children[1] = node->SecondChild();
-  scalar t1 = closest_t, t2 = closest_t;
-  bool hit[2];
-  hit[0] = children[0]->BoundingBox().Intersect(ray, t1);
-  hit[1] = children[1]->BoundingBox().Intersect(ray, t2);
+  scalar t1 = hit.t, t2 = hit.t;
+  bool got_hit[2];
+  got_hit[0] = children[0]->BoundingBox().Intersect(ray, t1);
+  got_hit[1] = children[1]->BoundingBox().Intersect(ray, t2);
 
   // Select optimal recursion based on bounding box intersection results.
   int first = 0, second = 1;
@@ -317,12 +320,12 @@ bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
     first = 1;
     second = 0;
   }
-  if (hit[first]) {
-    hit[first] = RecursiveIntersect(children[first], ray, closest_t);
+  if (got_hit[first]) {
+    got_hit[first] = RecursiveIntersect(children[first], ray, hit);
   }
-  if (hit[second]) {
-    hit[second] = RecursiveIntersect(children[second], ray, closest_t);
+  if (got_hit[second]) {
+    got_hit[second] = RecursiveIntersect(children[second], ray, hit);
   }
 
-  return hit[0] || hit[1];
+  return got_hit[0] || got_hit[1];
 }

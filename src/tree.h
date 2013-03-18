@@ -35,6 +35,7 @@
 #include "aabb.h"
 #include "base/log.h"
 #include "base/types.h"
+#include "hitinfo.h"
 #include "vec.h"
 #include "ray.h"
 #include "triangle.h"
@@ -131,9 +132,9 @@ class Tree {
 
     /// Find intersection between tree and ray.
     /// @param ray The ray to shoot into the tree.
-    /// @param[in,out] closest_t The closest intersection distance.
+    /// @param[in,out] hit Current closest hit information.
     /// @returns True if the ray intersects with a primitive in the tree.
-    bool Intersect(const Ray& ray, scalar& closest_t);
+    bool Intersect(const Ray& ray, HitInfo& hit);
 
   protected:
     /// Build a bounding box tree.
@@ -144,12 +145,12 @@ class Tree {
     /// Recursively intersect a ray against a sub tree.
     /// @param node The root node of the sub tree to intersect.
     /// @param ray The ray to shoot into the tree.
-    /// @param[in,out] closest_t The closest intersection distance.
+    /// @param[in,out] hit Current closest hit information.
     /// @returns True if the ray intersects with a primitive in the tree.
     /// @note This method assumes that the bounding box for the node has
     /// already been positively checked for intersection with the ray.
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
-        scalar& closest_t) const = 0;
+        HitInfo& hit) const = 0;
 
     std::unique_ptr<Node> m_root;
 
@@ -170,16 +171,16 @@ class TriangleTree : public Tree {
 
   protected:
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
-        scalar& closest_t) const;
+       HitInfo& hit) const;
 
   private:
     /// Check intersection between ray and triangle.
     /// @param ray The ray.
     /// @param triangle The triangle to intersect.
-    /// @param[in,out] closest_t The closest intersection distance.
+    /// @param[in,out] hit Current closest hit information.
     /// @returns True if the ray intersects with the triangle.
     bool IntersectTriangle(const Ray& ray, const Triangle* triangle,
-        scalar& closest_t) const;
+        HitInfo& hit) const;
 
     const std::vector<Vertex>* m_vertices;
 };

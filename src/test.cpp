@@ -32,11 +32,11 @@
 
 #include "base/perf.h"
 #include "camera.h"
+#include "hitinfo.h"
 #include "vec.h"
 #include "mat.h"
 #include "image.h"
 #include "mesh.h"
-#include "tree.h"
 #include "triangle.h"
 
 void TestVectors() {
@@ -127,13 +127,12 @@ void TestImages() {
   }
 }
 
-void TestTrees() {
-  std::cout << std::endl << "--- Trees ---" << std::endl;
+void TestMeshes() {
+  std::cout << std::endl << "--- Meshes ---" << std::endl;
 
   Mesh mesh;
   if (mesh.Load("../resources/bunny.ctm")) {
-    Tree* tree = &mesh.Tree();
-    std::cout << "Bounding box = " << tree->BoundingBox() << std::endl;
+    std::cout << "Bounding box = " << mesh.BoundingBox() << std::endl;
 
     std::cout << std::endl << "Camera test..." << std::endl;
     {
@@ -169,9 +168,9 @@ void TestTrees() {
             Ray ray(cam_pos, dir);
 
             // Shoot a ray.
-            scalar closest_t = 1e10;
-            if (tree->Intersect(ray, closest_t)) {
-              scalar s = 1.0 - std::min(closest_t * 0.1, 1.0);
+            HitInfo hit = HitInfo::CreateNoHit();
+            if (mesh.Intersect(ray, hit)) {
+              scalar s = 1.0 - std::min(hit.t * 0.1, 1.0);
               img.PixelAt(u, v) = Pixel(s, s, s);
               ++hits;
             } else {
@@ -204,8 +203,8 @@ int main() {
   // --- Images ---
   TestImages();
 
-  // --- Trees ---
-  TestTrees();
+  // --- Meshes ---
+  TestMeshes();
 
   return 0;
 }

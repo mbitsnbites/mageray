@@ -31,6 +31,7 @@
 
 #include <vector>
 
+#include "aabb.h"
 #include "tree.h"
 #include "triangle.h"
 
@@ -49,9 +50,17 @@ class Mesh {
     /// @param radius The sphere radius.
     void MakeSphere(int res, scalar radius);
 
-    /// @returns The tree for this mesh.
-    TriangleTree& Tree() {
-      return m_tree;
+    /// Find intersection between mesh and ray.
+    /// @param ray The ray to shoot into the tree.
+    /// @param[in,out] hit Current closest hit information.
+    /// @returns True if the ray intersects with the mesh.
+    bool Intersect(const Ray& ray, HitInfo& hit) {
+      return m_tree.Intersect(ray, hit);
+    }
+
+    /// @returns The bounding box for the mesh.
+    const AABB& BoundingBox() {
+      return m_tree.BoundingBox();
     }
 
   private:

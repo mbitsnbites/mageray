@@ -26,40 +26,23 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_BASE_TYPES_H_
-#define RAYMAGE_BASE_TYPES_H_
+#ifndef MAGERAY_HITINFO_H_
+#define MAGERAY_HITINFO_H_
 
-// Floating point type used throughout the program.
-#define SCALAR_IS_FLOAT
-//#define SCALAR_IS_DOUBLE
+#include "base/types.h"
+#include "vec.h"
 
-#ifdef SCALAR_IS_FLOAT
-typedef float scalar;
-#else
-typedef double scalar;
-#endif
+struct HitInfo {
+  /// Create a new HitInfo object.
+  /// The HitInfo object represents a "no hit" (i.e. infinitely distant).
+  static HitInfo CreateNoHit() {
+    HitInfo hit_info;
+    hit_info.t = MAX_DISTANCE;
+    return hit_info;
+  }
 
-// We need a very small distance at times (e.g. for checking if we're > 0, but
-// accounting for numerical rounding errors).
-#ifdef SCALAR_IS_FLOAT
-# define EPSILON 1e-10
-#else
-# define EPSILON 1e-50
-#endif
+  scalar t;   ///< Closest intersection t so far.
+  vec2 uv;    ///< U/V coordinate info (for triangles).
+};
 
-// Precision dependent maximum distance.
-#ifdef SCALAR_IS_FLOAT
-# define MAX_DISTANCE 1e30
-#else
-# define MAX_DISTANCE 1e300
-#endif
-
-// Since we simply can't seem to get PI into the C++ standard (?), put it here.
-#define PI 3.141592653589793238462643383279502884197169399375105820974944592308
-
-// Convenience macro for disabling assignment and copying for a class.
-#define FORBID_COPY(x)  \
-  x(const x&) = delete; \
-  void operator=(const x&) = delete
-
-#endif // RAYMAGE_BASE_TYPES_H_
+#endif // MAGERAY_HITINFO_H_

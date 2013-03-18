@@ -70,6 +70,7 @@ all: test
 
 clean:
 	rm -rf test test.o $(LIB_OBJS) make.depend
+	cd third_party/openctm/lib && make -f Makefile.linux clean
 
 test: test.o $(LIB_OBJS) $(LIBOPENCTM)
 	$(CPP) -o test $(LFLAGS) test.o $(LIB_OBJS) $(LIBS)
