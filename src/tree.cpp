@@ -189,29 +189,28 @@ bool Tree::Intersect(const Ray& ray, HitInfo& hit) {
   return RecursiveIntersect(m_root.get(), ray, hit);
 }
 
-void TriangleTree::Build(const std::vector<Triangle>& triangles,
-    const std::vector<Vertex>& vertices) {
+void TriangleTree::Build(const MeshData& data) {
   ScopedPerf _perf = ScopedPerf(__FUNCTION__);
 
   // We keep a reference to the vertices.
-  m_vertices = &vertices;
+  m_data = &data;
 
   ScopedPerf _leaf_perf = ScopedPerf("Generate leaf nodes");
 
   // Create a vector of nodes, and calculate the total bounding box while we're
   // at it...
   AABB aabb;
-  std::vector<Node*> leaves(triangles.size());
+  std::vector<Node*> leaves(data.triangles.size());
   std::vector<Node*>::iterator node_it = leaves.begin();
   std::vector<Triangle>::const_iterator tri_it;
-  for (tri_it = triangles.begin(); tri_it != triangles.end(); tri_it++) {
+  for (tri_it = data.triangles.begin(); tri_it != data.triangles.end(); tri_it++) {
     // Get the triangle.
     const Triangle* triangle = &(*tri_it);
 
     // Get the three vertex positions for the triangle.
-    const vec3 p1 = vertices[triangle->a].position;
-    const vec3 p2 = vertices[triangle->b].position;
-    const vec3 p3 = vertices[triangle->c].position;
+    const vec3 p1 = data.vertices[triangle->a].position;
+    const vec3 p2 = data.vertices[triangle->b].position;
+    const vec3 p3 = data.vertices[triangle->c].position;
 
     // Calculate the bounding box for the triangle.
     AABB tri_aabb(std::min(p1.x, std::min(p2.x, p3.x)),
@@ -226,7 +225,7 @@ void TriangleTree::Build(const std::vector<Triangle>& triangles,
     *node_it++ = node;
 
     // Update the union bounding box for all the triangles.
-    if (tri_it == triangles.begin()) {
+    if (tri_it == data.triangles.begin()) {
       aabb = node->BoundingBox();
     } else {
       aabb += node->BoundingBox();
@@ -247,9 +246,9 @@ bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
   // intersection algorithm.
 
   // Get the three vertex positions for the triangle.
-  const vec3 p1 = (*m_vertices)[triangle->a].position;
-  const vec3 p2 = (*m_vertices)[triangle->b].position;
-  const vec3 p3 = (*m_vertices)[triangle->c].position;
+  const vec3 p1 = m_data->vertices[triangle->a].position;
+  const vec3 p2 = m_data->vertices[triangle->b].position;
+  const vec3 p3 = m_data->vertices[triangle->c].position;
 
   // Triangle basis vectors.
   const vec3 e1 = p2 - p1;

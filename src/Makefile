@@ -48,10 +48,13 @@ LIB_SRCS = aabb.cpp \
            mat.cpp \
            material.cpp \
            mesh.cpp \
+           mesh_data.cpp \
            object.cpp \
            scene.cpp \
            test.cpp \
-           tree.cpp
+           tree.cpp \
+           base/perf.cpp \
+           importers/openctm_importer.cpp
 
 LIB_OBJS = aabb.o \
            camera.o \
@@ -60,7 +63,9 @@ LIB_OBJS = aabb.o \
            mat.o \
            material.o \
            mesh.o \
+           mesh_data.o \
            object.o \
+           openctm_importer.o \
            perf.o \
            scene.o \
            tree.o
@@ -86,6 +91,9 @@ $(LIBOPENCTM):
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 %.o: base/%.cpp
+	$(CPP) $(CPPFLAGS) -o $@ $<
+
+%.o: importers/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 depend:

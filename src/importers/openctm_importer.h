@@ -26,59 +26,16 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef MAGERAY_MESH_H_
-#define MAGERAY_MESH_H_
+#ifndef MAGERAY_IMPORTERS_OPENCTM_IMPORTER_H_
+#define MAGERAY_IMPORTERS_OPENCTM_IMPORTER_H_
 
-#include <istream>
+#include "importers/mesh_importer.h"
 
-#include "aabb.h"
-#include "tree.h"
-#include "mesh_data.h"
-
-class Mesh {
+class OpenCTMImporter : public MeshImporter {
   public:
-    Mesh() {}
-    ~Mesh() {}
+    OpenCTMImporter(MeshData& data) : MeshImporter(data) {}
 
-    /// Load a mesh from a stream.
-    /// @param stream The stream from which to read the mesh.
-    /// @returns true if the operation succeeded.
-    bool Load(std::istream& stream);
-
-    /// Load a mesh from a file.
-    /// @param file_name File to load.
-    /// @returns true if the file could be loaded.
-    bool Load(const char* file_name);
-
-    /// Build a sphere mesh.
-    /// @param res Sphere resolution.
-    /// @param radius The sphere radius.
-    void MakeSphere(int res, scalar radius);
-
-    /// Find intersection between mesh and ray.
-    /// @param ray The ray to shoot into the tree.
-    /// @param[in,out] hit Current closest hit information.
-    /// @returns True if the ray intersects with the mesh.
-    bool Intersect(const Ray& ray, HitInfo& hit) {
-      return m_tree.Intersect(ray, hit);
-    }
-
-    /// @returns The bounding box for the mesh.
-    const AABB& BoundingBox() {
-      return m_tree.BoundingBox();
-    }
-
-  private:
-    /// Load a mesh from an OpenCTM format stream.
-    /// @param stream The stream from which to read the mesh.
-    /// @returns true if the operation succeeded.
-    bool LoadCTM(std::istream& stream);
-
-    /// The raw mesh data.
-    MeshData m_data;
-
-    /// The triangle tree (referencing the raw mesh data).
-    TriangleTree m_tree;
+    virtual bool Load(std::istream& stream);
 };
 
-#endif // MAGERAY_MESH_H_
+#endif // MAGERAY_IMPORTERS_OPENCTM_IMPORTER_H_

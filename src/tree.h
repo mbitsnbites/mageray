@@ -36,6 +36,7 @@
 #include "base/log.h"
 #include "base/types.h"
 #include "hitinfo.h"
+#include "mesh_data.h"
 #include "vec.h"
 #include "ray.h"
 #include "triangle.h"
@@ -166,8 +167,7 @@ class TriangleTree : public Tree {
     /// Build a triangle tree from raw mesh data.
     /// @param triangles An array of the triangles to put into the tree.
     /// @param vertices The vertex array used by the triangles.
-    void Build(const std::vector<Triangle>& triangles,
-        const std::vector<Vertex>& vertices);
+    void Build(const MeshData& data);
 
   protected:
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
@@ -182,7 +182,7 @@ class TriangleTree : public Tree {
     bool IntersectTriangle(const Ray& ray, const Triangle* triangle,
         HitInfo& hit) const;
 
-    const std::vector<Vertex>* m_vertices;
+    const MeshData* m_data;
 };
 
 #endif // MAGERAY_TREE_H_

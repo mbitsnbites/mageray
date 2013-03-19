@@ -26,59 +26,19 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef MAGERAY_MESH_H_
-#define MAGERAY_MESH_H_
+#ifndef MAGERAY_MESH_DATA_H_
+#define MAGERAY_MESH_DATA_H_
 
-#include <istream>
+#include <vector>
 
-#include "aabb.h"
-#include "tree.h"
-#include "mesh_data.h"
+#include "triangle.h"
 
-class Mesh {
-  public:
-    Mesh() {}
-    ~Mesh() {}
+struct MeshData {
+  /// Calculate the normals for the mesh.
+  void CalculateNormals();
 
-    /// Load a mesh from a stream.
-    /// @param stream The stream from which to read the mesh.
-    /// @returns true if the operation succeeded.
-    bool Load(std::istream& stream);
-
-    /// Load a mesh from a file.
-    /// @param file_name File to load.
-    /// @returns true if the file could be loaded.
-    bool Load(const char* file_name);
-
-    /// Build a sphere mesh.
-    /// @param res Sphere resolution.
-    /// @param radius The sphere radius.
-    void MakeSphere(int res, scalar radius);
-
-    /// Find intersection between mesh and ray.
-    /// @param ray The ray to shoot into the tree.
-    /// @param[in,out] hit Current closest hit information.
-    /// @returns True if the ray intersects with the mesh.
-    bool Intersect(const Ray& ray, HitInfo& hit) {
-      return m_tree.Intersect(ray, hit);
-    }
-
-    /// @returns The bounding box for the mesh.
-    const AABB& BoundingBox() {
-      return m_tree.BoundingBox();
-    }
-
-  private:
-    /// Load a mesh from an OpenCTM format stream.
-    /// @param stream The stream from which to read the mesh.
-    /// @returns true if the operation succeeded.
-    bool LoadCTM(std::istream& stream);
-
-    /// The raw mesh data.
-    MeshData m_data;
-
-    /// The triangle tree (referencing the raw mesh data).
-    TriangleTree m_tree;
+  std::vector<Triangle> triangles;
+  std::vector<Vertex> vertices;
 };
 
-#endif // MAGERAY_MESH_H_
+#endif // MAGERAY_MESH_DATA_H_
