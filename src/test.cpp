@@ -131,7 +131,7 @@ void TestMeshes() {
   std::cout << std::endl << "--- Meshes ---" << std::endl;
 
   Mesh mesh;
-  if (mesh.Load("../resources/bunny.ctm")) {
+  if (mesh.Load("../resources/happy.ctm")) {
     std::cout << "Bounding box = " << mesh.BoundingBox() << std::endl;
 
     std::cout << std::endl << "Camera test..." << std::endl;
@@ -141,8 +141,8 @@ void TestMeshes() {
       if (img.Allocate(1024, 768)) {
         // Set up camera.
         Camera cam;
-        cam.SetPosition(vec3(1.0, -5.0, 3.0));
-        cam.SetLookAt(vec3(0, 0, 2.0));
+        cam.SetPosition(vec3(-2.0, -4.0, 2.0));
+        cam.SetLookAt(vec3(0, 0, 2.8));
 
         // Main camera loop.
         vec3 cam_pos = cam.Matrix().TransformPoint(vec3(0));
@@ -157,7 +157,7 @@ void TestMeshes() {
         vec3 v_step = up * (-1.0 / height);
         std::cout << "Camera: x_step=" << u_step << " y_step=" << v_step << std::endl;
 
-        ScopedPerf _raytrace = ScopedPerf("Raytracing image");
+        ScopedPerf _raytrace = ScopedPerf("Raytrace image");
 
         int hits = 0, misses = 0;
         for (int v = 0; v < img.Height(); ++v) {
@@ -187,7 +187,9 @@ void TestMeshes() {
         std::cout << "hits=" << hits << " misses=" << misses << std::endl;
 
         // Save image.
+        ScopedPerf _save = ScopedPerf("Save image");
         img.SavePNG("raytraced.png");
+        _save.Done();
       }
     }
   }

@@ -135,12 +135,11 @@ bool Mesh::Load(const char* file_name) {
   // Free the OpenCTM context.
   ctmFreeContext(ctm);
 
+  _perf.Done();
+
   // Generate normals?
   if (!has_normals) {
-    // TODO(mage): Calculate normals...
-    for (CTMuint i = 0; i < num_vertices; ++i) {
-      m_vertices[i].normal = vec3(0, 0, 1);
-    }
+    CalculateNormals();
   }
 
   // Generate dummy UV coordinates?
@@ -151,10 +150,49 @@ bool Mesh::Load(const char* file_name) {
     }
   }
 
-  _perf.Done();
-
   // Build triangle tree.
   m_tree.Build(m_triangles, m_vertices);
 
   return true;
+}
+
+void Mesh::CalculateNormals() {
+  ScopedPerf _perf = ScopedPerf("Calculate normals");
+
+  std::vector<Vertex>::iterator vi;
+
+  // Start by clearing the normals.
+  for (vi = m_vertices.begin(); vi != m_vertices.end(); vi++) {
+    (*vi).normal = vec3(0);
+  }
+
+  // Calculate normals for all triangles, and add them to the triangle
+  // vertices (i.e. each vertex's normal is the sum of the normals of all
+  // neighbouring triangles).
+  std::vector<Triangle>::iterator ti;
+  for (ti = m_triangles.begin(); ti != m_triangles.end(); ti++) {
+    // Vertices for this triangle.
+    Vertex* v1 = &m_vertices[(*ti).a];
+    Vertex* v2 = &m_vertices[(*ti).b];
+    Vertex* v3 = &m_vertices[(*ti).c];
+
+    // Calculate triangle normal (weighted by triangle area).
+    // Note: Here we assume that the front side of the triangle is
+    // counter-clockwise oriented.
+    vec3 e1 = v2->position - v1->position;
+    vec3 e2 = v3->position - v1->position;
+    vec3 normal = e1.Cross(e2);
+
+    // Add the normal to all the neighbouring vertices.
+    v1->normal += normal;
+    v2->normal += normal;
+    v3->normal += normal;
+  }
+
+  // Normalize all the normals.
+  for (vi = m_vertices.begin(); vi != m_vertices.end(); vi++) {
+    (*vi).normal = (*vi).normal.Normalize();
+  }
+
+  _perf.Done();
 }

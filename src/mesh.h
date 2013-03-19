@@ -64,6 +64,9 @@ class Mesh {
     }
 
   private:
+    /// Calculate the normals for the mesh.
+    void CalculateNormals();
+
     std::vector<Triangle> m_triangles;
     std::vector<Vertex> m_vertices;
     TriangleTree m_tree;
