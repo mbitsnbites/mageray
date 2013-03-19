@@ -29,8 +29,16 @@
 #include "scene.h"
 
 #include <fstream>
+#include <iostream>
+#include <tinyxml2.h>
+
+#include "base/perf.h"
+
+using namespace tinyxml2;
 
 void Scene::Reset() {
+  m_file_path = std::string("");
+
   m_camera.Reset();
   m_images.clear();
   m_meshes.clear();
@@ -48,8 +56,78 @@ bool Scene::LoadFromXML(const char* file_name) {
 }
 
 bool Scene::LoadFromXML(std::istream& stream) {
-  // TODO(mage): Implement me!
+  // Load and parse XML file.
+  XMLDocument doc;
+  if (doc.LoadFile(stream) != XML_NO_ERROR) {
+    return false;
+  }
+
   Reset();
-  return false;
+
+  // TODO(mage): Implement me!
+
+  // In the mean time, we're just doing a default dummy-scene...
+  m_camera.SetPosition(vec3(1.0, 3.5, 0.0));
+  m_camera.SetLookAt(vec3(2.0, -0.4, 1.0));
+
+  std::unique_ptr<Mesh> mesh(new Mesh());
+  if (mesh.get() && mesh->Load("../resources/lucy.ctm")) {
+    m_meshes.push_back(std::move(mesh));
+  }
+
+  return true;
 }
 
+void Scene::GenerateImage(Image& image) {
+  // Set up camera.
+  vec3 cam_pos = m_camera.Matrix().TransformPoint(vec3(0));
+  vec3 forward = m_camera.Matrix().TransformDirection(vec3(0,1,0));
+  vec3 right = m_camera.Matrix().TransformDirection(vec3(1,0,0));
+  vec3 up = m_camera.Matrix().TransformDirection(vec3(0,0,1));
+  std::cout << "Camera: pos=" << cam_pos << " forward=" << forward << " right=" << right << " up=" << up << std::endl;
+
+  scalar width = static_cast<scalar>(image.Width());
+  scalar height = static_cast<scalar>(image.Height());
+  vec3 u_step = right * (1.0 / height);
+  vec3 v_step = up * (-1.0 / height);
+  std::cout << "Camera: x_step=" << u_step << " y_step=" << v_step << std::endl;
+
+  ScopedPerf _raytrace = ScopedPerf("Raytrace image");
+
+  int hits = 0, misses = 0;
+
+  // Loop over rows.
+  #pragma omp parallel for
+  for (int v = 0; v < image.Height(); ++v) {
+    vec3 dir = forward + u_step * (-0.5 * width) +
+      v_step * (static_cast<scalar>(v) - 0.5 * height);
+
+    // Loop over columns in the row.
+    for (int u = 0; u < image.Width(); ++u) {
+      // Construct a ray.
+      Ray ray(cam_pos, dir);
+
+      // Shoot a ray against all the meshes in the scene.
+      // TODO(mage): Should be against an object tree...
+      HitInfo hit = HitInfo::CreateNoHit();
+      std::list<std::unique_ptr<Mesh> >::iterator it;
+      for (it = m_meshes.begin(); it != m_meshes.end(); it++) {
+        Mesh* mesh = (*it).get();
+        if (mesh->Intersect(ray, hit)) {
+          scalar s = 1.0 - std::min(hit.t * 0.1, 1.0);
+          image.PixelAt(u, v) = Pixel(s, s, s);
+          ++hits;
+        } else {
+          image.PixelAt(u, v) = Pixel(0);
+          ++misses;
+        }
+      }
+
+      dir += u_step;
+    }
+  }
+
+  _raytrace.Done();
+
+  std::cout << "hits=" << hits << " misses=" << misses << std::endl;
+}

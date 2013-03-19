@@ -37,6 +37,7 @@
 #include "mat.h"
 #include "image.h"
 #include "mesh.h"
+#include "scene.h"
 #include "triangle.h"
 
 void TestVectors() {
@@ -127,70 +128,22 @@ void TestImages() {
   }
 }
 
-void TestMeshes() {
-  std::cout << std::endl << "--- Meshes ---" << std::endl;
+void TestScene() {
+  std::cout << std::endl << "--- Scene ---" << std::endl;
 
-  Mesh mesh;
-  if (mesh.Load("../resources/happy.ctm")) {
-    std::cout << "Bounding box = " << mesh.BoundingBox() << std::endl;
+  Scene scene;
+  scene.SetFilePath("../resources");
+  if (scene.LoadFromXML("../resources/test.xml")) {
+    // Create a target image.
+    Image img;
+    if (img.Allocate(1024, 768)) {
+      // Ray trace image.
+      scene.GenerateImage(img);
 
-    std::cout << std::endl << "Camera test..." << std::endl;
-    {
-      // Create a target image.
-      Image img;
-      if (img.Allocate(1024, 768)) {
-        // Set up camera.
-        Camera cam;
-        cam.SetPosition(vec3(-2.0, -4.0, 2.0));
-        cam.SetLookAt(vec3(0, 0, 2.8));
-
-        // Main camera loop.
-        vec3 cam_pos = cam.Matrix().TransformPoint(vec3(0));
-        vec3 forward = cam.Matrix().TransformDirection(vec3(0,1,0));
-        vec3 right = cam.Matrix().TransformDirection(vec3(1,0,0));
-        vec3 up = cam.Matrix().TransformDirection(vec3(0,0,1));
-        std::cout << "Camera: pos=" << cam_pos << " forward=" << forward << " right=" << right << " up=" << up << std::endl;
-
-        scalar width = static_cast<scalar>(img.Width());
-        scalar height = static_cast<scalar>(img.Height());
-        vec3 u_step = right * (1.0 / height);
-        vec3 v_step = up * (-1.0 / height);
-        std::cout << "Camera: x_step=" << u_step << " y_step=" << v_step << std::endl;
-
-        ScopedPerf _raytrace = ScopedPerf("Raytrace image");
-
-        int hits = 0, misses = 0;
-        for (int v = 0; v < img.Height(); ++v) {
-          vec3 dir = forward + u_step * (-0.5 * width) +
-            v_step * (static_cast<scalar>(v) - 0.5 * height);
-          for (int u = 0; u < img.Width(); ++u) {
-            // Construct a ray.
-            Ray ray(cam_pos, dir);
-
-            // Shoot a ray.
-            HitInfo hit = HitInfo::CreateNoHit();
-            if (mesh.Intersect(ray, hit)) {
-              scalar s = 1.0 - std::min(hit.t * 0.1, 1.0);
-              img.PixelAt(u, v) = Pixel(s, s, s);
-              ++hits;
-            } else {
-              img.PixelAt(u, v) = Pixel(0, 0, 50);
-              ++misses;
-            }
-
-            dir += u_step;
-          }
-        }
-
-        _raytrace.Done();
-
-        std::cout << "hits=" << hits << " misses=" << misses << std::endl;
-
-        // Save image.
-        ScopedPerf _save = ScopedPerf("Save image");
-        img.SavePNG("raytraced.png");
-        _save.Done();
-      }
+      // Save image.
+      ScopedPerf _save = ScopedPerf("Save image");
+      img.SavePNG("raytraced.png");
+      _save.Done();
     }
   }
 }
@@ -205,8 +158,8 @@ int main() {
   // --- Images ---
   TestImages();
 
-  // --- Meshes ---
-  TestMeshes();
+  // --- Scene ---
+  TestScene();
 
   return 0;
 }

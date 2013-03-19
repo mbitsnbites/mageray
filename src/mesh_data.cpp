@@ -33,22 +33,18 @@
 void MeshData::CalculateNormals() {
   ScopedPerf _perf = ScopedPerf("Calculate normals");
 
-  std::vector<Vertex>::iterator vi;
-
   // Start by clearing the normals.
-  for (vi = vertices.begin(); vi != vertices.end(); vi++) {
-    (*vi).normal = vec3(0);
+  #pragma omp parallel for
+  for (unsigned i = 0; i < vertices.size(); ++i) {
+    vertices[i].normal = vec3(0);
   }
 
-  // Calculate normals for all triangles, and add them to the triangle
-  // vertices (i.e. each vertex's normal is the sum of the normals of all
-  // neighbouring triangles).
-  std::vector<Triangle>::iterator ti;
-  for (ti = triangles.begin(); ti != triangles.end(); ti++) {
+  // Calculate normals for all the triangles.
+  for (unsigned i = 0; i < triangles.size(); ++i) {
     // Vertices for this triangle.
-    Vertex* v1 = &vertices[(*ti).a];
-    Vertex* v2 = &vertices[(*ti).b];
-    Vertex* v3 = &vertices[(*ti).c];
+    Vertex* v1 = &vertices[triangles[i].a];
+    Vertex* v2 = &vertices[triangles[i].b];
+    Vertex* v3 = &vertices[triangles[i].c];
 
     // Calculate triangle normal (weighted by triangle area).
     // Note: Here we assume that the front side of the triangle is
@@ -64,8 +60,9 @@ void MeshData::CalculateNormals() {
   }
 
   // Normalize all the normals.
-  for (vi = vertices.begin(); vi != vertices.end(); vi++) {
-    (*vi).normal = (*vi).normal.Normalize();
+  #pragma omp parallel for
+  for (unsigned i = 0; i < vertices.size(); ++i) {
+    vertices[i].normal = vertices[i].normal.Normalize();
   }
 
   _perf.Done();

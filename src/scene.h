@@ -32,6 +32,7 @@
 #include <istream>
 #include <list>
 #include <memory>
+#include <string>
 
 #include "camera.h"
 #include "image.h"
@@ -49,10 +50,29 @@ class Scene {
 
     void Reset();
 
+    /// Set the file path for scene assets.
+    /// @param path The file path.
+    void SetFilePath(const char* path) {
+      m_file_path = std::string(path);
+    }
+
+    /// Load a scene from a file.
+    /// @param file_name The name of the file to load.
+    /// @returns true if successful.
     bool LoadFromXML(const char* file_name);
+
+    /// Load a scene from a stream.
+    /// @param stream The stream to load.
+    /// @returns true if successful.
     bool LoadFromXML(std::istream& stream);
 
+    /// Generate an image of the current scene.
+    /// @param image The image to render to.
+    void GenerateImage(Image& image);
+
   private:
+    std::string m_file_path;
+
     Camera m_camera;
     std::list<std::unique_ptr<Image> > m_images;
     std::list<std::unique_ptr<Mesh> > m_meshes;
