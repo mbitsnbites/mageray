@@ -40,6 +40,8 @@ distribution.
 #   include <cstdarg>
 #endif
 
+#include <istream>
+
 /*
    TODO: intern strings instead of allocation.
 */
@@ -1451,6 +1453,13 @@ public:
     	an errorID.
     */
     XMLError LoadFile( FILE* );
+
+    /**
+      Load an XML file from a stream.
+      Returns XML_NO_ERROR (0) on success, or
+      an errorID.
+    */
+    XMLError LoadFile( std::istream& stream );
 
     /**
     	Save the XML file to disk.
