@@ -28,6 +28,7 @@
 
 #include "mesh.h"
 
+#include <fstream>
 #include <openctm2.h>
 
 #include "base/log.h"
@@ -79,8 +80,14 @@ void Mesh::MakeSphere(int res, scalar radius) {
   _perf.Done();
 }
 
-bool Mesh::Load(const char* file_name) {
-  ScopedPerf _perf = ScopedPerf("Load mesh");
+static CTMuint MyCTMRead(void* buffer, CTMuint count, void* user_data) {
+  std::istream* stream = static_cast<std::istream*>(user_data);
+  ASSERT(stream, "No input stream found.");
+  stream->read(reinterpret_cast<char*>(buffer), count);
+}
+
+bool Mesh::LoadCTM(std::istream& stream) {
+  ScopedPerf _perf = ScopedPerf("Load OpenCTM mesh");
 
 #ifdef SCALAR_IS_FLOAT
   const CTMenum scalar_type = CTM_FLOAT;
@@ -99,7 +106,7 @@ bool Mesh::Load(const char* file_name) {
   }
 
   // Read the file header.
-  ctmOpenReadFile(ctm, file_name);
+  ctmOpenReadCustom(ctm, MyCTMRead, &stream);
   err = ctmGetError(ctm);
   if (err != CTM_NONE) {
     LOG("Couldn't open OpenCTM file: %s", ctmErrorString(err));
@@ -112,6 +119,7 @@ bool Mesh::Load(const char* file_name) {
   // Setup for reading.
   CTMuint num_triangles = ctmGetInteger(ctm, CTM_TRIANGLE_COUNT);
   CTMuint num_vertices = ctmGetInteger(ctm, CTM_VERTEX_COUNT);
+  DLOG("%d triangles, %d vertices", num_triangles, num_vertices);
   m_triangles.resize(num_triangles);
   m_vertices.resize(num_vertices);
   ctmArrayPointer(ctm, CTM_INDICES, 3, CTM_UINT, 0, &m_triangles[0]);
@@ -150,10 +158,31 @@ bool Mesh::Load(const char* file_name) {
     }
   }
 
-  // Build triangle tree.
-  m_tree.Build(m_triangles, m_vertices);
-
   return true;
+}
+
+bool Mesh::Load(std::istream& stream) {
+  // Try different file formats.
+  bool success = LoadCTM(stream);
+
+  if (success) {
+    // Build triangle tree.
+    m_tree.Build(m_triangles, m_vertices);
+  } else {
+    LOG("Unable to load mesh file.");
+  }
+
+  return success;
+}
+
+bool Mesh::Load(const char* file_name) {
+  std::ifstream is(file_name, std::ios_base::in | std::ios_base::binary);
+  if (is.good()) {
+    return Load(is);
+  }
+
+  LOG("Unable to open mesh file %s.", file_name);
+  return false;
 }
 
 void Mesh::CalculateNormals() {

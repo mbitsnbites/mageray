@@ -30,6 +30,7 @@
 #define MAGERAY_MESH_H_
 
 #include <vector>
+#include <istream>
 
 #include "aabb.h"
 #include "tree.h"
@@ -39,6 +40,11 @@ class Mesh {
   public:
     Mesh() {}
     ~Mesh() {}
+
+    /// Load a mesh from a stream.
+    /// @param stream The stream from which to read the mesh.
+    /// @returns true if the operation succeeded.
+    bool Load(std::istream& stream);
 
     /// Load a mesh from a file.
     /// @param file_name File to load.
@@ -64,6 +70,11 @@ class Mesh {
     }
 
   private:
+    /// Load a mesh from an OpenCTM format stream.
+    /// @param stream The stream from which to read the mesh.
+    /// @returns true if the operation succeeded.
+    bool LoadCTM(std::istream& stream);
+
     /// Calculate the normals for the mesh.
     void CalculateNormals();
 
