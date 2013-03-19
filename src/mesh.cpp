@@ -83,7 +83,7 @@ void Mesh::MakeSphere(int res, scalar radius) {
 bool Mesh::Load(std::istream& stream) {
   // Try different file formats.
   bool success = false;
-  {
+  if (OpenCTMImporter::Detect(stream)) {
     OpenCTMImporter importer(m_data);
     success = importer.Load(stream);
   }

@@ -28,12 +28,27 @@
 
 #include "importers/openctm_importer.h"
 
+#include <algorithm>
 #include <fstream>
 #include <openctm2.h>
 
 #include "base/log.h"
 #include "base/perf.h"
 #include "base/types.h"
+
+/* static */
+bool OpenCTMImporter::Detect(std::istream& stream) {
+  // Read 4 bytes from the stream.
+  unsigned char buf[4];
+  std::fill(buf, buf + 4, 0);
+  std::streampos old_pos = stream.tellg();
+  stream.read(reinterpret_cast<char*>(buf), 4);
+  stream.seekg(old_pos);
+
+  // Compate the buffer to the OpenCTM signature ('O','C','T','M').
+  static const unsigned char signature[] = {79, 67, 84, 77};
+  return std::equal(buf, buf + 4, signature);
+}
 
 static CTMuint MyCTMRead(void* buffer, CTMuint count, void* user_data) {
   std::istream* stream = static_cast<std::istream*>(user_data);

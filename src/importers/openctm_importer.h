@@ -35,6 +35,8 @@ class OpenCTMImporter : public MeshImporter {
   public:
     OpenCTMImporter(MeshData& data) : MeshImporter(data) {}
 
+    static bool Detect(std::istream& stream);
+
     virtual bool Load(std::istream& stream);
 };
 
