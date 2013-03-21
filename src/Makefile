@@ -28,10 +28,11 @@
 
 OPENCTM_PATH = third_party/openctm/lib
 LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.a
+TINYXML2_PATH = third_party/tinyxml2
 
 CPP = g++
 CPPFLAGS = -c -O3 -ffast-math -W -Wall -std=c++0x -I. -I$(OPENCTM_PATH) \
-           -DSCALAR_IS_FLOAT -fopenmp
+           -I$(TINYXML2_PATH) -DSCALAR_IS_FLOAT -fopenmp
 LFLAGS = -L$(OPENCTM_PATH) -fopenmp
 LIBS = -lpng -lopenctm2 -lpthread -lm
 
@@ -54,7 +55,8 @@ LIB_SRCS = aabb.cpp \
            test.cpp \
            tree.cpp \
            base/perf.cpp \
-           importers/openctm_importer.cpp
+           importers/openctm_importer.cpp \
+           third_party/tinyxml2/tinyxml2.cpp
 
 LIB_OBJS = aabb.o \
            camera.o \
@@ -68,6 +70,7 @@ LIB_OBJS = aabb.o \
            openctm_importer.o \
            perf.o \
            scene.o \
+           tinyxml2.o \
            tree.o
 
 .PHONY: all clean depend
@@ -94,6 +97,9 @@ $(LIBOPENCTM):
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 %.o: importers/%.cpp
+	$(CPP) $(CPPFLAGS) -o $@ $<
+
+%.o: third_party/tinyxml2/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 depend:
