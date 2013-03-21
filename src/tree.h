@@ -45,6 +45,8 @@
 /// @note This class is intended to be extended.
 class Node {
   public:
+    Node() {}
+
     ~Node() {
       if (IsLeafNode()) {
         return;
@@ -53,15 +55,8 @@ class Node {
       delete SecondChild();
     }
 
-    /// Constructor for branch nodes.
-    Node(const AABB& aabb, Node* first, Node* second) :
-        m_aabb(aabb) {
-      m_branch.first = first;
-      m_branch.second = second;
-    }
-
     /// @returns The axis aligned bounding box for this node.
-    const AABB& BoundingBox() const {
+    AABB& BoundingBox() {
       return m_aabb;
     }
 
@@ -82,9 +77,13 @@ class Node {
       return m_branch.second;
     }
 
-  protected:
-    Node(const AABB& aabb) : m_aabb(aabb) {}
+    /// Set the child nodes of this branch node.
+    void SetChildren(Node* first, Node* second) {
+      m_branch.first = first;
+      m_branch.second = second;
+    }
 
+  protected:
     AABB m_aabb;
 
     union {
@@ -98,16 +97,18 @@ class Node {
       } m_leaf;
     };
 
-    FORBID_COPY(Node);
+    // TODO(mage): We need to change the ownership of nodes so that we don't
+    // do anything dangerous in ~Node() - now we can potentially copy a node
+    // and then delete it's children twice.
+//    FORBID_COPY(Node);
 };
 
 /// Template tree node class that supports leaf nodes.
 template <class T>
 class TypedNode : public Node {
   public:
-    /// Constructor for leaf nodes.
-    TypedNode(const AABB& aabb, const T* item) :
-        Node(aabb) {
+    /// Set the item of a leaf node.
+    void SetItem(const T* item) {
       m_leaf.item = item;
       m_leaf.dummy = NULL;
     }
@@ -153,7 +154,13 @@ class Tree {
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
         HitInfo& hit) const = 0;
 
+    // All nodes (except the leaf nodes) in the tree are managed by the root
+    // node.
     std::unique_ptr<Node> m_root;
+
+    // The leaf nodes are stored directly in an array, and referenced from
+    // the branch nodes in the tree.
+    std::vector<Node> m_leaf_nodes;
 
     FORBID_COPY(Tree);
 };
