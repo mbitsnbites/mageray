@@ -29,6 +29,7 @@
 #ifndef MAGERAY_TREE_H_
 #define MAGERAY_TREE_H_
 
+#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -46,14 +47,6 @@
 class Node {
   public:
     Node() {}
-
-    ~Node() {
-      if (IsLeafNode()) {
-        return;
-      }
-      delete FirstChild();
-      delete SecondChild();
-    }
 
     /// @returns The axis aligned bounding box for this node.
     AABB& BoundingBox() {
@@ -96,11 +89,6 @@ class Node {
         void* dummy;
       } m_leaf;
     };
-
-    // TODO(mage): We need to change the ownership of nodes so that we don't
-    // do anything dangerous in ~Node() - now we can potentially copy a node
-    // and then delete it's children twice.
-//    FORBID_COPY(Node);
 };
 
 /// Template tree node class that supports leaf nodes.
@@ -128,21 +116,38 @@ class Tree {
 
     /// @returns The bounding box for the tree.
     const AABB& BoundingBox() {
-      ASSERT(m_root.get() != NULL, "The tree is undefined.");
+      ASSERT(!Empty(), "The tree is undefined.");
       return m_root->BoundingBox();
     }
 
     /// Find intersection between tree and ray.
     /// @param ray The ray to shoot into the tree.
     /// @param[in,out] hit Current closest hit information.
-    /// @returns True if the ray intersects with a primitive in the tree.
+    /// @returns true if the ray intersects with a primitive in the tree.
     bool Intersect(const Ray& ray, HitInfo& hit);
+
+    /// @returns true if the tree is empty (uninitialized).
+    bool Empty() const {
+      return m_leaf_nodes.size() == 0;
+    }
 
   protected:
     /// Build a bounding box tree.
+    /// This will build the complete tree, and set m_root to the root node of
+    /// the tree.
     /// @param leaves The leaf nodes to construct the tree from.
     /// @param aabb The total bounding box for all the nodes.
     void Build(std::vector<Node*>& leaves, const AABB& aabb);
+
+    /// Recursively build a sub-tree.
+    /// @param leaves The leaf nodes to construct the tree from.
+    /// @param aabb The total bounding box for all the nodes.
+    /// @param start The first leaf node in the leaves array.
+    /// @param stop The last leaf node + 1 in the leaves array.
+    /// @param threaded_depth The current recursion depth (used for thread
+    ///  parallelism).
+    Node* BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
+        unsigned start, unsigned stop, int threaded_depth);
 
     /// Recursively intersect a ray against a sub tree.
     /// @param node The root node of the sub tree to intersect.
@@ -154,13 +159,19 @@ class Tree {
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
         HitInfo& hit) const = 0;
 
-    // All nodes (except the leaf nodes) in the tree are managed by the root
-    // node.
-    std::unique_ptr<Node> m_root;
+    // Pointer to the root node (which resides in m_branch_nodes).
+    Node* m_root;
 
-    // The leaf nodes are stored directly in an array, and referenced from
-    // the branch nodes in the tree.
+    // These are the leaf nodes (which are referenced from the branch nodes in
+    // the tree).
     std::vector<Node> m_leaf_nodes;
+
+    // We keep the branch nodes in a separate array.
+    std::vector<Node> m_branch_nodes;
+
+    // This is the incremental index used in BuildSubtree() to select the next
+    // (un-initialized) branch node from m_branch_nodes.
+    std::atomic_uint m_branch_nodes_idx;
 
     FORBID_COPY(Tree);
 };

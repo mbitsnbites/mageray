@@ -46,13 +46,18 @@ void BoundingBoxUnion(AABB& aabb, std::vector<Node*>& leaves, unsigned start,
   }
 }
 
+}
+
 /// Build a sub-tree from an array of leaf nodes.
-Node* BuildSubtree(const AABB& aabb, std::vector<Node*>& leaves, unsigned start,
-    unsigned stop, int threaded_depth) {
+Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
+    unsigned start, unsigned stop, int threaded_depth) {
   if ((stop - start) == 1) {
     // Return the leaf node.
     return leaves[start];
   }
+
+  // Get the next branch node from the pre-allocated array.
+  Node* node = &m_branch_nodes[m_branch_nodes_idx++];
 
   // Determine the split direction.
   AABB::Axis axis = aabb.LargestAxis();
@@ -121,35 +126,30 @@ Node* BuildSubtree(const AABB& aabb, std::vector<Node*>& leaves, unsigned start,
     std::promise<Node*> result1;
     std::promise<Node*> result2;
     std::thread t1 = std::thread([&] {
-        result1.set_value(BuildSubtree(first_aabb, leaves, start, start_second, threaded_depth - 1));
+        result1.set_value(BuildSubtree(leaves, first_aabb, start, start_second, threaded_depth - 1));
     });
     std::thread t2 = std::thread([&] {
-        result2.set_value(BuildSubtree(second_aabb, leaves, start_second, stop, threaded_depth - 1));
+        result2.set_value(BuildSubtree(leaves, second_aabb, start_second, stop, threaded_depth - 1));
     });
     first_branch = result1.get_future().get();
     second_branch = result2.get_future().get();
     t1.join();
     t2.join();
   } else {
-    first_branch = BuildSubtree(first_aabb, leaves, start, start_second, threaded_depth - 1);
-    second_branch = BuildSubtree(second_aabb, leaves, start_second, stop, threaded_depth - 1);
+    first_branch = BuildSubtree(leaves, first_aabb, start, start_second, threaded_depth - 1);
+    second_branch = BuildSubtree(leaves, second_aabb, start_second, stop, threaded_depth - 1);
   }
 
-  // Create a new tree branch node, and return it.
-  // TODO(mage): We should pre-allocate and update a huge array of empty Nodes
-  // instead of new:ing every single one!
-  Node* node = new Node();
+  // Fill out the branch node info.
   node->BoundingBox() = aabb;
   node->SetChildren(first_branch, second_branch);
   return node;
 }
 
-}
-
 void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
   if (leaves.size() == 0) {
     LOG("Empty tree (no nodes to process).");
-    m_root.reset(NULL);
+    m_root = NULL;
     return;
   }
 
@@ -166,9 +166,7 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
     // NOTE: hardware_concurrency() in gcc 4.6.3 always returns zero :(
     concurrency = 2;
   }
-  if (concurrency >= 8)
-    threaded_depth = 3;
-  else if (concurrency >= 4)
+  if (concurrency >= 4)
     threaded_depth = 2;
   else if (concurrency >= 2)
     threaded_depth = 1;
@@ -176,22 +174,28 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
     threaded_depth = 0;
   DLOG("Hardware concurrency=%d, threaded_depth=%d", concurrency, threaded_depth);
 
+  // Allocate memory for the branch nodes. We know that we'll get exactly N-1
+  // branch nodes (where N is the number of leaf nodes), since we're building a
+  // complete binary tree.
+  m_branch_nodes.resize(leaves.size() - 1);
+  m_branch_nodes_idx = 0;
+
   // Recursively build the tree, and the result is our root node.
-  m_root.reset(BuildSubtree(aabb, leaves, 0, leaves.size(), threaded_depth));
+  m_root = BuildSubtree(leaves, aabb, 0, leaves.size(), threaded_depth);
+  ASSERT(m_branch_nodes_idx == m_branch_nodes.size(), "Badly built tree!");
 }
 
 bool Tree::Intersect(const Ray& ray, HitInfo& hit) {
-  ASSERT(m_root.get() != NULL, "The tree is undefined.");
+  ASSERT(!Empty(), "The tree is undefined.");
 
   // Check intersection against root node bounding box.
-  Node* node = m_root.get();
   scalar aabb_t = hit.t;
-  if (!node->BoundingBox().Intersect(ray, aabb_t)) {
+  if (!m_root->BoundingBox().Intersect(ray, aabb_t)) {
     return false;
   }
 
   // Recursively intersect with the entire tree.
-  return RecursiveIntersect(m_root.get(), ray, hit);
+  return RecursiveIntersect(m_root, ray, hit);
 }
 
 void TriangleTree::Build(const MeshData& data) {
