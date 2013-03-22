@@ -28,6 +28,7 @@
 
 #include "scene.h"
 
+#include <atomic>
 #include <fstream>
 #include <iostream>
 #include <tinyxml2.h>
@@ -52,17 +53,21 @@ bool Scene::LoadFromXML(const char* file_name) {
   if (is.good()) {
     return LoadFromXML(is);
   }
+  LOG("Unable to open XML file %s", file_name);
   return false;
 }
 
 bool Scene::LoadFromXML(std::istream& stream) {
+  Reset();
+
   // Load and parse XML file.
   XMLDocument doc;
-  if (doc.LoadFile(stream) != XML_NO_ERROR) {
+  XMLError err = doc.LoadFile(stream);
+  if (err != XML_NO_ERROR) {
+    LOG("Unable to load XML stream (%d): %s, %s", err, doc.GetErrorStr1(),
+        doc.GetErrorStr2());
     return false;
   }
-
-  Reset();
 
   // TODO(mage): Implement me!
 
@@ -72,6 +77,7 @@ bool Scene::LoadFromXML(std::istream& stream) {
 
   std::unique_ptr<Mesh> mesh(new Mesh());
   if (mesh.get() && mesh->Load("../resources/lucy.ctm")) {
+    std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
     m_meshes.push_back(std::move(mesh));
   }
 
@@ -94,7 +100,7 @@ void Scene::GenerateImage(Image& image) {
 
   ScopedPerf _raytrace = ScopedPerf("Raytrace image");
 
-  int hits = 0, misses = 0;
+  std::atomic_uint hits(0), misses(0);
 
   // Loop over rows.
   #pragma omp parallel for
