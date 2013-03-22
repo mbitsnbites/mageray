@@ -28,6 +28,11 @@
 
 #include "mat.h"
 
+mat3x4 mat3x4::Rotate(const vec3& s) {
+  // TODO(mage): Implement me!
+  return Identity();
+}
+
 mat3x4 mat3x4::operator*(const mat3x4& m) const {
   return mat3x4(
       // Row 1.

@@ -28,6 +28,85 @@
 
 #include "object.h"
 
-void Object::Reset() {
+#include "base/platform.h"
+
+Object::Object() : m_material(NULL) {
+  m_matrix = mat3x4::Identity();
+  m_inv_matrix = mat3x4::Identity();
 }
 
+void Object::Translate(const vec3& t) {
+  m_matrix = m_matrix * mat3x4::Translate(t);
+  m_inv_matrix = m_matrix.Inverse();
+}
+
+void Object::Scale(const vec3& s) {
+  m_matrix = m_matrix * mat3x4::Scale(s);
+  m_inv_matrix = m_matrix.Inverse();
+}
+
+void Object::Rotate(const vec3& r) {
+  m_matrix = m_matrix * mat3x4::Rotate(r);
+  m_inv_matrix = m_matrix.Inverse();
+}
+
+bool Object::Intersect(const Ray& ray, HitInfo& hit) {
+  // Transform ray into object space.
+  const vec3 origin = m_inv_matrix.TransformPoint(ray.Origin());
+  const vec3 direction = m_inv_matrix.TransformDirection(ray.Direction());
+  const Ray transformed_ray(origin, direction);
+
+  // Perform intersection.
+  return IntersectInObjectSpace(transformed_ray, hit);
+}
+
+void Object::GetBoundingBox(AABB& aabb) const {
+  // Get the object space bounding box.
+  AABB original;
+  GetBoundingBoxInObjectSpace(original);
+
+  // Construct the 8 corner points of the bounding box.
+  vec3 corners[8];
+  corners[0] = vec3(original[AABB::XMIN], original[AABB::YMIN], original[AABB::ZMIN]);
+  corners[1] = vec3(original[AABB::XMIN], original[AABB::YMIN], original[AABB::ZMAX]);
+  corners[2] = vec3(original[AABB::XMIN], original[AABB::YMAX], original[AABB::ZMIN]);
+  corners[3] = vec3(original[AABB::XMIN], original[AABB::YMAX], original[AABB::ZMAX]);
+  corners[4] = vec3(original[AABB::XMAX], original[AABB::YMIN], original[AABB::ZMIN]);
+  corners[5] = vec3(original[AABB::XMAX], original[AABB::YMIN], original[AABB::ZMAX]);
+  corners[6] = vec3(original[AABB::XMAX], original[AABB::YMAX], original[AABB::ZMIN]);
+  corners[7] = vec3(original[AABB::XMAX], original[AABB::YMAX], original[AABB::ZMAX]);
+
+  // Transform all the corners.
+  for (int i = 0; i < 8; ++i) {
+    corners[i] = m_inv_matrix * corners[i];
+  }
+
+  // Find the bounding box that includes all the 8 transformed points.
+  aabb[AABB::XMIN] = aabb[AABB::XMAX] = corners[0].x;
+  aabb[AABB::YMIN] = aabb[AABB::YMAX] = corners[0].y;
+  aabb[AABB::ZMIN] = aabb[AABB::ZMAX] = corners[0].z;
+  for (int i = 1; i < 8; ++i) {
+    if (corners[i].x < aabb[AABB::XMIN]) aabb[AABB::XMIN] = corners[i].x;
+    if (corners[i].x > aabb[AABB::XMAX]) aabb[AABB::XMAX] = corners[i].x;
+    if (corners[i].y < aabb[AABB::YMIN]) aabb[AABB::YMIN] = corners[i].y;
+    if (corners[i].y > aabb[AABB::YMAX]) aabb[AABB::YMAX] = corners[i].y;
+    if (corners[i].z < aabb[AABB::ZMIN]) aabb[AABB::ZMIN] = corners[i].z;
+    if (corners[i].z > aabb[AABB::ZMAX]) aabb[AABB::ZMAX] = corners[i].z;
+  }
+}
+
+bool MeshObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) {
+  if (LIKELY(m_mesh)) {
+    return m_mesh->Intersect(ray, hit);
+  }
+  return false;
+}
+
+void MeshObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
+  if (LIKELY(m_mesh)) {
+    aabb = m_mesh->BoundingBox();
+  } else {
+    aabb[AABB::XMIN] = aabb[AABB::YMIN] = aabb[AABB::ZMIN] = 0.0;
+    aabb[AABB::XMAX] = aabb[AABB::YMAX] = aabb[AABB::ZMAX] = 0.0;
+  }
+}

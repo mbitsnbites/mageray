@@ -31,9 +31,11 @@
 
 #include <istream>
 #include <list>
+#include <map>
 #include <memory>
 #include <string>
 
+#include "base/types.h"
 #include "camera.h"
 #include "image.h"
 #include "mesh.h"
@@ -74,9 +76,11 @@ class Scene {
     std::string m_file_path;
 
     Camera m_camera;
-    std::list<std::unique_ptr<Image> > m_images;
-    std::list<std::unique_ptr<Mesh> > m_meshes;
-    std::list<std::unique_ptr<Material> > m_materials;
+
+    std::map<std::string, std::unique_ptr<Image> > m_images;
+    std::map<std::string, std::unique_ptr<Mesh> > m_meshes;
+    std::map<std::string, std::unique_ptr<Material> > m_materials;
+
     std::list<std::unique_ptr<Light> > m_lights;
     std::list<std::unique_ptr<Object> > m_objects;
 

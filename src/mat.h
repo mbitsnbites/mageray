@@ -72,24 +72,6 @@ class mat3x4 {
       );
     }
 
-    /// Create a scaling matrix.
-    static mat3x4 Scale(const scalar s) {
-      return mat3x4(
-          s, 0, 0, 0,
-          0, s, 0, 0,
-          0, 0, s, 0
-      );
-    }
-
-    /// Create a translation matrix.
-    static mat3x4 Translate(const scalar x, const scalar y, const scalar z) {
-      return mat3x4(
-          1, 0, 0, x,
-          0, 1, 0, y,
-          0, 0, 1, z
-      );
-    }
-
     /// Create a translation matrix.
     static mat3x4 Translate(const vec3& t) {
       return mat3x4(
@@ -98,6 +80,28 @@ class mat3x4 {
           0, 0, 1, t.z
       );
     }
+
+    /// Create a translation matrix.
+    static mat3x4 Translate(const scalar x, const scalar y, const scalar z) {
+      return Translate(vec3(x, y, z));
+    }
+
+    /// Create a scaling matrix.
+    static mat3x4 Scale(const vec3& s) {
+      return mat3x4(
+          s.x, 0,   0,   0,
+          0,   s.y, 0,   0,
+          0,   0,   s.z, 0
+      );
+    }
+
+    /// Create a scaling matrix.
+    static mat3x4 Scale(const scalar s) {
+      return Scale(vec3(s));
+    }
+
+    /// Create a rotation matrix.
+    static mat3x4 Rotate(const vec3& s);
 
     /// Matrix * matrix multiplication.
     /// In this multiplication operation, each matrix is interpreted as a 4x4

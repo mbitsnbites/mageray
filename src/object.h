@@ -29,14 +29,90 @@
 #ifndef MAGERAY_OBJECT_H_
 #define MAGERAY_OBJECT_H_
 
+#include "base/types.h"
+#include "mat.h"
+#include "material.h"
+#include "mesh.h"
+
 class Object {
   public:
-    Object() {
-      Reset();
-    }
+    Object();
     ~Object() {}
 
-    void Reset();
+    /// Translate the object.
+    /// @param t Translation.
+    void Translate(const vec3& t);
+
+    /// Scale the object.
+    /// @param s Scale.
+    void Scale(const vec3& s);
+
+    /// Rotate the object.
+    /// @param r Rotation around x, y and z (degrees, in that order).
+    void Rotate(const vec3& r);
+
+    /// Set the transformation matrix.
+    /// @param The new transformation matrix.
+    void SetMatrix(const mat3x4& matrix) {
+      m_matrix = matrix;
+      m_inv_matrix = matrix.Inverse();
+    }
+
+    /// Get the transformation matrix.
+    const mat3x4 Matrix() const {
+      return m_matrix;
+    }
+
+    /// Get the inverse transformation matrix.
+    const mat3x4 InvMatrix() const {
+      return m_inv_matrix;
+    }
+
+    /// Find intersection between object and ray.
+    /// @param ray The ray to shoot against the object (in world space).
+    /// @param[in,out] hit Current closest hit information.
+    /// @returns True if the ray intersects with the object.
+    bool Intersect(const Ray& ray, HitInfo& hit);
+
+    /// Get the bounding box for this object.
+    /// @param aabb[out] The bounding box (in world space) for this object.
+    void GetBoundingBox(AABB& aabb) const;
+
+  protected:
+    /// Find intersection between object and ray.
+    /// @param ray The ray to shoot against the object (in object space).
+    /// @param[in,out] hit Current closest hit information.
+    /// @returns True if the ray intersects with the object.
+    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) = 0;
+
+    /// Get the bounding box for this object.
+    /// @param aabb[out] The bounding box (in object space) for this object.
+    virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const = 0;
+
+    mat3x4 m_matrix;
+    mat3x4 m_inv_matrix;
+
+    Material* m_material;
+
+  private:
+    FORBID_COPY(Object);
+};
+
+class MeshObject : public Object {
+  public:
+    MeshObject() : Object(), m_mesh(NULL) {}
+
+    void SetMesh(Mesh* mesh) {
+      m_mesh = mesh;
+    }
+
+  protected:
+    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit);
+
+    virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const;
+
+  private:
+    Mesh* m_mesh;
 };
 
 #endif // MAGERAY_OBJECT_H_

@@ -70,23 +70,71 @@ bool Scene::LoadFromXML(std::istream& stream) {
   }
 
   // TODO(mage): Implement me!
+  // In the mean time, we're just doing a default hard-coded scene...
 
-  // In the mean time, we're just doing a default dummy-scene...
-#if 1
-  m_camera.SetPosition(vec3(1.0, 3.5, 0.0));
-  m_camera.SetLookAt(vec3(2.0, -0.4, 1.0));
+  // Set up camera.
+  m_camera.SetPosition(vec3(-3.0, -8.0, 8.0));
+  m_camera.SetLookAt(vec3(0.0, 0.0, 3.0));
 
-  std::unique_ptr<Mesh> mesh(new Mesh());
-  if (mesh.get() && mesh->Load("../resources/lucy.ctm")) {
-#else
-  m_camera.SetPosition(vec3(-1.0, -4.0, 2.4));
-  m_camera.SetLookAt(vec3(0.0, 0.0, 2.9));
-
-  std::unique_ptr<Mesh> mesh(new Mesh());
-  if (mesh.get() && mesh->Load("../resources/happy.ctm")) {
+  // Load meshes.
+#if 0
+  {
+    std::unique_ptr<Mesh> mesh(new Mesh());
+    if (mesh.get() && mesh->Load("../resources/lucy.ctm")) {
+      std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
+      m_meshes["lucy"] = std::move(mesh);
+    }
+  }
 #endif
-    std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
-    m_meshes.push_back(std::move(mesh));
+  {
+    std::unique_ptr<Mesh> mesh(new Mesh());
+    if (mesh.get() && mesh->Load("../resources/bunny.ctm")) {
+      std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
+      m_meshes["bunny"] = std::move(mesh);
+    }
+  }
+  {
+    std::unique_ptr<Mesh> mesh(new Mesh());
+    if (mesh.get() && mesh->Load("../resources/happy.ctm")) {
+      std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
+      m_meshes["happy"] = std::move(mesh);
+    }
+  }
+
+  // Create objects.
+  for (scalar x = -5.0; x <= 5.0; x += 2.5) {
+    for (scalar y = -5.0; y <= 5.0; y += 2.5) {
+      std::unique_ptr<MeshObject> obj(new MeshObject());
+      if (obj.get()) {
+        // Assign a mesh to the object.
+        std::map<std::string, std::unique_ptr<Mesh> >::iterator it = m_meshes.find("happy");
+        if (it != m_meshes.end()) {
+          obj->SetMesh(it->second.get());
+        }
+
+        // Transform the object.
+        obj->Translate(vec3(x, y, 0.0));
+
+        // Add the object to the object list.
+        m_objects.push_back(std::move(obj));
+      }
+    }
+  }
+  {
+    std::unique_ptr<MeshObject> obj(new MeshObject());
+    if (obj.get()) {
+      // Assign a mesh to the object.
+      std::map<std::string, std::unique_ptr<Mesh> >::iterator it = m_meshes.find("bunny");
+      if (it != m_meshes.end()) {
+        obj->SetMesh(it->second.get());
+      }
+
+      // Transform the object.
+      obj->Translate(vec3(0.0, 0.0, 4.0));
+
+      // Add the object to the object list.
+      m_objects.push_back(std::move(obj));
+    }
   }
 
   return true;
@@ -121,21 +169,22 @@ void Scene::GenerateImage(Image& image) {
       // Construct a ray.
       Ray ray(cam_pos, dir);
 
-      // Shoot a ray against all the meshes in the scene.
+      // Shoot a ray against all the objects in the scene.
       // TODO(mage): Should be against an object tree...
       HitInfo hit = HitInfo::CreateNoHit();
-      std::list<std::unique_ptr<Mesh> >::iterator it;
-      for (it = m_meshes.begin(); it != m_meshes.end(); it++) {
-        Mesh* mesh = (*it).get();
-        if (mesh->Intersect(ray, hit)) {
-          scalar s = 1.0 - std::min(hit.t * 0.1, 1.0);
-          image.PixelAt(u, v) = Pixel(s, s, s);
+      std::list<std::unique_ptr<Object> >::iterator it;
+      Pixel result(0);
+      for (it = m_objects.begin(); it != m_objects.end(); it++) {
+        Object* object = it->get();
+        if (object->Intersect(ray, hit)) {
+          scalar s = 1.0 - std::min(hit.t * 0.06, 1.0);
+          result = Pixel(s, s, s);
           ++hits;
         } else {
-          image.PixelAt(u, v) = Pixel(0);
           ++misses;
         }
       }
+      image.PixelAt(u, v) = result;
 
       dir += u_step;
     }
