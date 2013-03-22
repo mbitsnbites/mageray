@@ -72,11 +72,19 @@ bool Scene::LoadFromXML(std::istream& stream) {
   // TODO(mage): Implement me!
 
   // In the mean time, we're just doing a default dummy-scene...
+#if 1
   m_camera.SetPosition(vec3(1.0, 3.5, 0.0));
   m_camera.SetLookAt(vec3(2.0, -0.4, 1.0));
 
   std::unique_ptr<Mesh> mesh(new Mesh());
   if (mesh.get() && mesh->Load("../resources/lucy.ctm")) {
+#else
+  m_camera.SetPosition(vec3(-1.0, -4.0, 2.4));
+  m_camera.SetLookAt(vec3(0.0, 0.0, 2.9));
+
+  std::unique_ptr<Mesh> mesh(new Mesh());
+  if (mesh.get() && mesh->Load("../resources/happy.ctm")) {
+#endif
     std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
     m_meshes.push_back(std::move(mesh));
   }

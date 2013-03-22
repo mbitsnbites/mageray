@@ -33,6 +33,7 @@
 #include <thread>
 
 #include "base/perf.h"
+#include "base/platform.h"
 
 namespace {
 
@@ -51,7 +52,7 @@ void BoundingBoxUnion(AABB& aabb, std::vector<Node*>& leaves, unsigned start,
 /// Build a sub-tree from an array of leaf nodes.
 Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
     unsigned start, unsigned stop, int threaded_depth) {
-  if ((stop - start) == 1) {
+  if (UNLIKELY((stop - start) == 1)) {
     // Return the leaf node.
     return leaves[start];
   }
@@ -106,9 +107,9 @@ Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
   }
 
   // Handle degenerate cases (we must have at least one element in each array).
-  if (start_second == start) {
+  if (UNLIKELY(start_second == start)) {
     start_second++;
-  } else if (start_second == stop) {
+  } else if (UNLIKELY(start_second == stop)) {
     start_second--;
   }
 
@@ -120,7 +121,7 @@ Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
   // Recursively build new sub-trees.
   Node* first_branch;
   Node* second_branch;
-  if (threaded_depth == 1) {
+  if (UNLIKELY(threaded_depth == 1)) {
     // Spawn new threads when we're at the correct depth to better utilize
     // multi-core CPUs.
     std::promise<Node*> result1;
@@ -239,7 +240,7 @@ void TriangleTree::Build(const MeshData& data) {
     triangle_aabb[AABB::ZMAX] = std::max(p1.z, std::max(p2.z, p3.z));
 
     // Update the union bounding box for all the triangles.
-    if (!i) {
+    if (UNLIKELY(!i)) {
       aabb = triangle_aabb;
     } else {
       aabb += triangle_aabb;

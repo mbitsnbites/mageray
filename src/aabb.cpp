@@ -28,6 +28,7 @@
 
 #include "aabb.h"
 
+#include "base/platform.h"
 #include "ray.h"
 
 bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
@@ -61,8 +62,9 @@ bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
     }
   }
 
-  // Is this even a candidate?
-  if (t > closest_t) {
+  // Is this even a candidate? This is unlikely in a tree traversal since we
+  // direct the traversal to try closest bounding boxes first.
+  if (UNLIKELY(t > closest_t)) {
     return false;
   }
 
@@ -106,7 +108,7 @@ bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
 
   // If the intersection point was behind the ray origin, check that the
   // bounding box is not completely behind the ray origin.
-  if (t < 0) {
+  if (UNLIKELY(t < 0)) {
     vec3 aabb_far(m_bounds[ray.FarSides()[X]],
                   m_bounds[ray.FarSides()[Y]],
                   m_bounds[ray.FarSides()[Z]]);
