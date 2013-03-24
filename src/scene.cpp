@@ -31,21 +31,138 @@
 #include <atomic>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
+#include <string>
+#include <sstream>
+
 #include <tinyxml2.h>
 
 #include "base/perf.h"
 
-using namespace tinyxml2;
+namespace {
+
+vec3 ParseVec3String(const char* str) {
+  // TODO(mage): Implement me!
+  return vec3(0);
+}
+
+scalar ParseScalarString(const char* str) {
+  // TODO(mage): Implement me!
+  return 0.0;
+}
+
+}
+
+class scene_parse_error : public std::exception {
+  public:
+    scene_parse_error(const tinyxml2::XMLNode* node, const char* msg) noexcept {
+      m_msg = msg;
+      const char* name = node->Value();
+      m_name = name ? name : "?";
+    }
+
+    virtual const char* what() const noexcept {
+      std::stringstream ss;
+      ss << "In XML node " << m_name << ": " << m_msg;
+      return ss.str().c_str();
+    }
+
+  private:
+    std::string m_msg;
+    std::string m_name;
+};
 
 void Scene::Reset() {
-  m_file_path = std::string("");
-
   m_camera.Reset();
+
   m_images.clear();
   m_meshes.clear();
   m_materials.clear();
+
   m_lights.clear();
   m_objects.clear();
+}
+
+void Scene::LoadCamera(tinyxml2::XMLElement* element) {
+  if (const char* str = element->Attribute("position")) {
+    m_camera.SetPosition(ParseVec3String(str));
+  }
+  if (const char* str = element->Attribute("lookat")) {
+    m_camera.SetLookAt(ParseVec3String(str));
+  }
+  if (const char* str = element->Attribute("nominalup")) {
+    m_camera.SetNominalUp(ParseVec3String(str));
+  }
+  if (const char* str = element->Attribute("fov")) {
+    m_camera.SetFOV(ParseScalarString(str));
+  }
+}
+
+void Scene::LoadImage(tinyxml2::XMLElement* element) {
+  // TODO(mage): Implement me!
+}
+
+void Scene::LoadMesh(tinyxml2::XMLElement* element) {
+  const char* name = element->Attribute("name");
+  const char* file = element->Attribute("file");
+  if (!name) {
+    throw scene_parse_error(element, "Missing name attribute.");
+  }
+  if (!file) {
+    throw scene_parse_error(element, "Missing file attribute.");
+  }
+
+  // Load the mesh.
+  std::unique_ptr<Mesh> mesh(new Mesh());
+  if (!mesh.get()) {
+    throw scene_parse_error(element, "Out of memory?");
+  }
+  std::string file_name = m_file_path + file;
+  DLOG("Loading mesh file %s.", file_name.c_str());
+  if (!mesh->Load(file_name.c_str())) {
+    throw scene_parse_error(element, "Unable to load mesh file.");
+  }
+
+#ifdef _DEBUG
+  std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
+#endif
+
+  m_meshes[name] = std::move(mesh);
+}
+
+void Scene::LoadMaterial(tinyxml2::XMLElement* element) {
+  // TODO(mage): Implement me!
+}
+
+void Scene::LoadMeshObject(tinyxml2::XMLElement* element) {
+  const char* mesh = element->Attribute("mesh");
+  if (!mesh) {
+    throw scene_parse_error(element, "Missing mesh attribute.");
+  }
+
+  std::unique_ptr<MeshObject> obj(new MeshObject());
+  if (!obj.get()) {
+    throw scene_parse_error(element, "Out of memory?");
+  }
+
+  // Find the named mesh.
+  std::map<std::string, std::unique_ptr<Mesh> >::iterator it = m_meshes.find(mesh);
+  if (it == m_meshes.end()) {
+    throw scene_parse_error(element, "Unable to find mesh (wrong name?).");
+  }
+
+  // Assign a mesh to the object.
+  obj->SetMesh(it->second.get());
+
+  // Collect transforms.
+  // TODO(mage): Implement me!
+
+  // Add the object to the object list.
+  m_objects.push_back(std::move(obj));
+}
+
+void Scene::LoadLight(tinyxml2::XMLElement* element) {
+  // TODO(mage): Implement me!
 }
 
 bool Scene::LoadFromXML(const char* file_name) {
@@ -60,16 +177,71 @@ bool Scene::LoadFromXML(const char* file_name) {
 bool Scene::LoadFromXML(std::istream& stream) {
   Reset();
 
-  // Load and parse XML file.
-  XMLDocument doc;
-  XMLError err = doc.LoadFile(stream);
-  if (err != XML_NO_ERROR) {
-    LOG("Unable to load XML stream (%d): %s, %s", err, doc.GetErrorStr1(),
-        doc.GetErrorStr2());
-    return false;
+  bool success = true;
+  try {
+    // Load and parse XML file.
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLError err = doc.LoadFile(stream);
+    if (err != tinyxml2::XML_NO_ERROR) {
+      throw scene_parse_error(&doc, "Unable to load XML stream.");
+    }
+
+    // Load mageray node.
+    tinyxml2::XMLElement* mageray_node = doc.FirstChildElement("mageray");
+    if (!mageray_node) {
+      throw scene_parse_error(&doc, "Missing mageray element.");
+    }
+    // TODO(mage): Check version number.
+
+    // Load scene node.
+    tinyxml2::XMLElement* scene_node = mageray_node->FirstChildElement("scene");
+    if (!scene_node) {
+      throw scene_parse_error(mageray_node, "Missing scene element.");
+    }
+
+    // Load the camera.
+    if (tinyxml2::XMLElement* node = scene_node->FirstChildElement("camera")) {
+      LoadCamera(node);
+    }
+
+    // Load images.
+    if (tinyxml2::XMLElement* images_node = scene_node->FirstChildElement("images")) {
+      // TODO(mage): Implement me!
+    }
+
+    // Load meshes.
+    if (tinyxml2::XMLElement* meshes_node = scene_node->FirstChildElement("meshes")) {
+      tinyxml2::XMLElement* node = meshes_node->FirstChildElement();
+      while (node) {
+        if (std::string(node->Value()) == "mesh") {
+          LoadMesh(node);
+        }
+        node = node->NextSiblingElement();
+      }
+    }
+
+    // Load materials.
+    if (tinyxml2::XMLElement* materials_node = scene_node->FirstChildElement("materials")) {
+      // TODO(mage): Implement me!
+    }
+
+    // Load objects.
+    if (tinyxml2::XMLElement* objects_node = scene_node->FirstChildElement("objects")) {
+      tinyxml2::XMLElement* node = objects_node->FirstChildElement();
+      while (node) {
+        if (std::string(node->Value()) == "meshobject") {
+          LoadMeshObject(node);
+        }
+        node = node->NextSiblingElement();
+      }
+    }
+  }
+  catch (scene_parse_error err) {
+    LOG("Error loading XML scene: %s", err.what());
+    success = false;
   }
 
-  // TODO(mage): Implement me!
+#if 0
   // In the mean time, we're just doing a default hard-coded scene...
 
   // Set up camera.
@@ -136,11 +308,14 @@ bool Scene::LoadFromXML(std::istream& stream) {
       m_objects.push_back(std::move(obj));
     }
   }
+#endif
 
-  // Build object tree.
-  m_object_tree.Build(m_objects);
+  if (success) {
+    // Build object tree.
+    m_object_tree.Build(m_objects);
+  }
 
-  return true;
+  return success;
 }
 
 void Scene::GenerateImage(Image& image) {

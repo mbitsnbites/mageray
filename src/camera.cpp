@@ -36,6 +36,7 @@ void Camera::Reset() {
   m_look_at = vec3(0, 0, 0);
   m_position = vec3(1, -10, 1);
   m_nominal_up = vec3(0, 0, 1);
+  m_fov = 90.0;
 
   // Update transformation matrices.
   UpdateMatrices();

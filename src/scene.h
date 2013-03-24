@@ -44,6 +44,10 @@
 #include "object.h"
 #include "tree.h"
 
+namespace tinyxml2 {
+class XMLElement;
+}
+
 class Scene {
   public:
     Scene() {
@@ -74,6 +78,13 @@ class Scene {
     void GenerateImage(Image& image);
 
   private:
+    void LoadCamera(tinyxml2::XMLElement* element);
+    void LoadImage(tinyxml2::XMLElement* element);
+    void LoadMesh(tinyxml2::XMLElement* element);
+    void LoadMaterial(tinyxml2::XMLElement* element);
+    void LoadMeshObject(tinyxml2::XMLElement* element);
+    void LoadLight(tinyxml2::XMLElement* element);
+
     std::string m_file_path;
 
     Camera m_camera;

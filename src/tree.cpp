@@ -211,11 +211,10 @@ void TriangleTree::Build(const MeshData& data) {
 
   ScopedPerf _leaf_perf = ScopedPerf("Generate leaf nodes");
 
-  // Create a vector of leaf nodes, and calculate the total bounding box while
-  // we're at it.
-  AABB aabb;
+  // Create a vector of leaf nodes.
   m_leaf_nodes.resize(data.triangles.size());
   std::vector<Node*> leaves(data.triangles.size());
+  #pragma omp parallel for
   for (unsigned i = 0; i < data.triangles.size(); i++) {
     // Get the triangle.
     const Triangle* triangle = &data.triangles[i];
@@ -241,14 +240,11 @@ void TriangleTree::Build(const MeshData& data) {
     triangle_aabb[AABB::XMAX] = std::max(p1.x, std::max(p2.x, p3.x));
     triangle_aabb[AABB::YMAX] = std::max(p1.y, std::max(p2.y, p3.y));
     triangle_aabb[AABB::ZMAX] = std::max(p1.z, std::max(p2.z, p3.z));
-
-    // Update the union bounding box for all the triangles.
-    if (UNLIKELY(!i)) {
-      aabb = triangle_aabb;
-    } else {
-      aabb += triangle_aabb;
-    }
   }
+
+  // Calculate total bounding box.
+  AABB aabb;
+  BoundingBoxUnion(aabb, leaves, 0, leaves.size());
 
   _leaf_perf.Done();
 

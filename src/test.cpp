@@ -132,7 +132,7 @@ void TestScene() {
   std::cout << std::endl << "--- Scene ---" << std::endl;
 
   Scene scene;
-  scene.SetFilePath("../resources");
+  scene.SetFilePath("../resources/");
   if (scene.LoadFromXML("../resources/test.xml")) {
     // Create a target image.
     Image img;

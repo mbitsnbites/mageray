@@ -59,6 +59,10 @@ class Camera {
       UpdateMatrices();
     }
 
+    void SetFOV(const scalar& fov) {
+      m_fov = fov;
+    }
+
     /// Get the transformation matrix.
     const mat3x4 Matrix() const {
       return m_matrix;
@@ -76,6 +80,8 @@ class Camera {
     vec3 m_position;
     vec3 m_look_at;
     vec3 m_nominal_up;
+
+    scalar m_fov;
 
     mat3x4 m_matrix;
     mat3x4 m_inv_matrix;

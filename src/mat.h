@@ -101,7 +101,7 @@ class mat3x4 {
     }
 
     /// Create a rotation matrix.
-    static mat3x4 Rotate(const vec3& s);
+    static mat3x4 Rotate(const vec3& r);
 
     /// Matrix * matrix multiplication.
     /// In this multiplication operation, each matrix is interpreted as a 4x4

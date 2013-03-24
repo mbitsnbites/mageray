@@ -28,7 +28,7 @@
 
 #include "mat.h"
 
-mat3x4 mat3x4::Rotate(const vec3& s) {
+mat3x4 mat3x4::Rotate(const vec3& r) {
   // TODO(mage): Implement me!
   return Identity();
 }
