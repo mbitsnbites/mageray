@@ -137,6 +137,9 @@ bool Scene::LoadFromXML(std::istream& stream) {
     }
   }
 
+  // Build object tree.
+  m_object_tree.Build(m_objects);
+
   return true;
 }
 
@@ -169,20 +172,16 @@ void Scene::GenerateImage(Image& image) {
       // Construct a ray.
       Ray ray(cam_pos, dir);
 
-      // Shoot a ray against all the objects in the scene.
-      // TODO(mage): Should be against an object tree...
+      // Shoot a ray against the object tree, containing all the objects in
+      // the scene.
       HitInfo hit = HitInfo::CreateNoHit();
-      std::list<std::unique_ptr<Object> >::iterator it;
       Pixel result(0);
-      for (it = m_objects.begin(); it != m_objects.end(); it++) {
-        Object* object = it->get();
-        if (object->Intersect(ray, hit)) {
-          scalar s = 1.0 - std::min(hit.t * 0.06, 1.0);
-          result = Pixel(s, s, s);
-          ++hits;
-        } else {
-          ++misses;
-        }
+      if (m_object_tree.Intersect(ray, hit)) {
+        scalar s = 1.0 - std::min(hit.t * 0.06, 1.0);
+        result = Pixel(s, s, s);
+        ++hits;
+      } else {
+        ++misses;
       }
       image.PixelAt(u, v) = result;
 

@@ -72,7 +72,7 @@ class Object {
     /// @param ray The ray to shoot against the object (in world space).
     /// @param[in,out] hit Current closest hit information.
     /// @returns True if the ray intersects with the object.
-    bool Intersect(const Ray& ray, HitInfo& hit);
+    bool Intersect(const Ray& ray, HitInfo& hit) const;
 
     /// Get the bounding box for this object.
     /// @param aabb[out] The bounding box (in world space) for this object.
@@ -83,7 +83,7 @@ class Object {
     /// @param ray The ray to shoot against the object (in object space).
     /// @param[in,out] hit Current closest hit information.
     /// @returns True if the ray intersects with the object.
-    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) = 0;
+    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const = 0;
 
     /// Get the bounding box for this object.
     /// @param aabb[out] The bounding box (in object space) for this object.
@@ -107,7 +107,7 @@ class MeshObject : public Object {
     }
 
   protected:
-    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit);
+    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const;
 
     virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const;
 

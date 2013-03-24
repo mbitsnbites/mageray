@@ -50,7 +50,7 @@ void Object::Rotate(const vec3& r) {
   m_inv_matrix = m_matrix.Inverse();
 }
 
-bool Object::Intersect(const Ray& ray, HitInfo& hit) {
+bool Object::Intersect(const Ray& ray, HitInfo& hit) const {
   // Transform ray into object space.
   const vec3 origin = m_inv_matrix.TransformPoint(ray.Origin());
   const vec3 direction = m_inv_matrix.TransformDirection(ray.Direction());
@@ -78,7 +78,7 @@ void Object::GetBoundingBox(AABB& aabb) const {
 
   // Transform all the corners.
   for (int i = 0; i < 8; ++i) {
-    corners[i] = m_inv_matrix * corners[i];
+    corners[i] = m_matrix * corners[i];
   }
 
   // Find the bounding box that includes all the 8 transformed points.
@@ -95,7 +95,7 @@ void Object::GetBoundingBox(AABB& aabb) const {
   }
 }
 
-bool MeshObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) {
+bool MeshObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const {
   if (LIKELY(m_mesh)) {
     return m_mesh->Intersect(ray, hit);
   }

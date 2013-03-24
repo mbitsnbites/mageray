@@ -30,6 +30,7 @@
 #define MAGERAY_TREE_H_
 
 #include <atomic>
+#include <list>
 #include <memory>
 #include <vector>
 
@@ -38,9 +39,10 @@
 #include "base/types.h"
 #include "hitinfo.h"
 #include "mesh_data.h"
-#include "vec.h"
 #include "ray.h"
-#include "triangle.h"
+
+class Object;
+class Triangle;
 
 /// Generic tree node class.
 /// @note This class is intended to be extended.
@@ -183,8 +185,7 @@ typedef TypedNode<Triangle> TriangleNode;
 class TriangleTree : public Tree {
   public:
     /// Build a triangle tree from raw mesh data.
-    /// @param triangles An array of the triangles to put into the tree.
-    /// @param vertices The vertex array used by the triangles.
+    /// @param data The mesh data (triangle and vertex arrays).
     void Build(const MeshData& data);
 
   protected:
@@ -201,6 +202,21 @@ class TriangleTree : public Tree {
         HitInfo& hit) const;
 
     const MeshData* m_data;
+};
+
+/// Object tree node class.
+typedef TypedNode<Object> ObjectNode;
+
+/// Binary axis aligned bounding box tree for objects.
+class ObjectTree : public Tree {
+  public:
+    /// Build an object tree from a flat object list.
+    /// @param objects A list of the objects to put into the tree.
+    void Build(const std::list<std::unique_ptr<Object> >& objects);
+
+  protected:
+    virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
+       HitInfo& hit) const;
 };
 
 #endif // MAGERAY_TREE_H_

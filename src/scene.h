@@ -42,6 +42,7 @@
 #include "material.h"
 #include "light.h"
 #include "object.h"
+#include "tree.h"
 
 class Scene {
   public:
@@ -76,6 +77,8 @@ class Scene {
     std::string m_file_path;
 
     Camera m_camera;
+
+    ObjectTree m_object_tree;
 
     std::map<std::string, std::unique_ptr<Image> > m_images;
     std::map<std::string, std::unique_ptr<Mesh> > m_meshes;
