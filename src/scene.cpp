@@ -507,9 +507,24 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   info.color = vec3(0);
   info.alpha = 1.0;
 
+  // Nudge origin point in order to avoid re-intersecting the original surface.
+  hit.point += hit.normal * 0.0001;
+
+  // View direction.
+  vec3 view_dir = (hit.point - ray.Origin()).Normalize();
+
   // Reflection?
   if (material->Mirror() > 0.0) {
-    // TODO(mage): Implement me!
+    // Reflected direction.
+    vec3 reflect_dir =
+        ray.Direction() - hit.normal * (2.0 * hit.normal.Dot(ray.Direction()));
+
+    // Trace ray.
+    Ray reflect_ray(hit.point, reflect_dir);
+    TraceInfo reflect_info;
+    if (TraceRay(reflect_ray, reflect_info, depth + 1)) {
+      info.color += reflect_info.color * material->Color() * material->Mirror();
+    }
   }
 
   // Transparency?
@@ -531,20 +546,26 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
       scalar light_dist = light_dir.Abs();
       light_dir = light_dir * (1.0 / light_dist);
 
-      scalar light_factor = light_dir.Dot(hit.normal);
-      if (light_factor > 0.0) {
-        // Nudge starting point to avoid false shadow hits.
-        vec3 origin = hit.point + light_dir * 0.0001;
-
+      scalar diffuse_factor = light_dir.Dot(hit.normal);
+      if (diffuse_factor > 0.0) {
         // Cast a shadow ray.
         HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
-        Ray shadow_ray(origin, light_dir);
+        Ray shadow_ray(hit.point, light_dir);
         if (!m_object_tree.Intersect(shadow_ray, shadow_hit)) {
           // Diffuse contribution.
-          light_contrib += light->Color() * (light_factor * material->Diffuse());
+          scalar light_factor = diffuse_factor * material->Diffuse();
 
           // Specular contribution.
-          // TODO(mage): Imeplement me.
+          if (material->Specular() > 0.0) {
+            vec3 light_reflect_dir =
+                light_dir - hit.normal * (2.0 * hit.normal.Dot(light_dir));
+
+            light_factor += material->Specular() *
+                std::pow(view_dir.Dot(light_reflect_dir), material->Hardness());
+          }
+
+          // Diffuse and specular contribution.
+          light_contrib += light->Color() * light_factor;
         }
       }
     }
