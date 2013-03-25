@@ -359,7 +359,7 @@ void ObjectTree::Build(const std::list<std::unique_ptr<Object> >& objects) {
   AABB aabb;
   m_leaf_nodes.resize(objects.size());
   std::vector<Node*> leaves(objects.size());
-  std::list<std::unique_ptr<Object> >::const_iterator it = objects.begin();
+  auto it = objects.begin();
   for (unsigned i = 0; i < objects.size(); i++) {
     // Get the object.
     const Object* object = it->get();

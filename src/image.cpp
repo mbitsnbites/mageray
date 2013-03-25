@@ -32,10 +32,46 @@
 #include <cstring>
 #include <fstream>
 #include <vector>
+#include <memory>
 
 #include <png.h>
 
 #include "base/log.h"
+
+namespace {
+
+template <int len>
+bool MatchingSignature(std::istream& stream, const unsigned char* signature) {
+  // Read len bytes from the stream.
+  unsigned char buf[len];
+  std::fill(buf, buf + len, 0);
+  std::streampos old_pos = stream.tellg();
+  stream.read(reinterpret_cast<char*>(buf), len);
+  stream.seekg(old_pos);
+
+  // Compate signature to the read buffer.
+  return std::equal(buf, buf + len, signature);
+}
+
+void MyPNGRead(png_structp png_ptr, png_bytep data, png_size_t len) {
+  std::istream* stream = static_cast<std::istream*>(png_get_io_ptr(png_ptr));
+  ASSERT(stream, "No input stream found.");
+  stream->read(reinterpret_cast<char*>(data), len);
+}
+
+void MyPNGWrite(png_structp png_ptr, png_bytep data, png_size_t len) {
+  std::ostream* stream = static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
+  ASSERT(stream, "No output stream found.");
+  stream->write(reinterpret_cast<char*>(data), len);
+}
+
+void MyPNGFlush(png_structp png_ptr) {
+  std::ostream* stream = static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
+  ASSERT(stream, "No output stream found.");
+  stream->flush();
+}
+
+}
 
 void Image::Reset() {
   m_data.reset(NULL);
@@ -65,28 +101,9 @@ bool Image::Allocate(int width, int height) {
   return true;
 }
 
-static bool MatchingSignature(std::istream& stream,
-    const unsigned char* signature, int len) {
-  // Read len bytes from the stream.
-  unsigned char buf[len];
-  std::fill(buf, buf + len, 0);
-  std::streampos old_pos = stream.tellg();
-  stream.read(reinterpret_cast<char*>(buf), len);
-  stream.seekg(old_pos);
-
-  // Compate signature to the read buffer.
-  return std::equal(buf, buf + len, signature);
-}
-
-static void MyPNGRead(png_structp png_ptr, png_bytep data, png_size_t len) {
-  std::istream* stream = static_cast<std::istream*>(png_get_io_ptr(png_ptr));
-  ASSERT(stream, "No input stream found.");
-  stream->read(reinterpret_cast<char*>(data), len);
-}
-
 bool Image::LoadPNG(std::istream& stream) {
   static const unsigned char signature[] = {137, 80, 78, 71, 13, 10, 26, 10};
-  if (!MatchingSignature(stream, signature, sizeof(signature))) {
+  if (!MatchingSignature<sizeof(signature)>(stream, signature)) {
     return false;
   }
 
@@ -147,13 +164,13 @@ bool Image::LoadPNG(std::istream& stream) {
   bool success = false;
   if (Allocate(width, height)) {
     // Set up row pointers.
-    png_bytep row_pointers[height];
+    std::unique_ptr<png_bytep> row_pointers(new png_bytep[height]);
     for (int i = 0; i < height; ++i) {
-      row_pointers[i] = reinterpret_cast<png_bytep>(&PixelAt(0, i));
+      row_pointers.get()[i] = reinterpret_cast<png_bytep>(&PixelAt(0, i));
     }
 
     // Read the PNG file to the image data buffer.
-    png_read_image(png_ptr, row_pointers);
+    png_read_image(png_ptr, row_pointers.get());
 
     success = true;
   }
@@ -166,7 +183,7 @@ bool Image::LoadPNG(std::istream& stream) {
 
 bool Image::LoadJPEG(std::istream& stream) {
   static const unsigned char signature[] = {255, 216};
-  if (!MatchingSignature(stream, signature, sizeof(signature))) {
+  if (!MatchingSignature<sizeof(signature)>(stream, signature)) {
     return false;
   }
 
@@ -200,18 +217,6 @@ bool Image::Load(const char* file_name) {
   LOG("Unable to open image file %s.", file_name);
   Reset();
   return false;
-}
-
-static void MyPNGWrite(png_structp png_ptr, png_bytep data, png_size_t len) {
-  std::ostream* stream = static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
-  ASSERT(stream, "No output stream found.");
-  stream->write(reinterpret_cast<char*>(data), len);
-}
-
-static void MyPNGFlush(png_structp png_ptr) {
-  std::ostream* stream = static_cast<std::ostream*>(png_get_io_ptr(png_ptr));
-  ASSERT(stream, "No output stream found.");
-  stream->flush();
 }
 
 bool Image::SavePNG(std::ostream& stream) {
@@ -249,13 +254,13 @@ bool Image::SavePNG(std::ostream& stream) {
   png_set_bgr(png_ptr);
 
   // Set up row pointers.
-  png_bytep row_pointers[m_height];
+  std::unique_ptr<png_bytep> row_pointers(new png_bytep[m_height]);
   for (int i = 0; i < m_height; ++i) {
-    row_pointers[i] = reinterpret_cast<png_bytep>(&PixelAt(0, i));
+    row_pointers.get()[i] = reinterpret_cast<png_bytep>(&PixelAt(0, i));
   }
 
   // Write the PNG file to the image data buffer.
-  png_write_image(png_ptr, row_pointers);
+  png_write_image(png_ptr, row_pointers.get());
 
   // Free up resources.
   png_destroy_write_struct(&png_ptr, &info_ptr);
