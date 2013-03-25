@@ -28,6 +28,7 @@
 
 #include "scene.h"
 
+#include <algorithm>
 #include <atomic>
 #include <fstream>
 #include <iostream>
@@ -307,7 +308,15 @@ void Scene::LoadLight(tinyxml2::XMLElement* element) {
     throw scene_parse_error(element, "Out of memory?");
   }
 
-  // TODO(mage): Parse light properties.
+  if (const char* str = element->Attribute("color")) {
+    light->SetColor(ParseVec3String(str));
+  }
+  if (const char* str = element->Attribute("position")) {
+    light->SetPosition(ParseVec3String(str));
+  }
+  if (const char* str = element->Attribute("distance")) {
+    light->SetDistance(ParseScalarString(str));
+  }
 
   // Add the object to the object list.
   m_lights.push_back(std::move(light));
@@ -385,6 +394,17 @@ bool Scene::LoadFromXML(std::istream& stream) {
       }
     }
 
+    // Load lights.
+    if (tinyxml2::XMLElement* lights_node = scene_node->FirstChildElement("lights")) {
+      tinyxml2::XMLElement* node = lights_node->FirstChildElement();
+      while (node) {
+        if (std::string(node->Value()) == "light") {
+          LoadLight(node);
+        }
+        node = node->NextSiblingElement();
+      }
+    }
+
     // Load objects.
     if (tinyxml2::XMLElement* objects_node = scene_node->FirstChildElement("objects")) {
       tinyxml2::XMLElement* node = objects_node->FirstChildElement();
@@ -422,21 +442,13 @@ void Scene::GenerateImage(Image& image) {
   vec3 forward = m_camera.Matrix().TransformDirection(vec3(0,1,0));
   vec3 right = m_camera.Matrix().TransformDirection(vec3(1,0,0));
   vec3 up = m_camera.Matrix().TransformDirection(vec3(0,0,1));
-#ifdef _DEBUG
-  std::cout << "Camera: pos=" << cam_pos << " forward=" << forward << " right=" << right << " up=" << up << std::endl;
-#endif
 
   scalar width = static_cast<scalar>(image.Width());
   scalar height = static_cast<scalar>(image.Height());
   vec3 u_step = right * (1.0 / height);
   vec3 v_step = up * (-1.0 / height);
-#ifdef _DEBUG
-  std::cout << "Camera: x_step=" << u_step << " y_step=" << v_step << std::endl;
-#endif
 
   ScopedPerf _raytrace = ScopedPerf("Raytrace image");
-
-  std::atomic_uint hits(0), misses(0);
 
   // Loop over rows.
   #pragma omp parallel for
@@ -453,10 +465,10 @@ void Scene::GenerateImage(Image& image) {
       Pixel result(0);
       TraceInfo info;
       if (TraceRay(ray, info, 0)) {
-        result = Pixel(vec3(0.5) + info.color * 0.5);
-        ++hits;
-      } else {
-        ++misses;
+        result = Pixel(std::min(scalar(1.0), info.color.x),
+                       std::min(scalar(1.0), info.color.y),
+                       std::min(scalar(1.0), info.color.z),
+                       info.alpha);
       }
       image.PixelAt(u, v) = result;
 
@@ -465,8 +477,6 @@ void Scene::GenerateImage(Image& image) {
   }
 
   _raytrace.Done();
-
-  DLOG("hits=%d misses=%d", int(hits), int(misses));
 }
 
 struct TraceInfo {
@@ -502,21 +512,49 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
     // TODO(mage): Implement me!
   }
 
-  // Refraction?
+  // Transparency?
   if (material->Alpha() < 1.0) {
     // TODO(mage): Implement me!
   }
 
-  // Shadow?
+  // Ambient light contribution.
+  vec3 light_contrib(material->Ambient());
+
+  // Diffuse & specular light contribution.
   if (material->Diffuse() > 0.0 || material->Specular() > 0.0) {
-    // TODO(mage): Implement me!
+    // Iterate all the lights in the scene.
+    for (auto it = m_lights.begin(); it != m_lights.end(); it++) {
+      Light* light = it->get();
+
+      // Direction and distance to the light.
+      vec3 light_dir = light->Position() - hit.point;
+      scalar light_dist = light_dir.Abs();
+      light_dir = light_dir * (1.0 / light_dist);
+
+      scalar light_factor = light_dir.Dot(hit.normal);
+      if (light_factor > 0.0) {
+        // Nudge starting point to avoid false shadow hits.
+        vec3 origin = hit.point + light_dir * 0.0001;
+
+        // Cast a shadow ray.
+        HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
+        Ray shadow_ray(origin, light_dir);
+        if (!m_object_tree.Intersect(shadow_ray, shadow_hit)) {
+          // Diffuse contribution.
+          light_contrib += light->Color() * (light_factor * material->Diffuse());
+
+          // Specular contribution.
+          // TODO(mage): Imeplement me.
+        }
+      }
+    }
   }
+
+  // Ambient.
+  info.color += material->Color() * light_contrib;
 
   // Distance.
   info.distance = hit.t;
-
-  // HACK: Show normal as color.
-  info.color = hit.normal;
 
   return true;
 }

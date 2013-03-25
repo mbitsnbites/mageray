@@ -44,6 +44,15 @@ struct HitInfo {
     return hit_info;
   }
 
+  /// Create a new HitInfo object.
+  /// The HitInfo object represents a valid intersecion interval between
+  /// 0 and distance.
+  static HitInfo CreateShadowTest(const scalar distance) {
+    HitInfo hit_info;
+    hit_info.t = distance;
+    return hit_info;
+  }
+
   const Object* object; ///< The object that was hit.
   scalar t;             ///< Closest intersection t so far.
 

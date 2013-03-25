@@ -8,11 +8,13 @@
     </meshes>
 
     <materials>
-      <material name="glass" />
-      <material name="dull" />
+      <material name="glass" color="1 0.8 0.5" diffuse="0.8" ambient="0.2" />
+      <material name="dull" color="1 0.5 1" diffuse="0.8" ambient="0.2"  />
     </materials>
 
     <lights>
+      <light position="-5 -10 8" color="1 1 1" distance="20" />
+      <light position="10 0 5" color="0.2 0.5 1.0" distance="10" />
     </lights>
 
     <objects>

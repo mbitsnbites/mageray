@@ -74,6 +74,11 @@ struct vec3 {
     return *this;
   }
 
+  /// Vector multiplication (element wise).
+  vec3 operator*(const vec3& v) const {
+    return vec3(x * v.x, y * v.y, z * v.z);
+  }
+
   /// Scalar multiplication.
   vec3 operator*(const scalar s) const {
     return vec3(s * x, s * y, s * z);
