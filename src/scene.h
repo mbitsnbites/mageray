@@ -82,7 +82,9 @@ class Scene {
     void LoadImage(tinyxml2::XMLElement* element);
     void LoadMesh(tinyxml2::XMLElement* element);
     void LoadMaterial(tinyxml2::XMLElement* element);
+    void LoadObject(tinyxml2::XMLElement* element, Object* object);
     void LoadMeshObject(tinyxml2::XMLElement* element);
+    void LoadSphereObject(tinyxml2::XMLElement* element);
     void LoadLight(tinyxml2::XMLElement* element);
 
     std::string m_file_path;

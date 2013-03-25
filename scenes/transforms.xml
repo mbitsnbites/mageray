@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<mageray version="1">
+  <scene>
+    <camera position="1 -8 2" lookat="0 0 2.5" fov="90" />
+
+    <meshes>
+      <mesh name="happy" file="happy.ctm" />
+    </meshes>
+
+    <materials>
+      <material name="glass" />
+      <material name="dull" />
+    </materials>
+
+    <lights>
+    </lights>
+
+    <objects>
+      <!-- Some spheres -->
+      <sphereobject radius="1" material="glass">
+        <translate>3.0 0.0 0.0</translate>
+      </sphereobject>
+      <sphereobject radius="1" material="glass">
+        <rotate>0 0 45</rotate>
+        <translate>3.0 0.0 0.0</translate>
+      </sphereobject>
+      <sphereobject radius="1" material="glass">
+        <rotate>0 0 90</rotate>
+        <translate>3.0 0.0 0.0</translate>
+      </sphereobject>
+      <sphereobject radius="1" material="glass">
+        <rotate>0 0 135</rotate>
+        <translate>3.0 0.0 0.0</translate>
+      </sphereobject>
+      <sphereobject radius="1" material="glass">
+        <rotate>0 0 180</rotate>
+        <translate>3.0 0.0 0.0</translate>
+      </sphereobject>
+      <sphereobject radius="1" material="glass">
+        <rotate>0 0 225</rotate>
+        <translate>3.0 0.0 0.0</translate>
+      </sphereobject>
+      <sphereobject radius="1" material="glass">
+        <rotate>0 0 270</rotate>
+        <translate>3.0 0.0 0.0</translate>
+      </sphereobject>
+      <sphereobject radius="1" material="glass">
+        <rotate>0 0 315</rotate>
+        <translate>3.0 0.0 0.0</translate>
+      </sphereobject>
+
+      <!-- Some happy buddhas -->
+      <meshobject mesh="happy" material="dull">
+        <translate>3.0 0.0 0.0</translate>
+        <rotate>0 0 -90</rotate>
+      </meshobject>
+      <meshobject mesh="happy" material="dull">
+        <rotate>0 0 45</rotate>
+        <translate>3.0 0.0 0.0</translate>
+        <rotate>0 0 -90</rotate>
+      </meshobject>
+      <meshobject mesh="happy" material="dull">
+        <rotate>0 0 90</rotate>
+        <translate>3.0 0.0 0.0</translate>
+        <rotate>0 0 -90</rotate>
+      </meshobject>
+      <meshobject mesh="happy" material="dull">
+        <rotate>0 0 135</rotate>
+        <translate>3.0 0.0 0.0</translate>
+        <rotate>0 0 -90</rotate>
+      </meshobject>
+      <meshobject mesh="happy" material="dull">
+        <rotate>0 0 180</rotate>
+        <translate>3.0 0.0 0.0</translate>
+        <rotate>0 0 -90</rotate>
+      </meshobject>
+      <meshobject mesh="happy" material="dull">
+        <rotate>0 0 225</rotate>
+        <translate>3.0 0.0 0.0</translate>
+        <rotate>0 0 -90</rotate>
+      </meshobject>
+      <meshobject mesh="happy" material="dull">
+        <rotate>0 0 270</rotate>
+        <translate>3.0 0.0 0.0</translate>
+        <rotate>0 0 -90</rotate>
+      </meshobject>
+      <meshobject mesh="happy" material="dull">
+        <rotate>0 0 315</rotate>
+        <translate>3.0 0.0 0.0</translate>
+        <rotate>0 0 -90</rotate>
+      </meshobject>
+
+    </objects>
+  </scene>
+</mageray>
+

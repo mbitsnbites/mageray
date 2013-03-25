@@ -28,6 +28,8 @@
 
 #include "object.h"
 
+#include <cmath>
+
 #include "base/platform.h"
 
 Object::Object() : m_material(NULL) {
@@ -109,4 +111,33 @@ void MeshObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
     aabb[AABB::XMIN] = aabb[AABB::YMIN] = aabb[AABB::ZMIN] = 0.0;
     aabb[AABB::XMAX] = aabb[AABB::YMAX] = aabb[AABB::ZMAX] = 0.0;
   }
+}
+
+bool SphereObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const {
+  scalar a = ray.Direction().Dot(ray.Direction());
+  scalar b = -ray.Direction().Dot(ray.Origin());
+  scalar c = ray.Origin().Dot(ray.Origin()) - m_radius_squared;
+
+  scalar root_term = b * b - a * c;
+  if (root_term < 0.0) {
+    return false;
+  }
+  root_term = std::sqrt(root_term);
+
+  scalar t = b > root_term ? b - root_term : b + root_term;
+  t /= a;
+
+  if (t < EPSILON || t >= hit.t) {
+    return false;
+  }
+
+  // We had a hit.
+  hit.t = t;
+  return true;
+}
+
+void SphereObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
+  scalar radius = std::sqrt(m_radius_squared);
+  aabb[AABB::XMIN] = aabb[AABB::YMIN] = aabb[AABB::ZMIN] = -radius;
+  aabb[AABB::XMAX] = aabb[AABB::YMAX] = aabb[AABB::ZMAX] = radius;
 }

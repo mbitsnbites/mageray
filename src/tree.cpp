@@ -190,7 +190,11 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
 }
 
 bool Tree::Intersect(const Ray& ray, HitInfo& hit) {
-  ASSERT(!Empty(), "The tree is undefined.");
+  // Nothing to do?
+  if (Empty()) {
+    return false;
+  }
+
   // Check intersection against root node bounding box.
   // TODO(mage): In most cases we already know that we have a hit against the
   // root node, so we should be able to skip this check.

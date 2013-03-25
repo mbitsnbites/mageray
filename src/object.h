@@ -29,6 +29,7 @@
 #ifndef MAGERAY_OBJECT_H_
 #define MAGERAY_OBJECT_H_
 
+#include "base/log.h"
 #include "base/types.h"
 #include "mat.h"
 #include "material.h"
@@ -68,6 +69,18 @@ class Object {
       return m_inv_matrix;
     }
 
+    /// Set the material for this object.
+    /// @param material The material to use (or NULL).
+    void SetMaterial(Material* material) {
+      m_material = material;
+    }
+
+    /// Set the material for this object.
+    /// @param material The material to use (or NULL).
+    const ::Material* Material() const {
+      return m_material;
+    }
+
     /// Find intersection between object and ray.
     /// @param ray The ray to shoot against the object (in world space).
     /// @param[in,out] hit Current closest hit information.
@@ -92,7 +105,7 @@ class Object {
     mat3x4 m_matrix;
     mat3x4 m_inv_matrix;
 
-    Material* m_material;
+    ::Material* m_material;
 
   private:
     FORBID_COPY(Object);
@@ -113,6 +126,24 @@ class MeshObject : public Object {
 
   private:
     Mesh* m_mesh;
+};
+
+class SphereObject : public Object {
+  public:
+    SphereObject() : Object(), m_radius_squared(1.0) {}
+
+    void SetRadius(const scalar& radius) {
+      ASSERT(radius > 0.0, "Sphere radius must be positive.");
+      m_radius_squared = radius * radius;
+    }
+
+  protected:
+    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const;
+
+    virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const;
+
+  private:
+    scalar m_radius_squared;
 };
 
 #endif // MAGERAY_OBJECT_H_

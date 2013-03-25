@@ -52,7 +52,6 @@ LIB_SRCS = aabb.cpp \
            mesh_data.cpp \
            object.cpp \
            scene.cpp \
-           test.cpp \
            tree.cpp \
            base/perf.cpp \
            importers/openctm_importer.cpp \
@@ -75,17 +74,14 @@ LIB_OBJS = aabb.o \
 
 .PHONY: all clean depend
 
-all: test
+all: mageray
 
 clean:
-	rm -rf test test.o $(LIB_OBJS) make.depend
+	rm -rf mageray mageray.o $(LIB_OBJS) make.depend
 	cd third_party/openctm/lib && make -f Makefile.linux clean
 
-test: test.o $(LIB_OBJS) $(LIBOPENCTM)
-	$(CPP) -o test $(LFLAGS) test.o $(LIB_OBJS) $(LIBS)
-
-test.o: test.cpp vec.h mat.h image.h tree.h aabb.h triangle.h
-	$(CPP) $(CPPFLAGS) test.cpp
+mageray: mageray.o $(LIB_OBJS) $(LIBOPENCTM)
+	$(CPP) -o $@ $(LFLAGS) mageray.o $(LIB_OBJS) $(LIBS)
 
 $(LIBOPENCTM):
 	cd $(OPENCTM_PATH) && $(MAKE) -f Makefile.linux libopenctm2.a
@@ -103,6 +99,6 @@ $(LIBOPENCTM):
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 depend:
-	$(DEPEND) $(CPPFLAGS) $(LIB_SRCS) > make.depend
+	$(DEPEND) $(CPPFLAGS) $(LIB_SRCS) mageray.cpp > make.depend
 
 -include make.depend

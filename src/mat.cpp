@@ -29,8 +29,33 @@
 #include "mat.h"
 
 mat3x4 mat3x4::Rotate(const vec3& r) {
-  // TODO(mage): Implement me!
-  return Identity();
+  vec3 r_rad = r * (PI / 180.0);
+  scalar cos_x = std::cos(r_rad.x);
+  scalar cos_y = std::cos(r_rad.y);
+  scalar cos_z = std::cos(r_rad.z);
+  scalar sin_x = std::sin(r_rad.x);
+  scalar sin_y = std::sin(r_rad.y);
+  scalar sin_z = std::sin(r_rad.z);
+
+  return mat3x4(
+    // Row 1.
+    cos_y * cos_z,
+    cos_x * sin_z + sin_x * sin_y * cos_z,
+    sin_x * sin_z - cos_x * sin_y * cos_z,
+    0.0,
+
+    // Row 2.
+    -cos_y * sin_z,
+    cos_x * cos_z - sin_x * sin_y * sin_z,
+    sin_x * cos_z + cos_x * sin_y * sin_z,
+    0.0,
+
+    // Row 3.
+    sin_y,
+    -sin_x * cos_y,
+    cos_x * cos_y,
+    0.0
+  );
 }
 
 mat3x4 mat3x4::operator*(const mat3x4& m) const {
