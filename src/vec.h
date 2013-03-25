@@ -143,8 +143,20 @@ struct vec2 {
 
   vec2() {}
 
+  vec2(const scalar s) :
+      u(s), v(s) {}
+
   vec2(const scalar u_, const scalar v_) :
       u(u_), v(v_) {}
+
+  /// Vector addition.
+  vec2 operator+(const vec2& other) const {
+    return vec2(u + other.u, v + other.v);
+  }
+  /// Scalar multiplication.
+  vec2 operator*(const scalar s) const {
+    return vec2(s * u, s * v);
+  }
 
   friend std::ostream& operator<<(std::ostream& os, const vec2& v) {
     os << "(" << v.u << "," << v.v << ")";

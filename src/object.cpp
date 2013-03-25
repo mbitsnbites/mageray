@@ -59,7 +59,23 @@ bool Object::Intersect(const Ray& ray, HitInfo& hit) const {
   const Ray transformed_ray(origin, direction);
 
   // Perform intersection.
-  return IntersectInObjectSpace(transformed_ray, hit);
+  bool got_hit = IntersectInObjectSpace(transformed_ray, hit);
+  if (got_hit) {
+    hit.object = this;
+  }
+
+  return got_hit;
+}
+
+void Object::CompleteHitInfo(const Ray& ray, HitInfo& hit) const {
+  // Calculate intersection point (in world coordinates).
+  hit.point = ray.Origin() + ray.Direction() * hit.t;
+
+  // Get hit information in object space.
+  CompleteHitInfoInObjectSpace(hit);
+
+  // Transform normal to world space.
+  hit.normal = m_matrix.TransformDirection(hit.normal);
 }
 
 void Object::GetBoundingBox(AABB& aabb) const {
@@ -104,6 +120,10 @@ bool MeshObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const {
   return false;
 }
 
+void MeshObject::CompleteHitInfoInObjectSpace(HitInfo& hit) const {
+  m_mesh->CompleteHitInfo(hit);
+}
+
 void MeshObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
   if (LIKELY(m_mesh)) {
     aabb = m_mesh->BoundingBox();
@@ -131,9 +151,20 @@ bool SphereObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const {
     return false;
   }
 
+  // Store object space point for later (normal calculation).
+  hit.object_space_point = ray.Origin() + ray.Direction() * t;
+
   // We had a hit.
   hit.t = t;
   return true;
+}
+
+void SphereObject::CompleteHitInfoInObjectSpace(HitInfo& hit) const {
+  // The normal is the normalized point in space.
+  hit.normal = hit.object_space_point * m_inv_radius;
+
+  // The U/V coordinate is undefined.
+  hit.uv = vec2(0);
 }
 
 void SphereObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {

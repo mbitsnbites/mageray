@@ -87,6 +87,11 @@ class Object {
     /// @returns True if the ray intersects with the object.
     bool Intersect(const Ray& ray, HitInfo& hit) const;
 
+    /// Fill out remaining hit information.
+    /// @param ray The ray (in world space) used to intersect the object.
+    /// @param[in,out] hit The HitInfo to fill out.
+    void CompleteHitInfo(const Ray& ray, HitInfo& hit) const;
+
     /// Get the bounding box for this object.
     /// @param aabb[out] The bounding box (in world space) for this object.
     void GetBoundingBox(AABB& aabb) const;
@@ -97,6 +102,10 @@ class Object {
     /// @param[in,out] hit Current closest hit information.
     /// @returns True if the ray intersects with the object.
     virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const = 0;
+
+    /// Fill out remaining hit information.
+    /// @param hit The HitInfo to fill out.
+    virtual void CompleteHitInfoInObjectSpace(HitInfo& hit) const = 0;
 
     /// Get the bounding box for this object.
     /// @param aabb[out] The bounding box (in object space) for this object.
@@ -122,6 +131,8 @@ class MeshObject : public Object {
   protected:
     virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const;
 
+    virtual void CompleteHitInfoInObjectSpace(HitInfo& hit) const;
+
     virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const;
 
   private:
@@ -135,15 +146,19 @@ class SphereObject : public Object {
     void SetRadius(const scalar& radius) {
       ASSERT(radius > 0.0, "Sphere radius must be positive.");
       m_radius_squared = radius * radius;
+      m_inv_radius = 1.0 / radius;
     }
 
   protected:
     virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const;
 
+    virtual void CompleteHitInfoInObjectSpace(HitInfo& hit) const;
+
     virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const;
 
   private:
     scalar m_radius_squared;
+    scalar m_inv_radius;
 };
 
 #endif // MAGERAY_OBJECT_H_

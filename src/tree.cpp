@@ -302,8 +302,10 @@ bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
     // New closest t.
     hit.t = t;
 
-    // We store the u/v coordinates for later (e.g. normal interpolation).
-    hit.uv = vec2(u, v);
+    // We store the triangle and the u/v coordinates for later (e.g. normal
+    // interpolation).
+    hit.triangle = triangle;
+    hit.tri_uv = vec2(u, v);
 
     return true;
   }

@@ -107,3 +107,22 @@ bool Mesh::Load(const char* file_name) {
   LOG("Unable to open mesh file %s.", file_name);
   return false;
 }
+
+void Mesh::CompleteHitInfo(HitInfo& hit) const {
+  // Pick the three triangle vertices.
+  const Vertex* v1 = &m_data.vertices[hit.triangle->a];
+  const Vertex* v2 = &m_data.vertices[hit.triangle->b];
+  const Vertex* v3 = &m_data.vertices[hit.triangle->c];
+
+  // Interpolation weighting factors.
+  scalar w1 = 1.0 - hit.tri_uv.u - hit.tri_uv.v;
+  scalar w2 = hit.tri_uv.u;
+  scalar w3 = hit.tri_uv.v;
+
+  // Interpolate and normalize normal.
+  hit.normal =
+      (v1->normal * w1 + v2->normal * w2 + v3->normal * w3).Normalize();
+
+  // Interpolate U/V coordinates.
+  hit.uv = v1->uv * w1 + v2->uv * w2 + v3->uv * w3;
+}

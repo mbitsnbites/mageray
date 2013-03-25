@@ -63,17 +63,16 @@ class Mesh {
       return m_tree.Intersect(ray, hit);
     }
 
+    /// Calculate the normal for the given hit.
+    /// @param hit[in,out] The HitInfo.
+    void CompleteHitInfo(HitInfo& hit) const;
+
     /// @returns The bounding box for the mesh.
     const AABB& BoundingBox() {
       return m_tree.BoundingBox();
     }
 
   private:
-    /// Load a mesh from an OpenCTM format stream.
-    /// @param stream The stream from which to read the mesh.
-    /// @returns true if the operation succeeded.
-    bool LoadCTM(std::istream& stream);
-
     /// The raw mesh data.
     MeshData m_data;
 

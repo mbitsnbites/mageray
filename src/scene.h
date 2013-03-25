@@ -87,6 +87,14 @@ class Scene {
     void LoadSphereObject(tinyxml2::XMLElement* element);
     void LoadLight(tinyxml2::XMLElement* element);
 
+    struct TraceInfo {
+      vec3 color;
+      scalar alpha;
+      scalar distance;
+    };
+
+    bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth);
+
     std::string m_file_path;
 
     Camera m_camera;

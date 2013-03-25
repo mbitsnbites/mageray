@@ -183,7 +183,30 @@ void Scene::LoadMaterial(tinyxml2::XMLElement* element) {
     throw scene_parse_error(element, "Out of memory?");
   }
 
-  // TODO(mage): Parse material properties.
+  if (const char* str = element->Attribute("color")) {
+    material->SetColor(ParseVec3String(str));
+  }
+  if (const char* str = element->Attribute("ambient")) {
+    material->SetAmbient(ParseScalarString(str));
+  }
+  if (const char* str = element->Attribute("diffuse")) {
+    material->SetDiffuse(ParseScalarString(str));
+  }
+  if (const char* str = element->Attribute("specular")) {
+    material->SetSpecular(ParseScalarString(str));
+  }
+  if (const char* str = element->Attribute("hardness")) {
+    material->SetHardness(ParseScalarString(str));
+  }
+  if (const char* str = element->Attribute("mirror")) {
+    material->SetMirror(ParseScalarString(str));
+  }
+  if (const char* str = element->Attribute("alpha")) {
+    material->SetAlpha(ParseScalarString(str));
+  }
+  if (const char* str = element->Attribute("ior")) {
+    material->SetIor(ParseScalarString(str));
+  }
 
   m_materials[name] = std::move(material);
 }
@@ -426,13 +449,11 @@ void Scene::GenerateImage(Image& image) {
       // Construct a ray.
       Ray ray(cam_pos, dir);
 
-      // Shoot a ray against the object tree, containing all the objects in
-      // the scene.
-      HitInfo hit = HitInfo::CreateNoHit();
+      // Trace a ray into the scene.
       Pixel result(0);
-      if (m_object_tree.Intersect(ray, hit)) {
-        scalar s = 1.0 - std::min(hit.t * 0.06, 1.0);
-        result = Pixel(s, s, s);
+      TraceInfo info;
+      if (TraceRay(ray, info, 0)) {
+        result = Pixel(vec3(0.5) + info.color * 0.5);
         ++hits;
       } else {
         ++misses;
@@ -446,4 +467,56 @@ void Scene::GenerateImage(Image& image) {
   _raytrace.Done();
 
   DLOG("hits=%d misses=%d", int(hits), int(misses));
+}
+
+struct TraceInfo {
+  vec3 color;
+  scalar alpha;
+  scalar distance;
+};
+
+bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
+  // TODO(mage): Configuration parameter.
+  if (depth > 6) {
+    return false;
+  }
+
+  // Intersect scene.
+  HitInfo hit = HitInfo::CreateNoHit();
+  if (!m_object_tree.Intersect(ray, hit)) {
+    return false;
+  }
+
+  // Get surface properties.
+  hit.object->CompleteHitInfo(ray, hit);
+
+  // Get material.
+  const Material* material = hit.object->Material();
+
+  // Starting color.
+  info.color = vec3(0);
+  info.alpha = 1.0;
+
+  // Reflection?
+  if (material->Mirror() > 0.0) {
+    // TODO(mage): Implement me!
+  }
+
+  // Refraction?
+  if (material->Alpha() < 1.0) {
+    // TODO(mage): Implement me!
+  }
+
+  // Shadow?
+  if (material->Diffuse() > 0.0 || material->Specular() > 0.0) {
+    // TODO(mage): Implement me!
+  }
+
+  // Distance.
+  info.distance = hit.t;
+
+  // HACK: Show normal as color.
+  info.color = hit.normal;
+
+  return true;
 }
