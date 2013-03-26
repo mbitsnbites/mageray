@@ -31,6 +31,8 @@
 
 #include "vec.h"
 
+class Shader;
+
 class Material {
   public:
     Material() {
@@ -104,6 +106,14 @@ class Material {
       return m_ior;
     }
 
+    const ::Shader* Shader() const {
+      return m_shader;
+    }
+
+    void SetShader(::Shader* shader) {
+      m_shader = shader;
+    }
+
   private:
     vec3 m_color;
     scalar m_ambient;
@@ -113,6 +123,8 @@ class Material {
     scalar m_mirror;
     scalar m_alpha;
     scalar m_ior;
+
+    ::Shader* m_shader;
 };
 
 #endif // MAGERAY_MATERIAL_H_

@@ -42,6 +42,7 @@
 #include "material.h"
 #include "light.h"
 #include "object.h"
+#include "shader.h"
 #include "tree.h"
 
 namespace tinyxml2 {
@@ -87,6 +88,8 @@ class Scene {
     void LoadSphereObject(tinyxml2::XMLElement* element);
     void LoadLight(tinyxml2::XMLElement* element);
 
+    void InitDefaultShaders();
+
     struct TraceInfo {
       vec3 color;
       scalar alpha;
@@ -103,6 +106,7 @@ class Scene {
 
     std::map<std::string, std::unique_ptr<Image> > m_images;
     std::map<std::string, std::unique_ptr<Mesh> > m_meshes;
+    std::map<std::string, std::unique_ptr<Shader> > m_shaders;
     std::map<std::string, std::unique_ptr<Material> > m_materials;
 
     std::list<std::unique_ptr<Light> > m_lights;

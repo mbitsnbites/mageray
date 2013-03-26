@@ -53,6 +53,7 @@ LIB_SRCS = aabb.cpp \
            mesh_data.cpp \
            object.cpp \
            scene.cpp \
+           shader.cpp \
            tree.cpp \
            base/perf.cpp \
            importers/openctm_importer.cpp \
@@ -70,6 +71,7 @@ LIB_OBJS = aabb.o \
            openctm_importer.o \
            perf.o \
            scene.o \
+           shader.o \
            tinyxml2.o \
            tree.o
 

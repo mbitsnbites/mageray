@@ -39,6 +39,7 @@
 #include <tinyxml2.h>
 
 #include "base/perf.h"
+#include "base/platform.h"
 
 class scene_parse_error : public std::exception {
   public:
@@ -96,10 +97,13 @@ void Scene::Reset() {
 
   m_images.clear();
   m_meshes.clear();
+  m_shaders.clear();
   m_materials.clear();
 
   m_lights.clear();
   m_objects.clear();
+
+  InitDefaultShaders();
 }
 
 void Scene::LoadCamera(tinyxml2::XMLElement* element) {
@@ -208,6 +212,21 @@ void Scene::LoadMaterial(tinyxml2::XMLElement* element) {
   if (const char* str = element->Attribute("ior")) {
     material->SetIor(ParseScalarString(str));
   }
+
+  // Select shader (fall back to @phong if none given).
+  const char* shader_name = element->Attribute("shader");
+  if (!shader_name) {
+    shader_name = "@phong";
+  }
+
+  // Set the shader for this material.
+  auto it = m_shaders.find(shader_name);
+  if (it == m_shaders.end()) {
+    std::string msg = std::string("Unable to find shader \"") +
+        shader_name + std::string("\" (wrong name?).");
+    throw scene_parse_error(element, msg.c_str());
+  }
+  material->SetShader(it->second.get());
 
   m_materials[name] = std::move(material);
 }
@@ -479,11 +498,10 @@ void Scene::GenerateImage(Image& image) {
   _raytrace.Done();
 }
 
-struct TraceInfo {
-  vec3 color;
-  scalar alpha;
-  scalar distance;
-};
+void Scene::InitDefaultShaders() {
+  m_shaders["@null"].reset(new NullShader());
+  m_shaders["@phong"].reset(new PhongShader());
+}
 
 bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   // TODO(mage): Configuration parameter.
@@ -500,15 +518,22 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   // Get surface properties.
   hit.object->CompleteHitInfo(ray, hit);
 
+  // Nudge origin point in order to avoid re-intersecting the original surface.
+  hit.point += hit.normal * 0.0001;
+
+  // Startup info, before shading.
+  info.color = vec3(0);
+  info.alpha = 1.0;
+  info.distance = hit.t;
+
   // Get material.
   const Material* material = hit.object->Material();
 
-  // Starting color.
-  info.color = vec3(0);
-  info.alpha = 1.0;
-
-  // Nudge origin point in order to avoid re-intersecting the original surface.
-  hit.point += hit.normal * 0.0001;
+  // Fallback to surface normal visualization if we don't have a material.
+  if (UNLIKELY(!material || !material->Shader())) {
+    info.color = vec3(0.5) + (hit.normal * 0.5);
+    return true;
+  }
 
   // View direction.
   vec3 view_dir = (hit.point - ray.Origin()).Normalize();
@@ -530,12 +555,22 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   // Transparency?
   if (material->Alpha() < 1.0) {
     // TODO(mage): Implement me!
+    info.alpha = material->Alpha();
   }
 
-  // Ambient light contribution.
-  vec3 light_contrib(material->Ambient());
+  Shader::SurfaceParameters surface_parameters;
+  surface_parameters.material = material;
+  surface_parameters.position = hit.point;
+  surface_parameters.normal = hit.normal;
+  surface_parameters.uv = hit.uv;
+  surface_parameters.view_dir = view_dir;
 
-  // Diffuse & specular light contribution.
+  // Get the shader for this material.
+  const Shader* shader = material->Shader();
+  ASSERT(shader, "Missing shader.");
+
+  // Light contribution.
+  vec3 light_contrib(0);
   if (material->Diffuse() > 0.0 || material->Specular() > 0.0) {
     // Iterate all the lights in the scene.
     for (auto it = m_lights.begin(); it != m_lights.end(); it++) {
@@ -546,36 +581,31 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
       scalar light_dist = light_dir.Abs();
       light_dir = light_dir * (1.0 / light_dist);
 
-      scalar diffuse_factor = light_dir.Dot(hit.normal);
-      if (diffuse_factor > 0.0) {
-        // Cast a shadow ray.
+      scalar cos_alpha = light_dir.Dot(hit.normal);
+      if (cos_alpha > 0.0) {
+        Shader::LightParameters light_parameters;
+        light_parameters.light = light;
+        light_parameters.dir = light_dir;
+        light_parameters.dist = light_dist;
+        light_parameters.cos_alpha = cos_alpha;
+        light_parameters.amount = 1.0;
+
+        // Determine light visibility factor (0.0 for completely shadowed).
         HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
         Ray shadow_ray(hit.point, light_dir);
-        if (!m_object_tree.Intersect(shadow_ray, shadow_hit)) {
-          // Diffuse contribution.
-          scalar light_factor = diffuse_factor * material->Diffuse();
-
-          // Specular contribution.
-          if (material->Specular() > 0.0) {
-            vec3 light_reflect_dir =
-                light_dir - hit.normal * (2.0 * hit.normal.Dot(light_dir));
-
-            light_factor += material->Specular() *
-                std::pow(view_dir.Dot(light_reflect_dir), material->Hardness());
-          }
-
-          // Diffuse and specular contribution.
-          light_contrib += light->Color() * light_factor;
+        if (m_object_tree.Intersect(shadow_ray, shadow_hit)) {
+          light_parameters.amount = 0.0;
         }
+
+        // Run per-light shader.
+        light_contrib += shader->LightContribution(surface_parameters,
+            light_parameters);
       }
     }
   }
 
-  // Ambient.
-  info.color += material->Color() * light_contrib;
-
-  // Distance.
-  info.distance = hit.t;
+  // Run global shader pass.
+  info.color += shader->ShadeColor(surface_parameters, light_contrib);
 
   return true;
 }

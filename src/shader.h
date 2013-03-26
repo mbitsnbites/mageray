@@ -26,16 +26,63 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#include "material.h"
+#ifndef MAGERAY_SHADER_H_
+#define MAGERAY_SHADER_H_
 
-void Material::Reset() {
-  m_color = vec3(1.0, 1.0, 1.0);
-  m_ambient = 0.2;
-  m_diffuse = 0.8;
-  m_specular = 0.5;
-  m_hardness = 50.0;
-  m_mirror = 0.0;
-  m_alpha = 1.0;
-  m_ior = 1.0;
-  m_shader = NULL;
-}
+#include "base/types.h"
+#include "vec.h"
+
+class Material;
+class Light;
+
+class Shader {
+  public:
+    virtual ~Shader() {}
+
+    struct SurfaceParameters {
+        const Material* material; ///< Object material.
+
+        vec3 position;        ///< World space position.
+        vec3 normal;          ///< World space surface normal.
+        vec2 uv;              ///< UV coordinate.
+        vec3 view_dir;        ///< View direction.
+    };
+
+    struct LightParameters {
+        const Light* light;   ///< Light source.
+
+        vec3 dir;             ///< Direction from position to the light.
+        scalar dist;          ///< Distance from position to the light.
+        scalar cos_alpha;     ///< cos(angle between light dir and normal).
+        scalar amount;        ///< 1.0 for non-shadowed, 0.0 for shadowed.
+    };
+
+    virtual vec3 LightContribution(const SurfaceParameters& surface_parameters,
+        const LightParameters& light_parameters) const = 0;
+
+    virtual vec3 ShadeColor(const SurfaceParameters& surface_parameters,
+        const vec3& light_contribution) const = 0;
+};
+
+class NullShader : public Shader {
+  public:
+    virtual vec3 LightContribution(const SurfaceParameters&,
+        const LightParameters&) const;
+
+    virtual vec3 ShadeColor(
+        const SurfaceParameters&,
+        const vec3&) const;
+};
+
+class PhongShader : public Shader {
+  public:
+    virtual vec3 LightContribution(
+        const SurfaceParameters& surface_parameters,
+        const LightParameters& light_parameters) const;
+
+    virtual vec3 ShadeColor(
+        const SurfaceParameters& surface_parameters,
+        const vec3& light_contribution) const;
+};
+
+#endif // MAGERAY_SHADER_H_
