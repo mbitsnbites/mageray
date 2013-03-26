@@ -57,11 +57,11 @@ class Shader {
         scalar amount;        ///< 1.0 for non-shadowed, 0.0 for shadowed.
     };
 
-    virtual vec3 LightContribution(const SurfaceParameters& surface_parameters,
-        const LightParameters& light_parameters) const = 0;
+    virtual vec3 LightContribution(const SurfaceParameters& sp,
+        const LightParameters& lp) const = 0;
 
-    virtual vec3 ShadeColor(const SurfaceParameters& surface_parameters,
-        const vec3& light_contribution) const = 0;
+    virtual vec3 ShadeColor(const SurfaceParameters& sp,
+        const vec3& lc) const = 0;
 };
 
 class NullShader : public Shader {

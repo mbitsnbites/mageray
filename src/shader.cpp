@@ -52,16 +52,15 @@ vec3 NullShader::ShadeColor(
 // Classic phong shader.
 //------------------------------------------------------------------------------
 
-vec3 PhongShader::LightContribution(
-    const SurfaceParameters& surface_parameters,
-    const LightParameters& light_parameters) const {
+vec3 PhongShader::LightContribution(const SurfaceParameters& sp,
+    const LightParameters& lp) const {
   // For convenience: extract parameters into local variables.
-  const Material* material = surface_parameters.material;
-  const Light* light = light_parameters.light;
-  vec3 view_dir = surface_parameters.view_dir;
-  vec3 light_dir = light_parameters.dir;
-  vec3 normal = surface_parameters.normal;
-  scalar cos_alpha = light_parameters.cos_alpha;
+  const Material* material = sp.material;
+  const Light* light = lp.light;
+  vec3 view_dir = sp.view_dir;
+  vec3 light_dir = lp.dir;
+  vec3 normal = sp.normal;
+  scalar cos_alpha = lp.cos_alpha;
 
   // Diffuse contribution.
   scalar light_factor = cos_alpha * material->Diffuse();
@@ -75,12 +74,10 @@ vec3 PhongShader::LightContribution(
   }
 
   // Diffuse and specular contribution.
-  return light->Color() * (light_factor * light_parameters.amount);
+  return light->Color() * (light_factor * lp.amount);
 }
 
-vec3 PhongShader::ShadeColor(
-    const SurfaceParameters& surface_parameters,
-    const vec3& light_contribution) const {
-  return surface_parameters.material->Color() * light_contribution +
-      vec3(surface_parameters.material->Ambient());
+vec3 PhongShader::ShadeColor(const SurfaceParameters& sp,
+    const vec3& lc) const {
+  return sp.material->Color() * lc + vec3(sp.material->Ambient());
 }
