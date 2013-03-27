@@ -139,7 +139,7 @@ bool SphereObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const {
   scalar c = ray.Origin().Dot(ray.Origin()) - m_radius_squared;
 
   scalar root_term = b * b - a * c;
-  if (root_term < 0.0) {
+  if (root_term < scalar(0.0)) {
     return false;
   }
   root_term = std::sqrt(root_term);

@@ -279,19 +279,19 @@ bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
   if (scale > -EPSILON && scale < EPSILON) {
     return false;
   }
-  scale = 1.0 / scale;
+  scale = scalar(1.0) / scale;
 
   // Calculate u coordinate of the intersection.
   vec3 s = ray.Origin() - p1;
   scalar u = scale * s.Dot(h);
-  if (u < 0.0 || u > 1.0) {
+  if (u < scalar(0.0) || u > scalar(1.0)) {
     return false;
   }
 
   // Calculate v coordinate of the intersection.
   vec3 q = s.Cross(e1);
   scalar v = scale * ray.Direction().Dot(q);
-  if (v < 0.0 || u + v > 1.0) {
+  if (v < scalar(0.0) || u + v > scalar(1.0)) {
     return false;
   }
 

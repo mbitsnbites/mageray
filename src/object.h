@@ -141,12 +141,12 @@ class MeshObject : public Object {
 
 class SphereObject : public Object {
   public:
-    SphereObject() : Object(), m_radius_squared(1.0) {}
+    SphereObject() : Object(), m_radius_squared(scalar(1.0)) {}
 
     void SetRadius(const scalar& radius) {
-      ASSERT(radius > 0.0, "Sphere radius must be positive.");
+      ASSERT(radius > scalar(0.0), "Sphere radius must be positive.");
       m_radius_squared = radius * radius;
-      m_inv_radius = 1.0 / radius;
+      m_inv_radius = scalar(1.0) / radius;
     }
 
   protected:

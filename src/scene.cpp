@@ -464,16 +464,16 @@ void Scene::GenerateImage(Image& image) {
 
   scalar width = static_cast<scalar>(image.Width());
   scalar height = static_cast<scalar>(image.Height());
-  vec3 u_step = right * (1.0 / height);
-  vec3 v_step = up * (-1.0 / height);
+  vec3 u_step = right * (scalar(1.0) / height);
+  vec3 v_step = up * (scalar(-1.0) / height);
 
   ScopedPerf _raytrace = ScopedPerf("Raytrace image");
 
   // Loop over rows.
   #pragma omp parallel for
   for (int v = 0; v < image.Height(); ++v) {
-    vec3 dir = forward + u_step * (-0.5 * width) +
-      v_step * (static_cast<scalar>(v) - 0.5 * height);
+    vec3 dir = forward + u_step * (scalar(-0.5) * width) +
+        v_step * (static_cast<scalar>(v) - scalar(0.5) * height);
 
     // Loop over columns in the row.
     for (int u = 0; u < image.Width(); ++u) {
@@ -519,11 +519,11 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   hit.object->CompleteHitInfo(ray, hit);
 
   // Nudge origin point in order to avoid re-intersecting the original surface.
-  hit.point += hit.normal * 0.0001;
+  hit.point += hit.normal * scalar(0.0001);
 
   // Startup info, before shading.
   info.color = vec3(0);
-  info.alpha = 1.0;
+  info.alpha = scalar(1.0);
   info.distance = hit.t;
 
   // Get material.
@@ -531,7 +531,7 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
 
   // Fallback to surface normal visualization if we don't have a material.
   if (UNLIKELY(!material || !material->Shader())) {
-    info.color = vec3(0.5) + (hit.normal * 0.5);
+    info.color = vec3(0.5) + (hit.normal * scalar(0.5));
     return true;
   }
 
@@ -539,10 +539,10 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   vec3 view_dir = (hit.point - ray.Origin()).Normalize();
 
   // Reflection?
-  if (material->Mirror() > 0.0) {
+  if (material->Mirror() > scalar(0.0)) {
     // Reflected direction.
     vec3 reflect_dir =
-        ray.Direction() - hit.normal * (2.0 * hit.normal.Dot(ray.Direction()));
+        ray.Direction() - hit.normal * (scalar(2.0) * hit.normal.Dot(ray.Direction()));
 
     // Trace ray.
     Ray reflect_ray(hit.point, reflect_dir);
@@ -553,7 +553,7 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   }
 
   // Transparency?
-  if (material->Alpha() < 1.0) {
+  if (material->Alpha() < scalar(1.0)) {
     // TODO(mage): Implement me!
     info.alpha = material->Alpha();
   }
@@ -571,7 +571,7 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
 
   // Light contribution.
   vec3 light_contrib(0);
-  if (material->Diffuse() > 0.0 || material->Specular() > 0.0) {
+  if (material->Diffuse() > scalar(0.0) || material->Specular() > scalar(0.0)) {
     // Iterate all the lights in the scene.
     for (auto it = m_lights.begin(); it != m_lights.end(); it++) {
       Light* light = it->get();
@@ -579,22 +579,22 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
       // Direction and distance to the light.
       vec3 light_dir = light->Position() - hit.point;
       scalar light_dist = light_dir.Abs();
-      light_dir = light_dir * (1.0 / light_dist);
+      light_dir = light_dir * (scalar(1.0) / light_dist);
 
       scalar cos_alpha = light_dir.Dot(hit.normal);
-      if (cos_alpha > 0.0) {
+      if (cos_alpha > scalar(0.0)) {
         Shader::LightParameters light_parameters;
         light_parameters.light = light;
         light_parameters.dir = light_dir;
         light_parameters.dist = light_dist;
         light_parameters.cos_alpha = cos_alpha;
-        light_parameters.amount = 1.0;
+        light_parameters.amount = scalar(1.0);
 
         // Determine light visibility factor (0.0 for completely shadowed).
         HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
         Ray shadow_ray(hit.point, light_dir);
         if (m_object_tree.Intersect(shadow_ray, shadow_hit)) {
-          light_parameters.amount = 0.0;
+          light_parameters.amount = scalar(0.0);
         }
 
         // Run per-light shader.

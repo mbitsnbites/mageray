@@ -41,7 +41,7 @@ void Mesh::MakeSphere(int res, scalar radius) {
   int vertex_span = res + 1;
   int num_vertices = vertex_span * (res + 1);
   m_data.vertices.resize(num_vertices);
-  scalar step = 1.0 / static_cast<scalar>(res);
+  scalar step = scalar(1.0) / static_cast<scalar>(res);
   scalar u = 0;
   for (int i = 0, k = 0; i <= res; ++i) {
     scalar cos_theta = std::cos(2*PI*u);
@@ -115,7 +115,7 @@ void Mesh::CompleteHitInfo(HitInfo& hit) const {
   const Vertex* v3 = &m_data.vertices[hit.triangle->c];
 
   // Interpolation weighting factors.
-  scalar w1 = 1.0 - hit.tri_uv.u - hit.tri_uv.v;
+  scalar w1 = scalar(1.0) - hit.tri_uv.u - hit.tri_uv.v;
   scalar w2 = hit.tri_uv.u;
   scalar w3 = hit.tri_uv.v;
 

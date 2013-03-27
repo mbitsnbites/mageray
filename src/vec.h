@@ -45,8 +45,28 @@ struct vec3 {
   vec3(const scalar s) :
       x(s), y(s), z(s) {}
 
+  vec3(const int s) :
+      x(scalar(s)), y(scalar(s)), z(scalar(s)) {}
+
   vec3(const scalar x_, const scalar y_, const scalar z_) :
       x(x_), y(y_), z(z_) {}
+
+  vec3(const int x_, const int y_, const int z_) :
+      x(scalar(x_)), y(scalar(y_)), z(scalar(z_)) {}
+
+#ifdef SCALAR_IS_FLOAT
+  vec3(const double s) :
+      x(scalar(s)), y(scalar(s)), z(scalar(s)) {}
+
+  vec3(const double x_, const double y_, const double z_) :
+      x(scalar(x_)), y(scalar(y_)), z(scalar(z_)) {}
+#else
+  vec3(const float s) :
+      x(scalar(s)), y(scalar(s)), z(scalar(s)) {}
+
+  vec3(const float x_, const float y_, const float z_) :
+      x(scalar(x_)), y(scalar(y_)), z(scalar(z_)) {}
+#endif
 
   /// Vector addition.
   vec3 operator+(const vec3& v) const {
@@ -132,7 +152,7 @@ struct vec3 {
     if (denom < EPSILON) {
       return *this;
     }
-    return *this * (1.0 / denom);
+    return *this * (scalar(1.0) / denom);
   }
 
   friend std::ostream& operator<<(std::ostream& os, const vec3& v) {
@@ -153,6 +173,17 @@ struct vec2 {
 
   vec2(const scalar u_, const scalar v_) :
       u(u_), v(v_) {}
+
+#ifdef SCALAR_IS_FLOAT
+  vec2(const double u_, const double v_) :
+      u(scalar(u_)), v(scalar(v_)) {}
+#else
+  vec2(const float u_, const float v_) :
+      u(scalar(u_)), v(scalar(v_)) {}
+#endif
+
+  vec2(const int u_, const int v_) :
+      u(scalar(u_)), v(scalar(v_)) {}
 
   /// Vector addition.
   vec2 operator+(const vec2& other) const {

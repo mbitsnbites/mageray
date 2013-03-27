@@ -31,7 +31,9 @@ LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.a
 TINYXML2_PATH = third_party/tinyxml2
 
 CPP = g++
-CPPFLAGS = -c -std=c++0x -O3 -ffast-math -W -Wall -Wextra \
+CPPFLAGS = -c -std=c++0x \
+           -Ofast -funroll-loops \
+           -W -Wall -Wextra -Wdouble-promotion \
            -I. -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) -DSCALAR_IS_FLOAT \
            -fopenmp
 LFLAGS = -L$(OPENCTM_PATH) -fopenmp
@@ -80,7 +82,7 @@ LIB_OBJS = aabb.o \
 all: mageray
 
 clean:
-	rm -rf mageray mageray.o $(LIB_OBJS) make.depend
+	rm -rf mageray mageray.o $(LIB_OBJS)
 	cd third_party/openctm/lib && make -f Makefile.linux clean
 
 mageray: mageray.o $(LIB_OBJS) $(LIBOPENCTM)

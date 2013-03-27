@@ -66,8 +66,9 @@ vec3 PhongShader::LightContribution(const SurfaceParameters& sp,
   scalar light_factor = cos_alpha * material->Diffuse();
 
   // Specular contribution.
-  if (material->Specular() > 0.0) {
-    vec3 light_reflect_dir = light_dir - normal * (2.0 * normal.Dot(light_dir));
+  if (material->Specular() > scalar(0.0)) {
+    vec3 light_reflect_dir = light_dir - normal * (scalar(2.0) *
+        normal.Dot(light_dir));
 
     light_factor += material->Specular() *
         std::pow(view_dir.Dot(light_reflect_dir), material->Hardness());

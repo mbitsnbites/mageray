@@ -29,7 +29,7 @@
 #include "mat.h"
 
 mat3x4 mat3x4::Rotate(const vec3& r) {
-  vec3 r_rad = r * (PI / 180.0);
+  vec3 r_rad = r * (PI / scalar(180.0));
   scalar cos_x = std::cos(r_rad.x);
   scalar cos_y = std::cos(r_rad.y);
   scalar cos_z = std::cos(r_rad.z);

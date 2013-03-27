@@ -43,20 +43,24 @@ typedef double scalar;
 // We need a very small distance at times (e.g. for checking if we're > 0, but
 // accounting for numerical rounding errors).
 #ifdef SCALAR_IS_FLOAT
-# define EPSILON 1e-10
+# define EPSILON 1e-10f
 #else
 # define EPSILON 1e-50
 #endif
 
 // Precision dependent maximum distance.
 #ifdef SCALAR_IS_FLOAT
-# define MAX_DISTANCE 1e30
+# define MAX_DISTANCE 1e30f
 #else
 # define MAX_DISTANCE 1e300
 #endif
 
 // Since we simply can't seem to get PI into the C++ standard (?), put it here.
-#define PI 3.141592653589793238462643383279502884197169399375105820974944592308
+#ifdef SCALAR_IS_FLOAT
+# define PI 3.1415926535897932384626433f
+#else
+# define PI 3.141592653589793238462643383279502884197169399375105820974944592308
+#endif
 
 // Convenience macro for disabling assignment and copying for a class.
 #define FORBID_COPY(x)  \

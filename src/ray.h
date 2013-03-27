@@ -43,8 +43,9 @@ class Ray {
         m_origin(origin),
         m_direction(direction) {
       // Calculate inverse of the ray direction.
-      m_inv_direction = vec3(1.0 / direction.x, 1.0 / direction.y,
-          1.0 / direction.z);
+      m_inv_direction = vec3(scalar(1.0) / direction.x,
+                             scalar(1.0) / direction.y,
+                             scalar(1.0) / direction.z);
 
       // Determine closest and farthest AABB sides for the given direction.
       if (direction.x >= 0) {
