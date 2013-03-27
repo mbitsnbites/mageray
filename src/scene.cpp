@@ -592,7 +592,7 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
 
         // Determine light visibility factor (0.0 for completely shadowed).
         HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
-        Ray shadow_ray(hit.point, light_dir);
+        Ray shadow_ray(light->Position(), light_dir.Neg());
         if (m_object_tree.Intersect(shadow_ray, shadow_hit)) {
           light_parameters.amount = scalar(0.0);
         }
