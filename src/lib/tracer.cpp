@@ -39,14 +39,20 @@
 
 namespace mageray {
 
+Tracer::Tracer() : m_scene(NULL) {
+  // Default configuration.
+  m_config.max_recursions = 4;
+  m_config.antialias_depth = 3;
+}
+
 void Tracer::GenerateImage(Image& image) const {
   ASSERT(m_scene, "The scene is undefined.");
 
   // Set up camera.
-  vec3 cam_pos = m_scene->m_camera.Matrix().TransformPoint(vec3(0));
-  vec3 forward = m_scene->m_camera.Matrix().TransformDirection(vec3(0,1,0));
-  vec3 right = m_scene->m_camera.Matrix().TransformDirection(vec3(1,0,0));
-  vec3 up = m_scene->m_camera.Matrix().TransformDirection(vec3(0,0,1));
+  vec3 cam_pos = m_scene->m_camera.Position();
+  vec3 forward = m_scene->m_camera.Forward();
+  vec3 right = m_scene->m_camera.Right();
+  vec3 up = m_scene->m_camera.Up();
 
   scalar width = static_cast<scalar>(image.Width());
   scalar height = static_cast<scalar>(image.Height());
@@ -86,8 +92,7 @@ void Tracer::GenerateImage(Image& image) const {
 
 bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
     const {
-  // TODO(mage): Configuration parameter.
-  if (depth > 6) {
+  if (depth > m_config.max_recursions) {
     return false;
   }
 
@@ -161,7 +166,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
     Ray refract_ray(hit.point, refract_dir);
     TraceInfo refract_info;
     if (TraceRay(refract_ray, refract_info, depth + 1)) {
-      info.color += refract_info.color * material->Color() * material->Mirror();
+      info.color += refract_info.color * material_param.alpha;
       opacity *= scalar(1.0) - refract_info.alpha;
     }
 

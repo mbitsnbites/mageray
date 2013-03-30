@@ -39,9 +39,18 @@ namespace mageray {
 
 class Scene;
 
+/// Ray-tracing configuration parameters.
+struct TraceConfig {
+  /// Maximum number of trace recursions.
+  unsigned max_recursions;
+
+  /// Anti aliasing depth (0 = no anti aliasing).
+  unsigned antialias_depth;
+};
+
 class Tracer {
   public:
-    Tracer() : m_scene(NULL) {}
+    Tracer();
 
     /// Generate an image of the current scene.
     /// @param image The image to render to.
@@ -49,6 +58,10 @@ class Tracer {
 
     void SetScene(const Scene* scene) {
       m_scene = scene;
+    }
+
+    TraceConfig& Config() {
+      return m_config;
     }
 
   private:
@@ -59,6 +72,8 @@ class Tracer {
     };
 
     bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
+
+    TraceConfig m_config;
 
     const Scene* m_scene;
 

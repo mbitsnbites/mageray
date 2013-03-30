@@ -29,6 +29,9 @@
 #ifndef MAGERAY_CAMERA_H_
 #define MAGERAY_CAMERA_H_
 
+#include <cmath>
+
+#include "base/types.h"
 #include "vec.h"
 #include "mat.h"
 
@@ -42,6 +45,29 @@ class Camera {
     ~Camera() {}
 
     void Reset();
+
+    /// Get the camera position.
+    const vec3& Position() const {
+      return m_position;
+    }
+
+    /// Get the camera forward direction.
+    /// The forward direction vector is scaled to match the field of view (FOV)
+    /// of the camera.
+    vec3 Forward() const {
+      scalar len = scalar(1.0) / std::tan(m_fov * (PI / scalar(360.0)));
+      return m_matrix.TransformDirection(vec3(0, 1, 0) * len);
+    }
+
+    /// Get the camera right axis.
+    vec3 Right() const {
+      return m_matrix.TransformDirection(vec3(1, 0, 0));
+    }
+
+    /// Get the camera up axis.
+    vec3 Up() const {
+      return m_matrix.TransformDirection(vec3(0, 0, 1));
+    }
 
     /// Set the camera position.
     void SetPosition(const vec3& position) {
