@@ -26,65 +26,45 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#include <iostream>
-#include <string>
+#ifndef MAGERAY_TRACER_H_
+#define MAGERAY_TRACER_H_
 
-#include "scene.h"
-#include "tracer.h"
+#include "base/platform.h"
+#include "base/types.h"
+#include "image.h"
+#include "ray.h"
+#include "vec.h"
 
-using namespace mageray;
+namespace mageray {
 
-std::string ExtractBasePath(const std::string& file_name) {
-  size_t separator_pos = file_name.find_last_of("/\\");
-  if (separator_pos == std::string::npos) {
-    return "";
-  }
-  return file_name.substr(0, separator_pos + 1);
-}
+class Scene;
 
-int main(int argc, const char* argv[]) {
-  if (argc != 3) {
-    std::cout << "Usage: " << argv[0] << " scene image" << std::endl;
-    return 0;
-  }
+class Tracer {
+  public:
+    Tracer() : m_scene(NULL) {}
 
-  std::cout << "mageray v0.1" << std::endl;
+    /// Generate an image of the current scene.
+    /// @param image The image to render to.
+    void GenerateImage(Image& image) const;
 
-  // Get arguments.
-  const std::string scene_file(argv[1]);
-  const std::string image_file(argv[2]);
+    void SetScene(const Scene* scene) {
+      m_scene = scene;
+    }
 
-  // Determine resource folder.
-  const std::string file_path = ExtractBasePath(scene_file);
+  private:
+    struct TraceInfo {
+      vec3 color;
+      scalar alpha;
+      scalar distance;
+    };
 
-  // Load scene.
-  std::cout << std::endl << "[Loading scene]" << std::endl;
-  Scene scene;
-  scene.SetFilePath(file_path.c_str());
-  if (!scene.LoadFromXML(scene_file.c_str())) {
-    return 0;
-  }
+    bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
 
-  // TODO(mage): Collect image quality parameters from command line and/or
-  // the scene file.
-  unsigned width = 1024;
-  unsigned height = 768;
+    const Scene* m_scene;
 
-  // Create a target image.
-  Image img;
-  if (!img.Allocate(width, height)) {
-    std::cerr << "Unable to create target image (out of memory?)." << std::endl;
-    return 0;
-  }
+    FORBID_COPY(Tracer);
+};
 
-  // Ray trace image.
-  std::cout << std::endl << "[Rendering image]" << std::endl;
-  Tracer tracer;
-  tracer.SetScene(&scene);
-  tracer.GenerateImage(img);
+} // namespace mageray
 
-  // Save image.
-  img.SavePNG(image_file.c_str());
-
-  return 0;
-}
+#endif // MAGERAY_TRACER_H_

@@ -128,7 +128,7 @@ class Tree {
     /// @param ray The ray to shoot into the tree.
     /// @param[in,out] hit Current closest hit information.
     /// @returns true if the ray intersects with a primitive in the tree.
-    bool Intersect(const Ray& ray, HitInfo& hit);
+    bool Intersect(const Ray& ray, HitInfo& hit) const;
 
     /// @returns true if the tree is empty (uninitialized).
     bool Empty() const {

@@ -251,7 +251,7 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
   ASSERT(m_branch_nodes_idx == m_branch_nodes.size(), "Badly built tree!");
 }
 
-bool Tree::Intersect(const Ray& ray, HitInfo& hit) {
+bool Tree::Intersect(const Ray& ray, HitInfo& hit) const {
   // Nothing to do?
   if (Empty()) {
     return false;

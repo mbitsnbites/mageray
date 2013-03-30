@@ -45,28 +45,12 @@ CPPFLAGS = -c -std=c++0x \
 LFLAGS = -L$(OPENCTM_PATH) -fopenmp
 LIBS = -lpng -lopenctm2 -lpthread -lm
 
-DEPEND = $(CPP) -MM
+# Automatically generate dependency files
+CPPFLAGS += -MMD -MP
 
 # Debug flags
 CPPFLAGS += -D_DEBUG -g
 LFLAGS += -g
-
-LIB_SRCS = $(LIB_PATH)/aabb.cpp \
-           $(LIB_PATH)/camera.cpp \
-           $(LIB_PATH)/image.cpp \
-           $(LIB_PATH)/light.cpp \
-           $(LIB_PATH)/mat.cpp \
-           $(LIB_PATH)/material.cpp \
-           $(LIB_PATH)/mesh.cpp \
-           $(LIB_PATH)/mesh_data.cpp \
-           $(LIB_PATH)/object.cpp \
-           $(LIB_PATH)/sampler.cpp \
-           $(LIB_PATH)/scene.cpp \
-           $(LIB_PATH)/shader.cpp \
-           $(LIB_PATH)/tree.cpp \
-           $(LIB_PATH)/base/perf.cpp \
-           $(LIB_PATH)/importers/openctm_importer.cpp \
-           third_party/tinyxml2/tinyxml2.cpp
 
 LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/camera.o \
@@ -83,11 +67,12 @@ LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/scene.o \
            $(OBJ_PATH)/shader.o \
            $(OBJ_PATH)/tinyxml2.o \
-           $(OBJ_PATH)/tree.o
+           $(OBJ_PATH)/tree.o \
+           $(OBJ_PATH)/tracer.o
 
 MAGERAY = $(BIN_PATH)/mageray
 
-.PHONY: all clean depend
+.PHONY: all clean
 
 all: $(MAGERAY)
 
@@ -116,7 +101,7 @@ $(OBJ_PATH)/%.o: $(LIB_PATH)/importers/%.cpp
 $(OBJ_PATH)/%.o: third_party/tinyxml2/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
-depend:
-	$(DEPEND) $(CPPFLAGS) $(LIB_SRCS) mageray.cpp > make.depend
+# These dependency files are generated automatically when building the object
+# files.
+-include $(LIB_OBJS:.o=.d) $(OBJ_PATH)/mageray.d
 
--include make.depend

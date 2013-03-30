@@ -40,3 +40,5 @@ src/mageray.cpp
 src/lib/sampler.h
 src/lib/sampler.cpp
 src/lib/aabb.cpp
+src/lib/tracer.h
+src/lib/tracer.cpp

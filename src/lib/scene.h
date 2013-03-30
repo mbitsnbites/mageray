@@ -51,6 +51,8 @@ class XMLElement;
 
 namespace mageray {
 
+class Tracer;
+
 class Scene {
   public:
     Scene() {
@@ -76,10 +78,6 @@ class Scene {
     /// @returns true if successful.
     bool LoadFromXML(std::istream& stream);
 
-    /// Generate an image of the current scene.
-    /// @param image The image to render to.
-    void GenerateImage(Image& image);
-
   private:
     void LoadCamera(tinyxml2::XMLElement* element);
     void LoadImage(tinyxml2::XMLElement* element);
@@ -91,14 +89,6 @@ class Scene {
     void LoadLight(tinyxml2::XMLElement* element);
 
     void InitDefaultShaders();
-
-    struct TraceInfo {
-      vec3 color;
-      scalar alpha;
-      scalar distance;
-    };
-
-    bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth);
 
     std::string m_file_path;
 
@@ -113,6 +103,8 @@ class Scene {
 
     std::list<std::unique_ptr<Light> > m_lights;
     std::list<std::unique_ptr<Object> > m_objects;
+
+    friend class Tracer;
 
     FORBID_COPY(Scene);
 };
