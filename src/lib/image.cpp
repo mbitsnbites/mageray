@@ -94,7 +94,7 @@ bool Image::Allocate(int width, int height) {
   m_height = height;
 
   // Scaling factors for converting normalized s/t coordinates to fixed point
-  // indices (used in the Sample() method).
+  // indices (used by the Sampler class).
   m_s_scale = 256.0f * static_cast<float>(m_width);
   m_t_scale = 256.0f * static_cast<float>(m_height);
 
@@ -293,52 +293,3 @@ void Image::Clear(const Pixel& color) {
   // Use std::fill for setting all pixels to the same color.
   std::fill(ptr, ptr + m_width * m_height, color);
 }
-
-// This is a fairly quick version of linear interpolation between two 32-bit
-// colors using an 8-bit fractional weight (0-255). It uses semi-packed
-// multiplication (two color components per multiplication), which means that
-// only two integer multiplications are used in the operation.
-static inline Pixel::Composite Lerp(const Pixel::Composite c1,
-    const Pixel::Composite c2, const int w) {
-  const Pixel::Composite c1_a = c1 & 0x00ff00ff;
-  const Pixel::Composite c1_b = c1 & 0xff00ff00;
-  const Pixel::Composite c2_a = c2 & 0x00ff00ff;
-  const Pixel::Composite c2_b = c2 & 0xff00ff00;
-  return ((((c1_a << 8) + (c2_a - c1_a) * w) >> 8) & 0x00ff00ff) |
-      (((c1_b + ((c2_b >> 8) - (c1_b >> 8)) * w)) & 0xff00ff00);
-}
-
-Pixel Image::Sample(float s, float t) const {
-  // NOTE: Any kind of clamping or repeating has to be done before calling this
-  // method.
-  ASSERT(s >= 0.0f && s < 1.0f && t >= 0.0f && t < 1.0f,
-      "Illegal coordinates (%f,%f).", s, t);
-
-  // Convert floating point coordinates to fixed point coordinates (8-bit
-  // sub-pixel precision).
-  int s_fixed = static_cast<int>(s * m_s_scale);
-  int t_fixed = static_cast<int>(t * m_t_scale);
-  int si = s_fixed >> 8;
-  int ti = t_fixed >> 8;
-  int sw = s_fixed & 0xff;
-  int tw = t_fixed & 0xff;
-
-  ASSERT(si >= 0 && si < m_width && ti >= 0 && ti < m_height,
-      "Indices out of range.");
-
-  // Look up 4 neighbouring pixels.
-  int si2 = std::min(si + 1, m_width - 1);
-  int ti2 = std::min(ti + 1, m_height - 1);
-  Pixel::Composite c1 = PixelAt(si, ti);
-  Pixel::Composite c2 = PixelAt(si2, ti);
-  Pixel::Composite c3 = PixelAt(si, ti2);
-  Pixel::Composite c4 = PixelAt(si2, ti2);
-
-  // Linear interpolation along s-axis.
-  Pixel::Composite cs1 = Lerp(c1, c2, sw);
-  Pixel::Composite cs2 = Lerp(c3, c4, sw);
-
-  // Linear interpolation along t-axis.
-  return Lerp(cs1, cs2, tw);
-}
-

@@ -17,6 +17,8 @@ object.o: lib/object.cpp lib/object.h lib/base/log.h lib/base/types.h \
  lib/mat.h lib/vec.h lib/material.h lib/mesh.h lib/aabb.h lib/tree.h \
  lib/hitinfo.h lib/mesh_data.h lib/triangle.h lib/ray.h \
  lib/base/platform.h
+sampler.o: lib/sampler.cpp lib/sampler.h lib/base/types.h lib/pixel.h \
+ lib/base/log.h lib/vec.h lib/image.h
 scene.o: lib/scene.cpp lib/scene.h lib/base/types.h lib/camera.h \
  lib/vec.h lib/mat.h lib/base/log.h lib/image.h lib/pixel.h lib/mesh.h \
  lib/aabb.h lib/tree.h lib/hitinfo.h lib/mesh_data.h lib/triangle.h \

@@ -86,12 +86,6 @@ class Image {
       return m_data.get()[t * m_width + s];
     }
 
-    /// Sample a color value using bilinear interpolation.
-    /// @param[in] s The s coordinate, in the range [0,1).
-    /// @param[in] t The t coordinate, in the range [0,1).
-    /// @returns An interpolated color value.
-    Pixel Sample(float s, float t) const;
-
     /// Check if the image is empty.
     /// @returns true if the image is empty (i.e. has zero pixels).
     bool Empty() const {
@@ -126,6 +120,8 @@ class Image {
 
     float m_s_scale;  // Factor for converting s coordinates to fixed point.
     float m_t_scale;  // Factor for converting t coordinates to fixed point.
+
+    friend class Sampler;
 
     FORBID_COPY(Image);
 };

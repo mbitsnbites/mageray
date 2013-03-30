@@ -60,6 +60,7 @@ LIB_SRCS = $(LIB_PATH)/aabb.cpp \
            $(LIB_PATH)/mesh.cpp \
            $(LIB_PATH)/mesh_data.cpp \
            $(LIB_PATH)/object.cpp \
+           $(LIB_PATH)/sampler.cpp \
            $(LIB_PATH)/scene.cpp \
            $(LIB_PATH)/shader.cpp \
            $(LIB_PATH)/tree.cpp \
@@ -78,6 +79,7 @@ LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/object.o \
            $(OBJ_PATH)/openctm_importer.o \
            $(OBJ_PATH)/perf.o \
+           $(OBJ_PATH)/sampler.o \
            $(OBJ_PATH)/scene.o \
            $(OBJ_PATH)/shader.o \
            $(OBJ_PATH)/tinyxml2.o \
