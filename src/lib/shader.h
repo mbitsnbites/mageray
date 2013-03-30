@@ -41,7 +41,7 @@ class Shader {
   public:
     virtual ~Shader() {}
 
-    struct SurfaceParameters {
+    struct SurfaceParam {
         const Material* material; ///< Object material.
 
         vec3 position;        ///< World space position.
@@ -50,7 +50,14 @@ class Shader {
         vec3 view_dir;        ///< View direction.
     };
 
-    struct LightParameters {
+    struct MaterialParam {
+        vec3 diffuse;         ///< Diffuse color.
+        scalar alpha;         ///< Opacity.
+        vec3 specular;        ///< Specular color.
+        vec3 normal;          ///< World space surface normal.
+    };
+
+    struct LightParam {
         const Light* light;   ///< Light source.
 
         vec3 dir;             ///< Direction from position to the light.
@@ -59,32 +66,53 @@ class Shader {
         scalar amount;        ///< 1.0 for non-shadowed, 0.0 for shadowed.
     };
 
-    virtual vec3 LightContribution(const SurfaceParameters& sp,
-        const LightParameters& lp) const = 0;
+    /// Calculate surface material.
+    /// @param[in] sp Surface paramters.
+    /// @param[out] mp Material parameters (all fields that are used in
+    /// subsequent shader passes have to filled out).
+    virtual void MaterialPass(const SurfaceParam& sp,
+        MaterialParam& mp) const = 0;
 
-    virtual vec3 ShadeColor(const SurfaceParameters& sp,
+    /// Light contribtions for a single light source.
+    /// @param[in] sp Surface paramters.
+    /// @param[in] mp Material parameters.
+    /// @param[in] lp Light parameters.
+    /// @returns The total light contribution from the given light source.
+    virtual vec3 LightPass(const SurfaceParam& sp,
+        const MaterialParam& mp, const LightParam& lp) const = 0;
+
+    /// Final color shading.
+    /// @param[in] sp Surface paramters.
+    /// @param[in] mp Material parameters.
+    /// @param[in] lc Total light contribution.
+    /// @returns Final color.
+    virtual vec3 FinalPass(const SurfaceParam& sp,
+        const MaterialParam& mp,
         const vec3& lc) const = 0;
 };
 
 class NullShader : public Shader {
   public:
-    virtual vec3 LightContribution(const SurfaceParameters&,
-        const LightParameters&) const;
+    virtual void MaterialPass(const SurfaceParam&,
+        MaterialParam&) const;
 
-    virtual vec3 ShadeColor(
-        const SurfaceParameters&,
-        const vec3&) const;
+    virtual vec3 LightPass(const SurfaceParam&,
+        const MaterialParam&, const LightParam&) const;
+
+    virtual vec3 FinalPass(const SurfaceParam&,
+        const MaterialParam&, const vec3&) const;
 };
 
 class PhongShader : public Shader {
   public:
-    virtual vec3 LightContribution(
-        const SurfaceParameters& surface_parameters,
-        const LightParameters& light_parameters) const;
+    virtual void MaterialPass(const SurfaceParam& sp,
+        MaterialParam& mp) const;
 
-    virtual vec3 ShadeColor(
-        const SurfaceParameters& surface_parameters,
-        const vec3& light_contribution) const;
+    virtual vec3 LightPass(const SurfaceParam& sp,
+        const MaterialParam& mp, const LightParam& lp) const;
+
+    virtual vec3 FinalPass(const SurfaceParam& sp,
+        const MaterialParam&, const vec3& lc) const;
 };
 
 } // namespace mageray

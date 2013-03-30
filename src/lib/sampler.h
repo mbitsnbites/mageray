@@ -31,6 +31,7 @@
 
 #include "base/types.h"
 #include "pixel.h"
+#include "vec.h"
 
 namespace mageray {
 
@@ -50,7 +51,7 @@ class Sampler {
     /// @param[in] s The s coordinate.
     /// @param[in] t The t coordinate.
     /// @returns An interpolated color value.
-    Pixel Sample(scalar s, scalar t) const;
+    Pixel Sample(const vec2& coord) const;
 
   private:
     const Image* m_image;

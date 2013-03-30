@@ -30,6 +30,7 @@
 
 #include "light.h"
 #include "material.h"
+#include "sampler.h"
 
 namespace mageray {
 
@@ -37,14 +38,15 @@ namespace mageray {
 // Null shader (cheap, constant result).
 //------------------------------------------------------------------------------
 
-vec3 NullShader::LightContribution(
-    const SurfaceParameters&,
-    const LightParameters&) const {
+void NullShader::MaterialPass(const SurfaceParam&, MaterialParam&) const {
+}
+
+vec3 NullShader::LightPass(const SurfaceParam&, const MaterialParam&,
+    const LightParam&) const {
   return vec3(0.0);
 }
 
-vec3 NullShader::ShadeColor(
-    const SurfaceParameters&,
+vec3 NullShader::FinalPass(const SurfaceParam&, const MaterialParam&,
     const vec3&) const {
   return vec3(0.0);
 }
@@ -54,35 +56,53 @@ vec3 NullShader::ShadeColor(
 // Classic phong shader.
 //------------------------------------------------------------------------------
 
-vec3 PhongShader::LightContribution(const SurfaceParameters& sp,
-    const LightParameters& lp) const {
-  // For convenience: extract parameters into local variables.
-  const Material* material = sp.material;
-  const Light* light = lp.light;
-  vec3 view_dir = sp.view_dir;
-  vec3 light_dir = lp.dir;
-  vec3 normal = sp.normal;
-  scalar cos_alpha = lp.cos_alpha;
-
-  // Diffuse contribution.
-  scalar light_factor = cos_alpha * material->Diffuse();
-
-  // Specular contribution.
-  if (material->Specular() > scalar(0.0)) {
-    vec3 light_reflect_dir = light_dir - normal * (scalar(2.0) *
-        normal.Dot(light_dir));
-
-    light_factor += material->Specular() *
-        std::pow(view_dir.Dot(light_reflect_dir), material->Hardness());
+void PhongShader::MaterialPass(const SurfaceParam& sp,
+    MaterialParam& mp) const {
+  // Diffuse color.
+  if (sp.material->DiffuseMap()) {
+    Pixel c = sp.material->DiffuseMap()->Sample(sp.uv);
+    mp.diffuse = vec3(c.r(), c.g(), c.b()) * scalar(1.0 / 255.0);
+    mp.alpha = c.a() * scalar(1.0 / 255.0);
+  } else {
+    mp.diffuse = sp.material->Color() * sp.material->Diffuse();
+    mp.alpha = sp.material->Alpha();
   }
 
-  // Diffuse and specular contribution.
-  return light->Color() * (light_factor * lp.amount);
+  // Specular color.
+  if (sp.material->SpecularMap()) {
+    Pixel c = sp.material->SpecularMap()->Sample(sp.uv);
+    mp.specular = vec3(c.r(), c.g(), c.b()) * scalar(1.0 / 255.0);
+  } else {
+    mp.specular = vec3(sp.material->Specular());
+  }
+
+  // Normal (possibly modified by a normal map).
+  // TODO(mage): Implement normal map.
+  mp.normal = sp.normal;
 }
 
-vec3 PhongShader::ShadeColor(const SurfaceParameters& sp,
-    const vec3& lc) const {
-  return sp.material->Color() * lc + vec3(sp.material->Ambient());
+vec3 PhongShader::LightPass(const SurfaceParam& sp,
+    const MaterialParam& mp, const LightParam& lp) const {
+  // Diffuse contribution.
+  vec3 light_factor = mp.diffuse * lp.cos_alpha;
+
+  // Specular contribution.
+  vec3 light_reflect_dir = lp.dir - mp.normal * (scalar(2.0) *
+      mp.normal.Dot(lp.dir));
+
+  light_factor += mp.specular *
+      std::pow(sp.view_dir.Dot(light_reflect_dir), sp.material->Hardness());
+
+  // Light falloff, depnding on distance.
+  scalar falloff = lp.light->Distance() / (lp.light->Distance() + lp.dist);
+
+  // Diffuse and specular contribution.
+  return lp.light->Color() * light_factor * (lp.amount * falloff);
+}
+
+vec3 PhongShader::FinalPass(const SurfaceParam& sp,
+    const MaterialParam&, const vec3& lc) const {
+  return lc + vec3(sp.material->Ambient());
 }
 
 } // namespace mageray

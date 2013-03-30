@@ -114,6 +114,16 @@ struct vec3 {
     return *this;
   }
 
+  /// Vector equality.
+  bool operator==(const vec3& v) const {
+    return x == v.x && y == v.y && z == v.z;
+  }
+
+  /// Vector inequality.
+  bool operator!=(const vec3& v) const {
+    return x != v.x || y != v.y || z != v.z;
+  }
+
   /// Array access to the elements.
   /// @note There are no bounds checks!
   scalar& operator[](const int idx) {

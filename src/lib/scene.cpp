@@ -540,11 +540,27 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   // View direction.
   vec3 view_dir = (hit.point - ray.Origin()).Normalize();
 
+  // Get the shader for this material.
+  const Shader* shader = material->Shader();
+  ASSERT(shader, "Missing shader.");
+
+  Shader::SurfaceParam surface_param;
+  surface_param.material = material;
+  surface_param.position = hit.point;
+  surface_param.normal = hit.normal;
+  surface_param.uv = hit.uv;
+  surface_param.view_dir = view_dir;
+
+  // Get material properties.
+  Shader::MaterialParam material_param;
+  shader->MaterialPass(surface_param, material_param);
+
   // Reflection?
-  if (material->Mirror() > scalar(0.0)) {
+  vec3 mirror = material_param.specular * material->Mirror();
+  if (mirror != vec3(0.0)) {
     // Reflected direction.
-    vec3 reflect_dir =
-        ray.Direction() - hit.normal * (scalar(2.0) * hit.normal.Dot(ray.Direction()));
+    vec3 reflect_dir = ray.Direction() -
+        hit.normal * (scalar(2.0) * hit.normal.Dot(ray.Direction()));
 
     // Trace ray.
     Ray reflect_ray(hit.point, reflect_dir);
@@ -555,25 +571,15 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
   }
 
   // Transparency?
-  if (material->Alpha() < scalar(1.0)) {
+  if (material_param.alpha < scalar(1.0)) {
     // TODO(mage): Implement me!
-    info.alpha = material->Alpha();
+    info.alpha = material_param.alpha;
   }
-
-  Shader::SurfaceParameters surface_parameters;
-  surface_parameters.material = material;
-  surface_parameters.position = hit.point;
-  surface_parameters.normal = hit.normal;
-  surface_parameters.uv = hit.uv;
-  surface_parameters.view_dir = view_dir;
-
-  // Get the shader for this material.
-  const Shader* shader = material->Shader();
-  ASSERT(shader, "Missing shader.");
 
   // Light contribution.
   vec3 light_contrib(0);
-  if (material->Diffuse() > scalar(0.0) || material->Specular() > scalar(0.0)) {
+  if (material_param.diffuse != vec3(0.0) ||
+      material_param.specular != vec3(0.0)) {
     // Iterate all the lights in the scene.
     for (auto it = m_lights.begin(); it != m_lights.end(); it++) {
       Light* light = it->get();
@@ -585,29 +591,29 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
 
       scalar cos_alpha = light_dir.Dot(hit.normal);
       if (cos_alpha > scalar(0.0)) {
-        Shader::LightParameters light_parameters;
-        light_parameters.light = light;
-        light_parameters.dir = light_dir;
-        light_parameters.dist = light_dist;
-        light_parameters.cos_alpha = cos_alpha;
-        light_parameters.amount = scalar(1.0);
+        Shader::LightParam light_param;
+        light_param.light = light;
+        light_param.dir = light_dir;
+        light_param.dist = light_dist;
+        light_param.cos_alpha = cos_alpha;
+        light_param.amount = scalar(1.0);
 
         // Determine light visibility factor (0.0 for completely shadowed).
         HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
         Ray shadow_ray(light->Position(), light_dir.Neg());
         if (m_object_tree.Intersect(shadow_ray, shadow_hit)) {
-          light_parameters.amount = scalar(0.0);
+          light_param.amount = scalar(0.0);
         }
 
         // Run per-light shader.
-        light_contrib += shader->LightContribution(surface_parameters,
-            light_parameters);
+        light_contrib += shader->LightPass(surface_param,
+            material_param, light_param);
       }
     }
   }
 
-  // Run global shader pass.
-  info.color += shader->ShadeColor(surface_parameters, light_contrib);
+  // Run final shader pass.
+  info.color += shader->FinalPass(surface_param, material_param, light_contrib);
 
   return true;
 }

@@ -47,13 +47,13 @@ static inline Pixel::Composite Lerp(const Pixel::Composite c1,
       (((c1_b + ((c2_b >> 8) - (c1_b >> 8)) * w)) & 0xff00ff00);
 }
 
-Pixel Sampler::Sample(scalar s, scalar t) const {
+Pixel Sampler::Sample(const vec2& coord) const {
   ASSERT(m_image, "No image.");
 
   // Convert floating point coordinates to fixed point coordinates (8-bit
   // sub-pixel precision).
-  int s_fixed = static_cast<int>(s * m_image->m_s_scale);
-  int t_fixed = static_cast<int>(t * m_image->m_t_scale);
+  int s_fixed = static_cast<int>(coord.u * m_image->m_s_scale);
+  int t_fixed = static_cast<int>(coord.v * m_image->m_t_scale);
   int sw = s_fixed & 0xff;
   int tw = t_fixed & 0xff;
 

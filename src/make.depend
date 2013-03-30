@@ -25,7 +25,7 @@ scene.o: lib/scene.cpp lib/scene.h lib/base/types.h lib/camera.h \
  lib/ray.h lib/material.h lib/light.h lib/object.h lib/shader.h \
  third_party/tinyxml2/tinyxml2.h lib/base/perf.h lib/base/platform.h
 shader.o: lib/shader.cpp lib/shader.h lib/base/types.h lib/vec.h \
- lib/light.h lib/material.h
+ lib/light.h lib/material.h lib/sampler.h lib/pixel.h lib/base/log.h
 tree.o: lib/tree.cpp lib/tree.h lib/aabb.h lib/base/types.h lib/vec.h \
  lib/base/log.h lib/hitinfo.h lib/mesh_data.h lib/triangle.h lib/ray.h \
  lib/base/perf.h lib/base/platform.h lib/object.h lib/mat.h \
