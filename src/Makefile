@@ -26,6 +26,11 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #------------------------------------------------------------------------------
 
+LIB_PATH = lib
+OUT_PATH = out
+OBJ_PATH = $(OUT_PATH)/obj
+BIN_PATH = $(OUT_PATH)/bin
+
 OPENCTM_PATH = third_party/openctm/lib
 LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.a
 TINYXML2_PATH = third_party/tinyxml2
@@ -34,7 +39,8 @@ CPP = g++
 CPPFLAGS = -c -std=c++0x \
            -Ofast -funroll-loops \
            -W -Wall -Wextra -Wdouble-promotion \
-           -I. -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) -DSCALAR_IS_FLOAT \
+           -I$(LIB_PATH) -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) \
+           -DSCALAR_IS_FLOAT \
            -fopenmp
 LFLAGS = -L$(OPENCTM_PATH) -fopenmp
 LIBS = -lpng -lopenctm2 -lpthread -lm
@@ -45,62 +51,67 @@ DEPEND = $(CPP) -MM
 CPPFLAGS += -D_DEBUG -g
 LFLAGS += -g
 
-LIB_SRCS = aabb.cpp \
-           camera.cpp \
-           image.cpp \
-           light.cpp \
-           mat.cpp \
-           material.cpp \
-           mesh.cpp \
-           mesh_data.cpp \
-           object.cpp \
-           scene.cpp \
-           shader.cpp \
-           tree.cpp \
-           base/perf.cpp \
-           importers/openctm_importer.cpp \
+LIB_SRCS = $(LIB_PATH)/aabb.cpp \
+           $(LIB_PATH)/camera.cpp \
+           $(LIB_PATH)/image.cpp \
+           $(LIB_PATH)/light.cpp \
+           $(LIB_PATH)/mat.cpp \
+           $(LIB_PATH)/material.cpp \
+           $(LIB_PATH)/mesh.cpp \
+           $(LIB_PATH)/mesh_data.cpp \
+           $(LIB_PATH)/object.cpp \
+           $(LIB_PATH)/scene.cpp \
+           $(LIB_PATH)/shader.cpp \
+           $(LIB_PATH)/tree.cpp \
+           $(LIB_PATH)/base/perf.cpp \
+           $(LIB_PATH)/importers/openctm_importer.cpp \
            third_party/tinyxml2/tinyxml2.cpp
 
-LIB_OBJS = aabb.o \
-           camera.o \
-           image.o \
-           light.o \
-           mat.o \
-           material.o \
-           mesh.o \
-           mesh_data.o \
-           object.o \
-           openctm_importer.o \
-           perf.o \
-           scene.o \
-           shader.o \
-           tinyxml2.o \
-           tree.o
+LIB_OBJS = $(OBJ_PATH)/aabb.o \
+           $(OBJ_PATH)/camera.o \
+           $(OBJ_PATH)/image.o \
+           $(OBJ_PATH)/light.o \
+           $(OBJ_PATH)/mat.o \
+           $(OBJ_PATH)/material.o \
+           $(OBJ_PATH)/mesh.o \
+           $(OBJ_PATH)/mesh_data.o \
+           $(OBJ_PATH)/object.o \
+           $(OBJ_PATH)/openctm_importer.o \
+           $(OBJ_PATH)/perf.o \
+           $(OBJ_PATH)/scene.o \
+           $(OBJ_PATH)/shader.o \
+           $(OBJ_PATH)/tinyxml2.o \
+           $(OBJ_PATH)/tree.o
+
+MAGERAY = $(BIN_PATH)/mageray
 
 .PHONY: all clean depend
 
-all: mageray
+all: $(MAGERAY)
 
 clean:
-	rm -rf mageray mageray.o $(LIB_OBJS)
+	rm -rf $(MAGERAY) $(OBJ_PATH)/mageray.o $(LIB_OBJS)
 	cd third_party/openctm/lib && make -f Makefile.linux clean
 
-mageray: mageray.o $(LIB_OBJS) $(LIBOPENCTM)
-	$(CPP) -o $@ $(LFLAGS) mageray.o $(LIB_OBJS) $(LIBS)
+$(MAGERAY): $(OBJ_PATH)/mageray.o $(LIB_OBJS) $(LIBOPENCTM)
+	$(CPP) -o $@ $(LFLAGS) $(OBJ_PATH)/mageray.o $(LIB_OBJS) $(LIBS)
 
 $(LIBOPENCTM):
 	cd $(OPENCTM_PATH) && $(MAKE) -f Makefile.linux libopenctm2.a
 
-%.o: %.cpp
+$(OBJ_PATH)/%.o: %.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
-%.o: base/%.cpp
+$(OBJ_PATH)/%.o: $(LIB_PATH)/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
-%.o: importers/%.cpp
+$(OBJ_PATH)/%.o: $(LIB_PATH)/base/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
-%.o: third_party/tinyxml2/%.cpp
+$(OBJ_PATH)/%.o: $(LIB_PATH)/importers/%.cpp
+	$(CPP) $(CPPFLAGS) -o $@ $<
+
+$(OBJ_PATH)/%.o: third_party/tinyxml2/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 depend:

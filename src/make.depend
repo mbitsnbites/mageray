@@ -1,32 +1,43 @@
-aabb.o: aabb.cpp aabb.h base/types.h vec.h base/platform.h ray.h
-camera.o: camera.cpp camera.h vec.h base/types.h mat.h base/log.h
-image.o: image.cpp image.h base/log.h base/types.h pixel.h vec.h
-light.o: light.cpp light.h vec.h base/types.h
-mat.o: mat.cpp mat.h base/log.h vec.h base/types.h
-material.o: material.cpp material.h vec.h base/types.h
-mesh.o: mesh.cpp mesh.h aabb.h base/types.h vec.h tree.h base/log.h \
- hitinfo.h mesh_data.h triangle.h ray.h base/perf.h \
- importers/openctm_importer.h importers/mesh_importer.h mesh_data.h
-mesh_data.o: mesh_data.cpp mesh_data.h triangle.h vec.h base/types.h \
- base/perf.h
-object.o: object.cpp object.h base/log.h base/types.h mat.h vec.h \
- material.h mesh.h aabb.h tree.h hitinfo.h mesh_data.h triangle.h ray.h \
- base/platform.h
-scene.o: scene.cpp scene.h base/types.h camera.h vec.h mat.h base/log.h \
- image.h pixel.h mesh.h aabb.h tree.h hitinfo.h mesh_data.h triangle.h \
- ray.h material.h light.h object.h shader.h \
- third_party/tinyxml2/tinyxml2.h base/perf.h base/platform.h
-shader.o: shader.cpp shader.h base/types.h vec.h light.h material.h
-tree.o: tree.cpp tree.h aabb.h base/types.h vec.h base/log.h hitinfo.h \
- mesh_data.h triangle.h ray.h base/perf.h base/platform.h object.h mat.h \
- material.h mesh.h
-perf.o: base/perf.cpp base/perf.h
-openctm_importer.o: importers/openctm_importer.cpp \
- importers/openctm_importer.h importers/mesh_importer.h mesh_data.h \
- triangle.h vec.h base/types.h third_party/openctm/lib/openctm2.h \
- third_party/openctm/lib/openctm2pp.h base/log.h base/perf.h base/types.h
+aabb.o: lib/aabb.cpp lib/aabb.h lib/base/types.h lib/vec.h \
+ lib/base/platform.h lib/ray.h
+camera.o: lib/camera.cpp lib/camera.h lib/vec.h lib/base/types.h \
+ lib/mat.h lib/base/log.h
+image.o: lib/image.cpp lib/image.h lib/base/log.h lib/base/types.h \
+ lib/pixel.h lib/vec.h
+light.o: lib/light.cpp lib/light.h lib/vec.h lib/base/types.h
+mat.o: lib/mat.cpp lib/mat.h lib/base/log.h lib/vec.h lib/base/types.h
+material.o: lib/material.cpp lib/material.h lib/vec.h lib/base/types.h
+mesh.o: lib/mesh.cpp lib/mesh.h lib/aabb.h lib/base/types.h lib/vec.h \
+ lib/tree.h lib/base/log.h lib/hitinfo.h lib/mesh_data.h lib/triangle.h \
+ lib/ray.h lib/base/perf.h lib/importers/openctm_importer.h \
+ lib/importers/mesh_importer.h lib/mesh_data.h
+mesh_data.o: lib/mesh_data.cpp lib/mesh_data.h lib/triangle.h lib/vec.h \
+ lib/base/types.h lib/base/perf.h
+object.o: lib/object.cpp lib/object.h lib/base/log.h lib/base/types.h \
+ lib/mat.h lib/vec.h lib/material.h lib/mesh.h lib/aabb.h lib/tree.h \
+ lib/hitinfo.h lib/mesh_data.h lib/triangle.h lib/ray.h \
+ lib/base/platform.h
+scene.o: lib/scene.cpp lib/scene.h lib/base/types.h lib/camera.h \
+ lib/vec.h lib/mat.h lib/base/log.h lib/image.h lib/pixel.h lib/mesh.h \
+ lib/aabb.h lib/tree.h lib/hitinfo.h lib/mesh_data.h lib/triangle.h \
+ lib/ray.h lib/material.h lib/light.h lib/object.h lib/shader.h \
+ third_party/tinyxml2/tinyxml2.h lib/base/perf.h lib/base/platform.h
+shader.o: lib/shader.cpp lib/shader.h lib/base/types.h lib/vec.h \
+ lib/light.h lib/material.h
+tree.o: lib/tree.cpp lib/tree.h lib/aabb.h lib/base/types.h lib/vec.h \
+ lib/base/log.h lib/hitinfo.h lib/mesh_data.h lib/triangle.h lib/ray.h \
+ lib/base/perf.h lib/base/platform.h lib/object.h lib/mat.h \
+ lib/material.h lib/mesh.h
+perf.o: lib/base/perf.cpp lib/base/perf.h
+openctm_importer.o: lib/importers/openctm_importer.cpp \
+ lib/importers/openctm_importer.h lib/importers/mesh_importer.h \
+ lib/mesh_data.h lib/triangle.h lib/vec.h lib/base/types.h \
+ third_party/openctm/lib/openctm2.h third_party/openctm/lib/openctm2pp.h \
+ lib/base/log.h lib/base/perf.h lib/base/types.h
 tinyxml2.o: third_party/tinyxml2/tinyxml2.cpp \
  third_party/tinyxml2/tinyxml2.h
-mageray.o: mageray.cpp base/perf.h scene.h base/types.h camera.h vec.h \
- mat.h base/log.h image.h pixel.h mesh.h aabb.h tree.h hitinfo.h \
- mesh_data.h triangle.h ray.h material.h light.h object.h shader.h
+mageray.o: mageray.cpp lib/base/perf.h lib/scene.h lib/base/types.h \
+ lib/camera.h lib/vec.h lib/mat.h lib/base/log.h lib/image.h lib/pixel.h \
+ lib/mesh.h lib/aabb.h lib/tree.h lib/hitinfo.h lib/mesh_data.h \
+ lib/triangle.h lib/ray.h lib/material.h lib/light.h lib/object.h \
+ lib/shader.h
