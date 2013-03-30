@@ -52,6 +52,64 @@ void BoundingBoxUnion(AABB& aabb, std::vector<Node*>& leaves, unsigned start,
   }
 }
 
+/// Find the optimal split direction for the given sub-tree.
+AABB::Axis BestSplitDirection(std::vector<Node*>& leaves, const AABB& aabb,
+    unsigned start, unsigned stop) {
+  // Preliminary best axis is the one with the longest side in the AABB.
+  AABB::Axis best_axis = aabb.LargestAxis();
+
+  // Total size of the sub tree.
+  unsigned total = stop - start;
+  if (total < 5) {
+    // Don't bother too with small sub trees.
+    return best_axis;
+  }
+
+  // Let the split threshold be in the middle of the axis.
+  scalar mid2_x = aabb[AABB::XMIN] + aabb[AABB::XMAX];
+  scalar mid2_y = aabb[AABB::YMIN] + aabb[AABB::YMAX];
+  scalar mid2_z = aabb[AABB::ZMIN] + aabb[AABB::ZMAX];
+
+  // Iterate the sub tree.
+  unsigned counts[3];
+  counts[AABB::X] = counts[AABB::Y] = counts[AABB::Z] = 0;
+  for (unsigned i = start; i < stop; ++i) {
+    Node* leaf = leaves[i];
+
+    // Check if this leaf is below or above the split threshold.
+    const AABB& leaf_aabb = leaf->BoundingBox();
+    if (leaf_aabb[AABB::XMIN] + leaf_aabb[AABB::XMAX] < mid2_x) {
+      counts[AABB::X]++;
+    }
+    if (leaf_aabb[AABB::YMIN] + leaf_aabb[AABB::YMAX] < mid2_y) {
+      counts[AABB::Y]++;
+    }
+    if (leaf_aabb[AABB::ZMIN] + leaf_aabb[AABB::ZMAX] < mid2_z) {
+      counts[AABB::Z]++;
+    }
+  }
+
+  // Find branch counts for the lightest branch.
+  for (unsigned i = AABB::X; i <= AABB::Z; ++i) {
+    counts[i] = std::min(counts[i], total - counts[i]);
+  }
+
+  // If the preliminarily selected axis is branched so that at most 1/20 (5%)
+  // is in the smallest child branch, let's use it.
+  if (20 * counts[best_axis] >= total) {
+    return best_axis;
+  }
+
+  // ...otherwise, select an axis based on how well balanced it is.
+  if (counts[AABB::X] > counts[AABB::Y]) {
+    best_axis = counts[AABB::X] > counts[AABB::Z] ? AABB::X : AABB::Z;
+  } else {
+    best_axis = counts[AABB::Y] > counts[AABB::Z] ? AABB::Y : AABB::Z;
+  }
+
+  return best_axis;
+}
+
 }
 
 /// Build a sub-tree from an array of leaf nodes.
@@ -65,8 +123,10 @@ Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
   // Get the next branch node from the pre-allocated array.
   Node* node = &m_branch_nodes[m_branch_nodes_idx++];
 
-  // Determine the split direction.
-  AABB::Axis axis = aabb.LargestAxis();
+  // Determine optimal split direction.
+  AABB::Axis axis = BestSplitDirection(leaves, aabb, start, stop);
+
+  // Select min/max dimensions depending on split direction.
   AABB::Bound min_bound, max_bound;
   switch (axis) {
     case AABB::X: {
