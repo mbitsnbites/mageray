@@ -34,6 +34,8 @@
 
 #include "base/types.h"
 
+namespace mageray {
+
 /// Three component vector.
 struct vec3 {
   scalar x;    ///< First component of the vector.
@@ -199,6 +201,8 @@ struct vec2 {
     return os;
   }
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_VEC_H_
 

@@ -28,6 +28,8 @@
 
 #include "material.h"
 
+namespace mageray {
+
 void Material::Reset() {
   m_color = vec3(1.0, 1.0, 1.0);
   m_ambient = 0.2;
@@ -39,3 +41,5 @@ void Material::Reset() {
   m_ior = 1.0;
   m_shader = NULL;
 }
+
+} // namespace mageray

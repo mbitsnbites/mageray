@@ -33,6 +33,8 @@
 
 #include "triangle.h"
 
+namespace mageray {
+
 struct MeshData {
   /// Calculate the normals for the mesh.
   void CalculateNormals();
@@ -40,5 +42,7 @@ struct MeshData {
   std::vector<Triangle> triangles;
   std::vector<Vertex> vertices;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_MESH_DATA_H_

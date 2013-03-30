@@ -30,6 +30,8 @@
 
 #include "base/perf.h"
 
+namespace mageray {
+
 void MeshData::CalculateNormals() {
   ScopedPerf _perf = ScopedPerf("Calculate normals");
 
@@ -67,3 +69,5 @@ void MeshData::CalculateNormals() {
 
   _perf.Done();
 }
+
+} // namespace mageray

@@ -73,6 +73,8 @@ void MyPNGFlush(png_structp png_ptr) {
 
 }
 
+namespace mageray {
+
 void Image::Reset() {
   m_data.reset(NULL);
   m_width = 0;
@@ -293,3 +295,5 @@ void Image::Clear(const Pixel& color) {
   // Use std::fill for setting all pixels to the same color.
   std::fill(ptr, ptr + m_width * m_height, color);
 }
+
+} // namespace mageray

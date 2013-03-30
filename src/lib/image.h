@@ -37,6 +37,8 @@
 #include "base/types.h"
 #include "pixel.h"
 
+namespace mageray {
+
 /// An image data container.
 class Image {
   public:
@@ -125,5 +127,7 @@ class Image {
 
     FORBID_COPY(Image);
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_IMAGE_H_

@@ -31,6 +31,8 @@
 #include "base/platform.h"
 #include "ray.h"
 
+namespace mageray {
+
 bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
   // Calculate the intersections with the three closest sides of the bounding
   // box.
@@ -121,3 +123,5 @@ bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
   closest_t = t;
   return true;
 }
+
+} // namespace mageray

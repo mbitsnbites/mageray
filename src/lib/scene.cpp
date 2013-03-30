@@ -41,6 +41,8 @@
 #include "base/perf.h"
 #include "base/platform.h"
 
+namespace mageray {
+
 class scene_parse_error : public std::exception {
   public:
     scene_parse_error(const tinyxml2::XMLNode* node, const char* msg) noexcept {
@@ -609,3 +611,5 @@ bool Scene::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) {
 
   return true;
 }
+
+} // namespace mageray

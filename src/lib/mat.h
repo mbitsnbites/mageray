@@ -35,6 +35,8 @@
 #include "base/log.h"
 #include "vec.h"
 
+namespace mageray {
+
 /// 3x4 matrix.
 class mat3x4 {
   public:
@@ -173,5 +175,6 @@ class mat3x4 {
     scalar m31, m32, m33, m34;
 };
 
-#endif // MAGERAY_VEC_H_
+} // namespace mageray
 
+#endif // MAGERAY_VEC_H_

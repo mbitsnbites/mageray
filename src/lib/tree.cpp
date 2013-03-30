@@ -38,6 +38,8 @@
 #include "triangle.h"
 #include "vec.h"
 
+namespace mageray {
+
 namespace {
 
 /// Calculate bounding box union for a range of nodes.
@@ -432,3 +434,5 @@ bool ObjectTree::RecursiveIntersect(const Node* node, const Ray& ray,
 
   return got_hit[0] || got_hit[1];
 }
+
+} // namespace mageray

@@ -36,6 +36,8 @@
 #include "base/perf.h"
 #include "base/types.h"
 
+namespace mageray {
+
 /* static */
 bool OpenCTMImporter::Detect(std::istream& stream) {
   // Read 4 bytes from the stream.
@@ -134,3 +136,5 @@ bool OpenCTMImporter::Load(std::istream& stream) {
 
   return true;
 }
+
+} // namespace mageray

@@ -34,6 +34,8 @@
 #include "base/perf.h"
 #include "importers/openctm_importer.h"
 
+namespace mageray {
+
 void Mesh::MakeSphere(int res, scalar radius) {
   ScopedPerf _perf = ScopedPerf(__FUNCTION__);
 
@@ -126,3 +128,5 @@ void Mesh::CompleteHitInfo(HitInfo& hit) const {
   // Interpolate U/V coordinates.
   hit.uv = v1->uv * w1 + v2->uv * w2 + v3->uv * w3;
 }
+
+} // namespace mageray

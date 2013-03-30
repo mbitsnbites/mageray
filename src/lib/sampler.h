@@ -32,6 +32,8 @@
 #include "base/types.h"
 #include "pixel.h"
 
+namespace mageray {
+
 class Image;
 
 class Sampler {
@@ -56,5 +58,7 @@ class Sampler {
     bool m_repeat_s;
     bool m_repeat_t;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_SAMPLER_H

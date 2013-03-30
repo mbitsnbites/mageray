@@ -31,6 +31,8 @@
 
 #include "vec.h"
 
+namespace mageray {
+
 /// A triangle.
 /// A triangle is defined by three vertex indices. The vertext array itself is
 /// managed elsewhere.
@@ -51,5 +53,7 @@ struct Vertex {
   /// U/V coordinate (e.g. for textures).
   vec2 uv;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_TRIANGLE_H_

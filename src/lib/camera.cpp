@@ -31,6 +31,8 @@
 #include "base/log.h"
 #include "base/types.h"
 
+namespace mageray {
+
 void Camera::Reset() {
   // Set default properties.
   m_look_at = vec3(0, 0, 0);
@@ -61,3 +63,5 @@ void Camera::UpdateMatrices() {
   // ...and the inverse transformation matrix.
   m_inv_matrix = m_matrix.Inverse();
 }
+
+} // namespace mageray

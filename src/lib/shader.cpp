@@ -31,6 +31,8 @@
 #include "light.h"
 #include "material.h"
 
+namespace mageray {
+
 //------------------------------------------------------------------------------
 // Null shader (cheap, constant result).
 //------------------------------------------------------------------------------
@@ -82,3 +84,5 @@ vec3 PhongShader::ShadeColor(const SurfaceParameters& sp,
     const vec3& lc) const {
   return sp.material->Color() * lc + vec3(sp.material->Ambient());
 }
+
+} // namespace mageray

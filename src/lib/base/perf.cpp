@@ -31,6 +31,8 @@
 #include <iostream>
 #include <sys/time.h>
 
+namespace mageray {
+
 double Perf::GetTime() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -47,3 +49,5 @@ void Perf::LogDelta(const char* label, const double& time) {
     std::cout << time << "s";
   std::cout << std::endl;
 }
+
+} // namespace mageray

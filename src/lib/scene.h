@@ -49,6 +49,8 @@ namespace tinyxml2 {
 class XMLElement;
 }
 
+namespace mageray {
+
 class Scene {
   public:
     Scene() {
@@ -114,5 +116,7 @@ class Scene {
 
     FORBID_COPY(Scene);
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_SCENE_H_

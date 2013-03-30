@@ -31,6 +31,8 @@
 
 #include "importers/mesh_importer.h"
 
+namespace mageray {
+
 class OpenCTMImporter : public MeshImporter {
   public:
     OpenCTMImporter(MeshData& data) : MeshImporter(data) {}
@@ -39,5 +41,7 @@ class OpenCTMImporter : public MeshImporter {
 
     virtual bool Load(std::istream& stream);
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_IMPORTERS_OPENCTM_IMPORTER_H_

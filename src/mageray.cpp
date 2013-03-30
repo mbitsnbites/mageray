@@ -29,8 +29,9 @@
 #include <iostream>
 #include <string>
 
-#include "base/perf.h"
 #include "scene.h"
+
+using namespace mageray;
 
 std::string ExtractBasePath(const std::string& file_name) {
   size_t separator_pos = file_name.find_last_of("/\\");
@@ -80,9 +81,7 @@ int main(int argc, const char* argv[]) {
   scene.GenerateImage(img);
 
   // Save image.
-  ScopedPerf _save = ScopedPerf("Save image");
   img.SavePNG(image_file.c_str());
-  _save.Done();
 
   return 0;
 }

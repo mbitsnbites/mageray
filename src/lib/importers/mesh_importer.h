@@ -33,6 +33,8 @@
 
 #include "mesh_data.h"
 
+namespace mageray {
+
 class MeshImporter {
   public:
     MeshImporter(MeshData& data) : m_data(&data) {}
@@ -46,5 +48,7 @@ class MeshImporter {
   protected:
     MeshData* m_data;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_IMPORTERS_MESH_IMPORTER_H_

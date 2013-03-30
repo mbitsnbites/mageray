@@ -34,6 +34,8 @@
 #include "aabb.h"
 #include "vec.h"
 
+namespace mageray {
+
 /// Axis aligned bounding box.
 class Ray {
   public:
@@ -132,5 +134,7 @@ class Ray {
     AABB::Bound m_far_sides[3];
     scalar m_plane_d;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_RAY_H_

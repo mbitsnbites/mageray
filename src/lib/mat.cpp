@@ -28,6 +28,8 @@
 
 #include "mat.h"
 
+namespace mageray {
+
 mat3x4 mat3x4::Rotate(const vec3& r) {
   vec3 r_rad = r * (PI / scalar(180.0));
   scalar cos_x = std::cos(r_rad.x);
@@ -120,3 +122,4 @@ mat3x4 mat3x4::Inverse() const {
   return inv;
 }
 
+} // namespace mageray

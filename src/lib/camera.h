@@ -32,6 +32,8 @@
 #include "vec.h"
 #include "mat.h"
 
+namespace mageray {
+
 class Camera {
   public:
     Camera() {
@@ -86,5 +88,7 @@ class Camera {
     mat3x4 m_matrix;
     mat3x4 m_inv_matrix;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_CAMERA_H_

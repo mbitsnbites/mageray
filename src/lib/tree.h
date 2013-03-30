@@ -41,6 +41,8 @@
 #include "mesh_data.h"
 #include "ray.h"
 
+namespace mageray {
+
 class Object;
 class Triangle;
 
@@ -218,5 +220,7 @@ class ObjectTree : public Tree {
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
        HitInfo& hit) const;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_TREE_H_

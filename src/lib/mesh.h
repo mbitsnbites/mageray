@@ -35,6 +35,8 @@
 #include "tree.h"
 #include "mesh_data.h"
 
+namespace mageray {
+
 class Mesh {
   public:
     Mesh() {}
@@ -79,5 +81,7 @@ class Mesh {
     /// The triangle tree (referencing the raw mesh data).
     TriangleTree m_tree;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_MESH_H_

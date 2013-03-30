@@ -39,3 +39,4 @@ src/third_party/tinyxml2/tinyxml2.cpp
 src/mageray.cpp
 src/lib/sampler.h
 src/lib/sampler.cpp
+src/lib/aabb.cpp

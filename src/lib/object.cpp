@@ -32,6 +32,8 @@
 
 #include "base/platform.h"
 
+namespace mageray {
+
 Object::Object() : m_material(NULL) {
   m_matrix = mat3x4::Identity();
   m_inv_matrix = mat3x4::Identity();
@@ -172,3 +174,5 @@ void SphereObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
   aabb[AABB::XMIN] = aabb[AABB::YMIN] = aabb[AABB::ZMIN] = -radius;
   aabb[AABB::XMAX] = aabb[AABB::YMAX] = aabb[AABB::ZMAX] = radius;
 }
+
+} // namespace mageray

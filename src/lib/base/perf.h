@@ -29,6 +29,8 @@
 #ifndef RAYMAGE_BASE_PERF_H_
 #define RAYMAGE_BASE_PERF_H_
 
+namespace mageray {
+
 class Perf {
   public:
     static double GetTime();
@@ -81,5 +83,7 @@ class CumulativePerf {
     int m_count;
     double m_start;
 };
+
+} // namespace mageray
 
 #endif // RAYMAGE_BASE_PERF_H_

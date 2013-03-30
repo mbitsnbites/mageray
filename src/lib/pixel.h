@@ -35,6 +35,8 @@
 #include "base/log.h"
 #include "vec.h"
 
+namespace mageray {
+
 /// A 32-bit integer pixel (ARGB).
 /// A pixel is in the format ARGB (8 bits per component, 32 bits total) when
 /// interpreted as Pixel::Composite (e.g. stored in a CPU register), but it is
@@ -123,5 +125,7 @@ class Pixel {
 
     Composite m_composite;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_PIXEL_H_

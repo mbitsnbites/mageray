@@ -32,6 +32,8 @@
 #include "base/types.h"
 #include "vec.h"
 
+namespace mageray {
+
 class Object;
 class Triangle;
 
@@ -67,5 +69,7 @@ struct HitInfo {
   vec3 normal;          ///< Surface normal.
   vec2 uv;              ///< U/V coordinate (for texture mapping).
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_HITINFO_H_

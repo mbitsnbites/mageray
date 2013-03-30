@@ -31,6 +31,8 @@
 #include "base/log.h"
 #include "image.h"
 
+namespace mageray {
+
 // This is a fairly quick version of linear interpolation between two 32-bit
 // colors using an 8-bit fractional weight (0-255). It uses semi-packed
 // multiplication (two color components per multiplication), which means that
@@ -90,3 +92,5 @@ Pixel Sampler::Sample(scalar s, scalar t) const {
   // Linear interpolation along t-axis.
   return Lerp(cs1, cs2, tw);
 }
+
+} // namespace mageray

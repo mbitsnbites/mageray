@@ -35,6 +35,8 @@
 #include "material.h"
 #include "mesh.h"
 
+namespace mageray {
+
 class Object {
   public:
     Object();
@@ -71,13 +73,13 @@ class Object {
 
     /// Set the material for this object.
     /// @param material The material to use (or NULL).
-    void SetMaterial(Material* material) {
+    void SetMaterial(mageray::Material* material) {
       m_material = material;
     }
 
     /// Set the material for this object.
     /// @param material The material to use (or NULL).
-    const ::Material* Material() const {
+    const mageray::Material* Material() const {
       return m_material;
     }
 
@@ -114,7 +116,7 @@ class Object {
     mat3x4 m_matrix;
     mat3x4 m_inv_matrix;
 
-    ::Material* m_material;
+    mageray::Material* m_material;
 
   private:
     FORBID_COPY(Object);
@@ -160,5 +162,7 @@ class SphereObject : public Object {
     scalar m_radius_squared;
     scalar m_inv_radius;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_OBJECT_H_

@@ -31,6 +31,8 @@
 
 #include "vec.h"
 
+namespace mageray {
+
 class Light {
   public:
     Light() {
@@ -69,5 +71,7 @@ class Light {
     vec3 m_color;
     scalar m_distance;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_LIGHT_H_

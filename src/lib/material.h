@@ -31,6 +31,8 @@
 
 #include "vec.h"
 
+namespace mageray {
+
 class Shader;
 
 class Material {
@@ -106,11 +108,11 @@ class Material {
       return m_ior;
     }
 
-    const ::Shader* Shader() const {
+    const mageray::Shader* Shader() const {
       return m_shader;
     }
 
-    void SetShader(::Shader* shader) {
+    void SetShader(mageray::Shader* shader) {
       m_shader = shader;
     }
 
@@ -124,7 +126,9 @@ class Material {
     scalar m_alpha;
     scalar m_ior;
 
-    ::Shader* m_shader;
+    mageray::Shader* m_shader;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_MATERIAL_H_

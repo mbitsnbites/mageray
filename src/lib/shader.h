@@ -32,6 +32,8 @@
 #include "base/types.h"
 #include "vec.h"
 
+namespace mageray {
+
 class Material;
 class Light;
 
@@ -84,5 +86,7 @@ class PhongShader : public Shader {
         const SurfaceParameters& surface_parameters,
         const vec3& light_contribution) const;
 };
+
+} // namespace mageray
 
 #endif // MAGERAY_SHADER_H_
