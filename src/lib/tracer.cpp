@@ -106,7 +106,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
   hit.object->CompleteHitInfo(ray, hit);
 
   // Nudge origin point in order to avoid re-intersecting the original surface.
-  hit.point += hit.normal * scalar(0.0001);
+//  hit.point += hit.normal * scalar(0.0001);
 
   // Startup info, before shading.
   info.color = vec3(0);
@@ -147,8 +147,13 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
     vec3 reflect_dir = ray.Direction() -
         hit.normal * (scalar(2.0) * hit.normal.Dot(ray.Direction()));
 
+    // Nudge origin point in order to avoid re-intersecting the origin surface.
+    // TODO(mage): The "nudge distance" should be relative to object scale
+    // somehow.
+    vec3 reflect_start = hit.point + reflect_dir * scalar(0.0001);
+
     // Trace ray.
-    Ray reflect_ray(hit.point, reflect_dir);
+    Ray reflect_ray(reflect_start, reflect_dir);
     TraceInfo reflect_info;
     if (TraceRay(reflect_ray, reflect_info, depth + 1)) {
       info.color += reflect_info.color * mirror;
@@ -161,9 +166,14 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
     // TODO(mage): Implement me!
     vec3 refract_dir = ray.Direction();
 
+    // Nudge origin point in order to avoid re-intersecting the origin surface.
+    // TODO(mage): The "nudge distance" should be relative to object scale
+    // somehow.
+    vec3 refract_start = hit.point + refract_dir * scalar(0.0001);
+
     // Trace ray.
     scalar opacity = scalar(1.0) - material_param.alpha;
-    Ray refract_ray(hit.point, refract_dir);
+    Ray refract_ray(refract_start, refract_dir);
     TraceInfo refract_info;
     if (TraceRay(refract_ray, refract_info, depth + 1)) {
       info.color += refract_info.color * material_param.alpha;
@@ -186,6 +196,10 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
       vec3 light_dir = light->Position() - hit.point;
       scalar light_dist = light_dir.Abs();
       light_dir = light_dir * (scalar(1.0) / light_dist);
+
+      // Scale light distance in order to avoid re-intersecting the origin
+      // surface.
+      light_dist *= scalar(0.9999);
 
       scalar cos_alpha = light_dir.Dot(hit.normal);
       if (cos_alpha > scalar(0.0)) {
