@@ -28,6 +28,9 @@
 
 #include "tracer.h"
 
+#include <list>
+#include <thread>
+
 #include "base/log.h"
 #include "base/perf.h"
 #include "hitinfo.h"
@@ -39,52 +42,111 @@
 
 namespace mageray {
 
+Tracer::ThreadController::ThreadController(const int width, const int height) :
+    m_width(width), m_height(height), m_row(0), m_col(0) {
+  // Calculate number of sub-blocks.
+  m_num_rows = (height + s_block_size - 1) / s_block_size;
+  m_num_cols = (width + s_block_size - 1) / s_block_size;
+}
+
+bool Tracer::ThreadController::NextArea(int& u0, int& v0, int& width,
+    int& height) {
+  m_lock.lock();
+
+  bool do_work = (m_row < m_num_rows);
+  if (do_work) {
+    // Region for this sub image.
+    u0 = m_col * s_block_size;
+    width = std::min(u0 + s_block_size, m_width) - u0;
+    v0 = m_row * s_block_size;
+    height = std::min(v0 + s_block_size, m_height) - v0;
+
+    // Next sub image.
+    ++m_col;
+    if (m_col == m_num_cols) {
+      m_col = 0;
+      ++m_row;
+    }
+  }
+
+  m_lock.unlock();
+
+  return do_work;
+}
+
 Tracer::Tracer() : m_scene(NULL) {
   // Default configuration.
   m_config.max_recursions = 4;
   m_config.antialias_depth = 3;
 }
 
-void Tracer::GenerateImage(Image& image) const {
-  ASSERT(m_scene, "The scene is undefined.");
-
+void Tracer::DoWork(ThreadController* controller, Image* image) const {
   // Set up camera.
   vec3 cam_pos = m_scene->m_camera.Position();
   vec3 forward = m_scene->m_camera.Forward();
   vec3 right = m_scene->m_camera.Right();
   vec3 up = m_scene->m_camera.Up();
 
-  scalar width = static_cast<scalar>(image.Width());
-  scalar height = static_cast<scalar>(image.Height());
-  vec3 u_step = right * (scalar(1.0) / height);
-  vec3 v_step = up * (scalar(-1.0) / height);
+  scalar img_width = static_cast<scalar>(image->Width());
+  scalar img_height = static_cast<scalar>(image->Height());
+  vec3 u_step = right * (scalar(1.0) / img_height);
+  vec3 v_step = up * (scalar(-1.0) / img_height);
 
+  // As long as there is work to do...
+  int u0, v0, width, height;
+  while (controller->NextArea(u0, v0, width, height)) {
+    // Loop over rows.
+    for (int  j = 0; j < height; ++j) {
+      int v = v0 + j;
+      vec3 dir = forward +
+          u_step * (static_cast<scalar>(u0) - scalar(0.5) * img_width) +
+          v_step * (static_cast<scalar>(v) - scalar(0.5) * img_height);
+
+      // Loop over columns in the row.
+      for (int  i = 0; i < width; ++i) {
+        int u = u0 + i;
+
+        // Construct a ray.
+        Ray ray(cam_pos, dir);
+
+        // Trace a ray into the scene.
+        Pixel result(0);
+        TraceInfo info;
+        if (TraceRay(ray, info, 0)) {
+          result = Pixel(std::min(scalar(1.0), info.color.x),
+                         std::min(scalar(1.0), info.color.y),
+                         std::min(scalar(1.0), info.color.z),
+                         info.alpha);
+        }
+        image->PixelAt(u, v) = result;
+
+        dir += u_step;
+      }
+    }
+  }
+}
+
+void Tracer::GenerateImage(Image& image) const {
+  ASSERT(m_scene, "The scene is undefined.");
   ScopedPerf _raytrace = ScopedPerf("Raytrace image");
 
-  // Loop over rows.
-  #pragma omp parallel for
-  for (int v = 0; v < image.Height(); ++v) {
-    vec3 dir = forward + u_step * (scalar(-0.5) * width) +
-        v_step * (static_cast<scalar>(v) - scalar(0.5) * height);
+  // Get level of hardware concurrency.
+  int concurrency = std::thread::hardware_concurrency();
+  if (concurrency == 0) {
+    // NOTE: hardware_concurrency() in gcc 4.6.3 always returns zero :(
+    concurrency = 2;
+  }
 
-    // Loop over columns in the row.
-    for (int u = 0; u < image.Width(); ++u) {
-      // Construct a ray.
-      Ray ray(cam_pos, dir);
+  // Start threads.
+  ThreadController controller(image.Width(), image.Height());
+  std::list<std::thread> threads;
+  for (int i = 0; i < concurrency; ++i) {
+    threads.push_back(std::thread(&Tracer::DoWork, this, &controller, &image));
+  }
 
-      // Trace a ray into the scene.
-      Pixel result(0);
-      TraceInfo info;
-      if (TraceRay(ray, info, 0)) {
-        result = Pixel(std::min(scalar(1.0), info.color.x),
-                       std::min(scalar(1.0), info.color.y),
-                       std::min(scalar(1.0), info.color.z),
-                       info.alpha);
-      }
-      image.PixelAt(u, v) = result;
-
-      dir += u_step;
-    }
+  // Wait for threads to finish.
+  for (auto it = threads.begin(); it != threads.end(); it++) {
+    it->join();
   }
 
   _raytrace.Done();
@@ -104,9 +166,6 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
 
   // Get surface properties.
   hit.object->CompleteHitInfo(ray, hit);
-
-  // Nudge origin point in order to avoid re-intersecting the original surface.
-//  hit.point += hit.normal * scalar(0.0001);
 
   // Startup info, before shading.
   info.color = vec3(0);
@@ -229,6 +288,5 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
 
   return true;
 }
-
 
 } // namespace mageray

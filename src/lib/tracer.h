@@ -29,6 +29,8 @@
 #ifndef MAGERAY_TRACER_H_
 #define MAGERAY_TRACER_H_
 
+#include <mutex>
+
 #include "base/platform.h"
 #include "base/types.h"
 #include "image.h"
@@ -65,12 +67,49 @@ class Tracer {
     }
 
   private:
+    /// Thread coordination class.
+    /// The thread controller is responsible for coordinating work packages
+    /// between threads.
+    class ThreadController {
+      public:
+        ThreadController(const int width, const int height);
+
+        /// Get the next sub image area to render.
+        /// @param[out] u0 Left of the sub image area.
+        /// @param[out] v0 Top of the sub image area.
+        /// @param[out] width The width of the sub image area.
+        /// @param[out] height The height of the sub image area.
+        /// @returns false if there is no more work to be done.
+        bool NextArea(int& u0, int& v0, int& width, int& height);
+
+      private:
+        /// Block size (horizontal and vertical).
+        static const int s_block_size = 32;
+
+        const int m_width;
+        const int m_height;
+        int m_num_rows;
+        int m_num_cols;
+
+        std::mutex m_lock;
+        int m_row;
+        int m_col;
+    };
+
+    /// Worker method.
+    /// Several threads will run this method simultaneously.
+    /// @param controller The thread controller.
+    /// @param image The target image.
+    void DoWork(ThreadController* controller, Image* image) const;
+
+    /// Result information for a single traced ray.
     struct TraceInfo {
       vec3 color;
       scalar alpha;
       scalar distance;
     };
 
+    /// Trace a single ray.
     bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
 
     TraceConfig m_config;
