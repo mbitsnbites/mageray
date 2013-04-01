@@ -77,7 +77,7 @@ void Object::CompleteHitInfo(const Ray& ray, HitInfo& hit) const {
   CompleteHitInfoInObjectSpace(hit);
 
   // Transform normal to world space.
-  hit.normal = m_matrix.TransformDirection(hit.normal);
+  hit.normal = m_matrix.TransformDirection(hit.normal).Normalize();
 }
 
 void Object::GetBoundingBox(AABB& aabb) const {

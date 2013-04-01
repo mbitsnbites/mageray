@@ -160,11 +160,20 @@ struct vec3 {
   }
 
   vec3 Normalize() const {
-    scalar denom = this->Abs();
+    scalar denom = this->AbsSqr();
+
+    // Too small?
     if (denom < EPSILON) {
       return *this;
     }
-    return *this * (scalar(1.0) / denom);
+
+    // Already normalized?
+    scalar diff_one = denom - scalar(1.0);
+    if (diff_one * diff_one < EPSILON) {
+      return *this;
+    }
+
+    return *this * (scalar(1.0) / std::sqrt(denom));
   }
 
   friend std::ostream& operator<<(std::ostream& os, const vec3& v) {
