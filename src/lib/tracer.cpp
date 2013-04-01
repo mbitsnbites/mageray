@@ -50,18 +50,18 @@ Tracer::ThreadController::ThreadController(const int width, const int height) :
   m_num_cols = (width + s_block_size - 1) / s_block_size;
 }
 
-bool Tracer::ThreadController::NextArea(int& u0, int& v0, int& width,
+bool Tracer::ThreadController::NextArea(int& left, int& top, int& width,
     int& height) {
   m_lock.lock();
 
+  // Region for this sub image.
+  left = m_col * s_block_size;
+  width = std::min(left + s_block_size, m_width) - left;
+  top = m_row * s_block_size;
+  height = std::min(top + s_block_size, m_height) - top;
+
   bool do_work = (m_row < m_num_rows);
   if (do_work) {
-    // Region for this sub image.
-    u0 = m_col * s_block_size;
-    width = std::min(u0 + s_block_size, m_width) - u0;
-    v0 = m_row * s_block_size;
-    height = std::min(v0 + s_block_size, m_height) - v0;
-
     // Next sub image.
     ++m_col;
     if (m_col == m_num_cols) {
@@ -94,18 +94,23 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
   vec3 v_step = up * (scalar(-1.0) / img_height);
 
   // As long as there is work to do...
-  int u0, v0, width, height;
-  while (controller->NextArea(u0, v0, width, height)) {
+  int left, top, width, height;
+  while (controller->NextArea(left, top, width, height)) {
     // Loop over rows.
+    int v0 = top;
     for (int  j = 0; j < height; ++j) {
       int v = v0 + j;
+
+      // Every second row we do right to left.
+      int u0 = j & 1 ? left + width - 1 : left;
+
       vec3 dir = forward +
           u_step * (static_cast<scalar>(u0) - scalar(0.5) * img_width) +
           v_step * (static_cast<scalar>(v) - scalar(0.5) * img_height);
 
       // Loop over columns in the row.
       for (int  i = 0; i < width; ++i) {
-        int u = u0 + i;
+        int u = j & 1 ? u0 - i : u0 + i;
 
         // Construct a ray.
         Ray ray(cam_pos, dir);
@@ -121,7 +126,11 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
         }
         image->PixelAt(u, v) = result;
 
-        dir += u_step;
+        if (j & 1) {
+          dir -= u_step;
+        } else {
+          dir += u_step;
+        }
       }
     }
   }

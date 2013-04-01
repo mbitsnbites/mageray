@@ -75,12 +75,12 @@ class Tracer {
         ThreadController(const int width, const int height);
 
         /// Get the next sub image area to render.
-        /// @param[out] u0 Left of the sub image area.
-        /// @param[out] v0 Top of the sub image area.
+        /// @param[out] left Left of the sub image area.
+        /// @param[out] top Top of the sub image area.
         /// @param[out] width The width of the sub image area.
         /// @param[out] height The height of the sub image area.
         /// @returns false if there is no more work to be done.
-        bool NextArea(int& u0, int& v0, int& width, int& height);
+        bool NextArea(int& left, int& top, int& width, int& height);
 
       private:
         /// Block size (horizontal and vertical).
