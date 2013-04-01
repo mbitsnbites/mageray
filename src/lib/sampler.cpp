@@ -63,6 +63,7 @@ Pixel Sampler::Sample(const vec2& coord) const {
   ti = t_fixed >> 8;
   if (m_repeat_s) {
     si = si % m_image->Width();
+    if (si < 0) si += m_image->Width();
     si2 = (si + 1) % m_image->Width();
   } else {
     si = std::min(std::max(0, si), m_image->Width() - 1);
@@ -70,6 +71,7 @@ Pixel Sampler::Sample(const vec2& coord) const {
   }
   if (m_repeat_t) {
     ti = ti % m_image->Height();
+    if (ti < 0) ti += m_image->Height();
     ti2 = (ti + 1) % m_image->Height();
   } else {
     ti = std::min(std::max(0, ti), m_image->Height() - 1);

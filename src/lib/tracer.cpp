@@ -267,26 +267,27 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
       // surface.
       light_dist *= scalar(0.9999);
 
-      scalar cos_alpha = light_dir.Dot(hit.normal);
-      if (cos_alpha > scalar(0.0)) {
-        Shader::LightParam light_param;
-        light_param.light = light;
-        light_param.dir = light_dir;
-        light_param.dist = light_dist;
-        light_param.cos_alpha = cos_alpha;
-        light_param.amount = scalar(1.0);
+      // We use abs() here, since we can't really know if the normal is
+      // inverted or not.
+      scalar cos_alpha = std::abs(light_dir.Dot(hit.normal));
 
-        // Determine light visibility factor (0.0 for completely shadowed).
-        HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
-        Ray shadow_ray(light->Position(), light_dir.Neg());
-        if (m_scene->m_object_tree.Intersect(shadow_ray, shadow_hit)) {
-          light_param.amount = scalar(0.0);
-        }
+      Shader::LightParam light_param;
+      light_param.light = light;
+      light_param.dir = light_dir;
+      light_param.dist = light_dist;
+      light_param.cos_alpha = cos_alpha;
+      light_param.amount = scalar(1.0);
 
-        // Run per-light shader.
-        light_contrib += shader->LightPass(surface_param, material_param,
-            light_param);
+      // Determine light visibility factor (0.0 for completely shadowed).
+      HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
+      Ray shadow_ray(light->Position(), light_dir.Neg());
+      if (m_scene->m_object_tree.Intersect(shadow_ray, shadow_hit)) {
+        light_param.amount = scalar(0.0);
       }
+
+      // Run per-light shader.
+      light_contrib += shader->LightPass(surface_param, material_param,
+          light_param);
     }
   }
 
