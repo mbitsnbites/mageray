@@ -30,10 +30,11 @@
 #define MAGERAY_MATERIAL_H_
 
 #include "vec.h"
+#include "sampler.h"
 
 namespace mageray {
 
-class Sampler;
+class Image;
 class Shader;
 
 class Material {
@@ -117,28 +118,28 @@ class Material {
       m_shader = shader;
     }
 
-    const Sampler* DiffuseMap() const {
+    const Sampler& DiffuseMap() const {
       return m_diffuse_map;
     }
 
-    void SetDiffuseMap(Sampler* diffuse_map) {
-      m_diffuse_map = diffuse_map;
+    Sampler& DiffuseMap() {
+      return m_diffuse_map;
     }
 
-    const Sampler* SpecularMap() const {
+    const Sampler& SpecularMap() const {
       return m_specular_map;
     }
 
-    void SetSpecularMap(Sampler* specular_map) {
-      m_specular_map = specular_map;
+    Sampler& SpecularMap() {
+      return m_specular_map;
     }
 
-    const Sampler* NormalMap() const {
+    const Sampler& NormalMap() const {
       return m_normal_map;
     }
 
-    void SetNormalMap(Sampler* normal_map) {
-      m_normal_map = normal_map;
+    Sampler& NormalMap() {
+      return m_normal_map;
     }
 
   private:
@@ -151,9 +152,9 @@ class Material {
     scalar m_alpha;
     scalar m_ior;
 
-    Sampler* m_diffuse_map;
-    Sampler* m_specular_map;
-    Sampler* m_normal_map;
+    Sampler m_diffuse_map;
+    Sampler m_specular_map;
+    Sampler m_normal_map;
 
     mageray::Shader* m_shader;
 };

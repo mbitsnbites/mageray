@@ -39,17 +39,24 @@ class Image;
 
 class Sampler {
   public:
-    Sampler(const Image* image) : m_image(image), m_repeat_s(true),
-        m_repeat_t(false) {}
+    Sampler() : m_image(NULL), m_repeat_s(true), m_repeat_t(true) {}
+
+    void SetImage(const Image* image) {
+      m_image = image;
+    }
 
     void SetRepeat(bool repeat_s, bool repeat_t) {
       m_repeat_s = repeat_s;
       m_repeat_t = repeat_t;
     }
 
+    bool HasImage() const {
+      return m_image != NULL;
+    }
+
     /// Sample a color value using bilinear interpolation.
-    /// @param[in] s The s coordinate.
-    /// @param[in] t The t coordinate.
+    /// @param[in] s The s coordinate (0 = left, 1 = right).
+    /// @param[in] t The t coordinate (0 = bottom, 1 = top).
     /// @returns An interpolated color value.
     Pixel Sample(const vec2& coord) const;
 

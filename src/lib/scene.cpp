@@ -179,6 +179,22 @@ void Scene::LoadMesh(tinyxml2::XMLElement* element) {
   m_meshes[name] = std::move(mesh);
 }
 
+void Scene::LoadMaterialSampler(tinyxml2::XMLElement* element, Sampler& sampler) {
+  const char* image_name = element->Attribute("image");
+  if (!image_name) {
+    throw scene_parse_error(element, "Missing image attribute.");
+  }
+
+  // Set image for this sampler.
+  auto it = m_images.find(image_name);
+  if (it == m_images.end()) {
+    std::string msg = std::string("Unable to find image \"") +
+        image_name + std::string("\" (wrong name?).");
+    throw scene_parse_error(element, msg.c_str());
+  }
+  sampler.SetImage(it->second.get());
+}
+
 void Scene::LoadMaterial(tinyxml2::XMLElement* element) {
   const char* name = element->Attribute("name");
   if (!name) {
@@ -229,6 +245,21 @@ void Scene::LoadMaterial(tinyxml2::XMLElement* element) {
     throw scene_parse_error(element, msg.c_str());
   }
   material->SetShader(it->second.get());
+
+  // Get diffuse map (if any).
+  if (tinyxml2::XMLElement* node = element->FirstChildElement("diffusemap")) {
+    LoadMaterialSampler(node, material->DiffuseMap());
+  }
+
+  // Get specular map (if any).
+  if (tinyxml2::XMLElement* node = element->FirstChildElement("specularmap")) {
+    LoadMaterialSampler(node, material->SpecularMap());
+  }
+
+  // Get normal map (if any).
+  if (tinyxml2::XMLElement* node = element->FirstChildElement("normalmap")) {
+    LoadMaterialSampler(node, material->NormalMap());
+  }
 
   m_materials[name] = std::move(material);
 }

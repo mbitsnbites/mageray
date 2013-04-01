@@ -59,8 +59,8 @@ vec3 NullShader::FinalPass(const SurfaceParam&, const MaterialParam&,
 void PhongShader::MaterialPass(const SurfaceParam& sp,
     MaterialParam& mp) const {
   // Diffuse color.
-  if (sp.material->DiffuseMap()) {
-    Pixel c = sp.material->DiffuseMap()->Sample(sp.uv);
+  if (sp.material->DiffuseMap().HasImage()) {
+    Pixel c = sp.material->DiffuseMap().Sample(sp.uv);
     mp.diffuse = vec3(c.r(), c.g(), c.b()) * scalar(1.0 / 255.0);
     mp.alpha = c.a() * scalar(1.0 / 255.0);
   } else {
@@ -69,8 +69,8 @@ void PhongShader::MaterialPass(const SurfaceParam& sp,
   }
 
   // Specular color.
-  if (sp.material->SpecularMap()) {
-    Pixel c = sp.material->SpecularMap()->Sample(sp.uv);
+  if (sp.material->SpecularMap().HasImage()) {
+    Pixel c = sp.material->SpecularMap().Sample(sp.uv);
     mp.specular = vec3(c.r(), c.g(), c.b()) * scalar(1.0 / 255.0);
   } else {
     mp.specular = vec3(sp.material->Specular());

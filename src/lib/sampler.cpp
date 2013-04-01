@@ -53,7 +53,7 @@ Pixel Sampler::Sample(const vec2& coord) const {
   // Convert floating point coordinates to fixed point coordinates (8-bit
   // sub-pixel precision).
   int s_fixed = static_cast<int>(coord.u * m_image->m_s_scale);
-  int t_fixed = static_cast<int>(coord.v * m_image->m_t_scale);
+  int t_fixed = static_cast<int>((scalar(1.0) - coord.v) * m_image->m_t_scale);
   int sw = s_fixed & 0xff;
   int tw = t_fixed & 0xff;
 

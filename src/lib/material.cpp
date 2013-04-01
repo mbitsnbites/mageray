@@ -39,9 +39,9 @@ void Material::Reset() {
   m_mirror = 0.0;
   m_alpha = 1.0;
   m_ior = 1.0;
-  m_diffuse_map = NULL;
-  m_specular_map = NULL;
-  m_normal_map = NULL;
+  m_diffuse_map.SetImage(NULL);
+  m_specular_map.SetImage(NULL);
+  m_normal_map.SetImage(NULL);
   m_shader = NULL;
 }
 
