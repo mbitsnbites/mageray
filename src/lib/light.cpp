@@ -33,7 +33,8 @@ namespace mageray {
 void Light::Reset() {
   m_position = vec3(-10.0, -10.0, 10.0);
   m_color = vec3(1.0, 1.0, 1.0);
-  m_distance = 20.0;
+  m_distance = scalar(20.0);
+  m_size = scalar(0.0);
 }
 
 } // namespace mageray

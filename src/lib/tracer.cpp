@@ -43,6 +43,156 @@
 
 namespace mageray {
 
+/// Class for calculating soft shadows.
+class SoftShadower {
+  public:
+    SoftShadower(const ObjectTree& tree, const Light* light,
+        const vec3& position, const int count);
+
+    scalar TotalUnblocked();
+
+  private:
+    enum OcclusionStatus {
+      Untested = 0,
+      Blocked = 1,
+      Unblocked = 2
+    };
+
+    void RecShadow(int u1, int u2, int v1, int v2, int level);
+
+    const ObjectTree* m_tree;
+    const Light* m_light;
+    const vec3 m_position;
+    const int m_count;
+
+    vec3 m_e1;
+    vec3 m_e2;
+    scalar m_step;
+
+    std::vector<OcclusionStatus> m_occlusion;
+};
+
+SoftShadower::SoftShadower(const ObjectTree& tree, const Light* light,
+    const vec3& position, const int count) :
+    m_tree(&tree),
+    m_light(light),
+    m_position(position),
+    m_count(count) {
+  // Vector from the light source to the surface point.
+  vec3 light_vec = position - light->Position();
+
+  // Construct a size x size square facing towards the surface point.
+  if (std::abs(light_vec.x) < std::abs(light_vec.y)) {
+    m_e1 = light_vec.Cross(vec3(1,0,0));
+  } else {
+    m_e1 = light_vec.Cross(vec3(0,1,0));
+  }
+  m_e2 = light_vec.Cross(m_e1);
+  m_e1 = m_e1 * (light->Size() / m_e1.Abs());
+  m_e2 = m_e2 * (light->Size() / m_e2.Abs());
+
+  // Step size along e1 and e2 vectors.
+  m_step = scalar(1.0) / static_cast<scalar>(count - 1);
+}
+
+scalar SoftShadower::TotalUnblocked() {
+  // Start with an undefined occlussion matrix.
+  m_occlusion.resize(m_count * m_count);
+  std::fill(m_occlusion.begin(), m_occlusion.end(), Untested);
+
+  // Recursively check light occlusion.
+  RecShadow(0, m_count - 1, 0, m_count - 1, 1);
+
+  // Check how many rays were unblocked.
+  int num_unblocked = 0;
+  for (auto it = m_occlusion.begin(); it != m_occlusion.end(); it++) {
+    if (*it == Unblocked) {
+      num_unblocked++;
+    }
+  }
+
+  return static_cast<scalar>(num_unblocked) /
+      static_cast<scalar>(m_occlusion.size());
+}
+
+void SoftShadower::RecShadow(int u1, int u2, int v1, int v2, int level) {
+  // Occlusion matrix indices.
+  int idx1 = u1 + v1 * m_count;
+  int idx2 = u2 + v1 * m_count;
+  int idx3 = u1 + v2 * m_count;
+  int idx4 = u2 + v2 * m_count;
+
+  // 1st corner.
+  if (m_occlusion[idx1] == Untested) {
+    vec3 pos = m_light->Position() +
+        m_e1 * (static_cast<scalar>(u1) * m_step - scalar(0.5)) +
+        m_e2 * (static_cast<scalar>(v1) * m_step - scalar(0.5));
+    HitInfo shadow_hit = HitInfo::CreateShadowTest(scalar(0.9999));
+    Ray shadow_ray(pos, m_position - pos);
+    bool occluded = m_tree->Intersect(shadow_ray, shadow_hit);
+    m_occlusion[idx1] = occluded ? Blocked : Unblocked;
+  }
+
+  // 2nd corner.
+  if (m_occlusion[idx2] == Untested) {
+    vec3 pos = m_light->Position() +
+        m_e1 * (static_cast<scalar>(u2) * m_step - scalar(0.5)) +
+        m_e2 * (static_cast<scalar>(v1) * m_step - scalar(0.5));
+    HitInfo shadow_hit = HitInfo::CreateShadowTest(scalar(0.9999));
+    Ray shadow_ray(pos, m_position - pos);
+    bool occluded = m_tree->Intersect(shadow_ray, shadow_hit);
+    m_occlusion[idx2] = occluded ? Blocked : Unblocked;
+  }
+
+  // 3rd corner.
+  if (m_occlusion[idx3] == Untested) {
+    vec3 pos = m_light->Position() +
+        m_e1 * (static_cast<scalar>(u1) * m_step - scalar(0.5)) +
+        m_e2 * (static_cast<scalar>(v2) * m_step - scalar(0.5));
+    HitInfo shadow_hit = HitInfo::CreateShadowTest(scalar(0.9999));
+    Ray shadow_ray(pos, m_position - pos);
+    bool occluded = m_tree->Intersect(shadow_ray, shadow_hit);
+    m_occlusion[idx3] = occluded ? Blocked : Unblocked;
+  }
+
+  // 4th corner.
+  if (m_occlusion[idx4] == Untested) {
+    vec3 pos = m_light->Position() +
+        m_e1 * (static_cast<scalar>(u2) * m_step - scalar(0.5)) +
+        m_e2 * (static_cast<scalar>(v2) * m_step - scalar(0.5));
+    HitInfo shadow_hit = HitInfo::CreateShadowTest(scalar(0.9999));
+    Ray shadow_ray(pos, m_position - pos);
+    bool occluded = m_tree->Intersect(shadow_ray, shadow_hit);
+    m_occlusion[idx4] = occluded ? Blocked : Unblocked;
+  }
+
+  // Was this the last recursion level?
+  if (u1 + 1 == u2) {
+    return;
+  }
+
+  // Same result for all four corners (and at least recursion level 2)?
+  OcclusionStatus status = m_occlusion[idx1];
+  if (level >= 2 && m_occlusion[idx2] == status &&
+      m_occlusion[idx3] == status && m_occlusion[idx4] == status) {
+    // Fill inner area with the result from the four corners.
+    for (int v = v1; v <= v2; ++v) {
+      OcclusionStatus* ptr = &m_occlusion[v * m_count + u1];
+      for (int u = u1; u <= u2; ++u) {
+        *ptr++ = status;
+      }
+    }
+  } else {
+    // Recurse further...
+    int u_mid = (u1 + u2) >> 1;
+    int v_mid = (v1 + v2) >> 1;
+    RecShadow(u1, u_mid, v1, v_mid, level + 1);
+    RecShadow(u_mid, u2, v1, v_mid, level + 1);
+    RecShadow(u1, u_mid, v_mid, v2, level + 1);
+    RecShadow(u_mid, u2, v_mid, v2, level + 1);
+  }
+}
+
 Tracer::ThreadController::ThreadController(const int width, const int height) :
     m_width(width), m_height(height), m_row(0), m_col(0) {
   // Calculate number of sub-blocks.
@@ -78,7 +228,8 @@ bool Tracer::ThreadController::NextArea(int& left, int& top, int& width,
 Tracer::Tracer() : m_scene(NULL) {
   // Default configuration.
   m_config.max_recursions = 4;
-  m_config.antialias_depth = 3;
+  m_config.antialias_depth = 0;
+  m_config.soft_shadow_depth = 3;
 }
 
 void Tracer::DoWork(ThreadController* controller, Image* image) const {
@@ -157,6 +308,26 @@ void Tracer::GenerateImage(Image& image) const {
   }
 
   _raytrace.Done();
+}
+
+scalar Tracer::Shadow(const Light* light, const vec3& position) const {
+  if (light->Size() > EPSILON && m_config.soft_shadow_depth > 0) {
+    // Number of rays along each side of the light square.
+    int count = (1 << m_config.soft_shadow_depth) + 1;
+
+    // Compute light contribution using soft shadows.
+    SoftShadower soft_shadower(m_scene->m_object_tree, light, position, count);
+    return soft_shadower.TotalUnblocked();
+  } else {
+    // No soft shadow, just use a single ray.
+    vec3 light_vec = position - light->Position();
+    HitInfo shadow_hit = HitInfo::CreateShadowTest(scalar(0.9999));
+    Ray shadow_ray(light->Position(), light_vec);
+    if (m_scene->m_object_tree.Intersect(shadow_ray, shadow_hit)) {
+      return scalar(0.0);
+    }
+    return scalar(1.0);
+  }
 }
 
 bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
@@ -263,10 +434,6 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
       scalar light_dist = light_dir.Abs();
       light_dir = light_dir * (scalar(1.0) / light_dist);
 
-      // Scale light distance in order to avoid re-intersecting the origin
-      // surface.
-      light_dist *= scalar(0.9999);
-
       // We use abs() here, since we can't really know if the normal is
       // inverted or not.
       scalar cos_alpha = std::abs(light_dir.Dot(hit.normal));
@@ -279,11 +446,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
       light_param.amount = scalar(1.0);
 
       // Determine light visibility factor (0.0 for completely shadowed).
-      HitInfo shadow_hit = HitInfo::CreateShadowTest(light_dist);
-      Ray shadow_ray(light->Position(), light_dir.Neg());
-      if (m_scene->m_object_tree.Intersect(shadow_ray, shadow_hit)) {
-        light_param.amount = scalar(0.0);
-      }
+      light_param.amount = Shadow(light, hit.point);
 
       // Run per-light shader.
       light_contrib += shader->LightPass(surface_param, material_param,

@@ -9,11 +9,11 @@
 
     <materials>
       <material name="glass" color="0.8 0.8 1.0" diffuse="0.25" ambient="0.05" mirror="0.7" specular="1" hardness="60" />
-      <material name="dull" color="1 0.5 1" diffuse="0.85" ambient="0.15" specular="0.5" hardness="30" />
+      <material name="dull" color="1 0.5 1" diffuse="0.95" ambient="0.05" specular="0.5" hardness="30" />
     </materials>
 
     <lights>
-      <light position="-5 -10 8" color="1 1 1" distance="20" />
+      <light position="-5 -10 8" color="1 1 1" distance="20" size="2" />
       <light position="10 0 5" color="0.2 0.5 1.0" distance="10" />
     </lights>
 

@@ -369,6 +369,9 @@ void Scene::LoadLight(tinyxml2::XMLElement* element) {
   if (const char* str = element->Attribute("distance")) {
     light->SetDistance(ParseScalarString(str));
   }
+  if (const char* str = element->Attribute("size")) {
+    light->SetSize(ParseScalarString(str));
+  }
 
   // Add the object to the object list.
   m_lights.push_back(std::move(light));

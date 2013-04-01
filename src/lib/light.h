@@ -66,10 +66,19 @@ class Light {
       return m_distance;
     }
 
+    void SetSize(const scalar& size) {
+      m_size = size;
+    }
+
+    const scalar& Size() const {
+      return m_size;
+    }
+
   private:
     vec3 m_position;
     vec3 m_color;
     scalar m_distance;
+    scalar m_size;
 };
 
 } // namespace mageray
