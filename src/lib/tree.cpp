@@ -34,6 +34,7 @@
 
 #include "base/perf.h"
 #include "base/platform.h"
+#include "base/threads.h"
 #include "object.h"
 #include "triangle.h"
 #include "vec.h"
@@ -227,11 +228,7 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
   //   3 -> 8 threads
   //   etc.
   int threaded_depth;
-  int concurrency = std::thread::hardware_concurrency();
-  if (concurrency == 0) {
-    // NOTE: hardware_concurrency() in gcc 4.6.3 always returns zero :(
-    concurrency = 2;
-  }
+  int concurrency = Thread::hardware_concurrency();
   if (concurrency >= 4)
     threaded_depth = 2;
   else if (concurrency >= 2)

@@ -33,6 +33,7 @@
 
 #include "base/log.h"
 #include "base/perf.h"
+#include "base/threads.h"
 #include "hitinfo.h"
 #include "light.h"
 #include "material.h"
@@ -131,11 +132,8 @@ void Tracer::GenerateImage(Image& image) const {
   ScopedPerf _raytrace = ScopedPerf("Raytrace image");
 
   // Get level of hardware concurrency.
-  int concurrency = std::thread::hardware_concurrency();
-  if (concurrency == 0) {
-    // NOTE: hardware_concurrency() in gcc 4.6.3 always returns zero :(
-    concurrency = 2;
-  }
+  int concurrency = Thread::hardware_concurrency();
+  DLOG("Using %d threads to render image.", concurrency);
 
   // Start threads.
   ThreadController controller(image.Width(), image.Height());
