@@ -63,6 +63,7 @@ LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/object.o \
            $(OBJ_PATH)/openctm_importer.o \
            $(OBJ_PATH)/perf.o \
+           $(OBJ_PATH)/photon_map.o \
            $(OBJ_PATH)/sampler.o \
            $(OBJ_PATH)/scene.o \
            $(OBJ_PATH)/shader.o \

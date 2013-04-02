@@ -43,3 +43,5 @@ src/lib/aabb.cpp
 src/lib/tracer.h
 src/lib/tracer.cpp
 src/lib/base/threads.h
+src/lib/photon_map.h
+src/lib/photon_map.cpp
