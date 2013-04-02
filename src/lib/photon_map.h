@@ -30,6 +30,7 @@
 #define MAGERAY_PHOTON_MAP_H_
 
 #include <atomic>
+#include <vector>
 
 #include "base/types.h"
 #include "vec.h"
@@ -40,20 +41,21 @@ struct Photon {
   vec3 position;
   vec3 direction;
   vec3 color;
+
+  // TODO(mage): Share this with AABB::Axis (e.g. as part of vec3).
+  enum Axis {
+    X = 0,
+    Y = 1,
+    Z = 2
+  };
 };
 
 class PhotonMap {
   public:
-    PhotonMap(const int size);
+    PhotonMap(const int capacity);
 
-    ~PhotonMap();
-
-    int Size() const {
-      return m_size;
-    }
-
-    int Count() const {
-      return m_count;
+    int Capacity() const {
+      return m_capacity;
     }
 
     /// Get the next un-initialized photon.
@@ -62,7 +64,7 @@ class PhotonMap {
     /// @note This method is thread safe.
     Photon* NextPhoton() {
       int index = m_count++;
-      return index < m_size ? &m_photons[index] : NULL;
+      return index < m_capacity ? &m_photons[index] : NULL;
     }
 
     /// Build a KD tree of the collected photons.
@@ -79,10 +81,10 @@ class PhotonMap {
         const vec3& normal, const scalar range) const;
 
   private:
-    const int m_size;
+    const int m_capacity;
     std::atomic_int m_count;
 
-    Photon* m_photons;
+    std::vector<Photon> m_photons;
 };
 
 } // namespace mageray

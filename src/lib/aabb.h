@@ -123,6 +123,15 @@ class AABB {
     /// If an intersection occurred, closest_t will be updated accordingly.
     bool Intersect(const Ray& ray, scalar& closest_t) const;
 
+    /// Check if a point is inside this bounding box.
+    /// @param point The point to check.
+    /// @returns true if the point is inside the bounding box.
+    bool PointInside(const vec3& point) const {
+      return point.x >= m_bounds[XMIN] && point.x <= m_bounds[XMAX] &&
+          point.y >= m_bounds[YMIN] && point.y <= m_bounds[YMAX] &&
+          point.z >= m_bounds[ZMIN] && point.z <= m_bounds[ZMAX];
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const AABB& aabb) {
       os << aabb.Min() << "->" << aabb.Max();
       return os;
