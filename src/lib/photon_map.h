@@ -32,6 +32,7 @@
 #include <atomic>
 #include <vector>
 
+#include "base/log.h"
 #include "base/types.h"
 #include "vec.h"
 
@@ -52,8 +53,19 @@ struct Photon {
 
 class PhotonMap {
   public:
-    PhotonMap(const int capacity);
+    PhotonMap() : m_capacity(0), m_count(0), m_size(0) {}
 
+    /// Set the capacity of the photon map.
+    /// @param capacity The number of photons that should fit in the map.
+    /// @note This method must be called before using the map, and it can only
+    /// be called once.
+    void SetCapacity(const int capacity) {
+      ASSERT(m_capacity == 0, "Can't change the capacity of a PhotonMap.");
+      m_capacity = capacity;
+      m_photons.resize(capacity);
+    }
+
+    /// @returns The photon map capacity.
     int Capacity() const {
       return m_capacity;
     }
@@ -70,6 +82,11 @@ class PhotonMap {
     /// Build a KD tree of the collected photons.
     void BuildKDTree();
 
+    /// @returns true if the photon map contains a KD tree.
+    bool HasPhotons() const {
+      return m_size > 0;
+    }
+
     /// Get the total light in the given range.
     /// @param[out] color The total color (photon energy).
     /// @param[out] direction The average light direction.
@@ -82,7 +99,7 @@ class PhotonMap {
 
   private:
     /// The number of elements that fit in the photon vector.
-    const int m_capacity;
+    int m_capacity;
 
     /// The current photon count (may exceed the capacity).
     std::atomic_int m_count;

@@ -28,6 +28,7 @@
 
 #include "tracer.h"
 
+#include <cstdlib>
 #include <list>
 #include <thread>
 
@@ -230,6 +231,7 @@ Tracer::Tracer() : m_scene(NULL) {
   m_config.max_recursions = 4;
   m_config.antialias_depth = 0;
   m_config.soft_shadow_depth = 3;
+  m_config.max_photons = 1000000;
 }
 
 void Tracer::DoWork(ThreadController* controller, Image* image) const {
@@ -285,6 +287,60 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
       }
     }
   }
+}
+
+void Tracer::GeneratePhotonMap() {
+  ASSERT(m_scene, "The scene is undefined.");
+  ScopedPerf _photon_map = ScopedPerf("Generate photon map");
+
+  // Allocate memory for the photons.
+  m_photon_map.SetCapacity(m_config.max_photons);
+
+  // Set up a random-access vector for all the light sources.
+  std::vector<Light*> lights;
+  lights.reserve(m_scene->m_lights.size());
+  for (auto it = m_scene->m_lights.begin(); it != m_scene->m_lights.end();
+      it++) {
+    lights.push_back(it->get());
+  }
+
+  // Generate photon map.
+  bool done = false;
+  while (!done) {
+    #pragma omp parallel for
+    for (unsigned batch = 0; batch < 100; ++batch) {
+      for (unsigned i = 0; i < 100; ++i) {
+        // Select a random light source.
+        // TODO(mage): Implement me!
+
+        // Do several rays for this light source (better cache performance).
+        for (unsigned j = 0; j < 100; ++j) {
+          // Select a random direction.
+          // TODO(mage): Implement me!
+
+          // Shoot a ray into the scene.
+          // TODO(mage): Implement me!
+
+          // Should we produce a new photon?
+          if (true) {
+            Photon* photon = m_photon_map.NextPhoton();
+            if (UNLIKELY(!photon)) {
+              done = true;
+              break;
+            }
+
+            // Fill out photon information.
+            // TODO(mage): Implement me.
+          }
+        }
+      }
+    }
+  }
+
+  // Build the KD tree.
+  m_photon_map.BuildKDTree();
+
+  _photon_map.Done();
 }
 
 void Tracer::GenerateImage(Image& image) const {

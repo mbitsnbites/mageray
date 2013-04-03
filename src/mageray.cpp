@@ -81,6 +81,7 @@ int main(int argc, const char* argv[]) {
   std::cout << std::endl << "[Rendering image]" << std::endl;
   Tracer tracer;
   tracer.SetScene(&scene);
+  tracer.GeneratePhotonMap();
   tracer.GenerateImage(img);
 
   // Save image.

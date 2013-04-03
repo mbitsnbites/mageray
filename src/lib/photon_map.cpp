@@ -31,7 +31,6 @@
 #include <algorithm>
 
 #include "aabb.h"
-#include "base/log.h"
 
 namespace mageray {
 
@@ -51,6 +50,11 @@ bool ComparePhotonZ(const Photon& p1, const Photon& p2) {
 
 void BuildSubTree(const std::vector<Photon>::iterator start,
     const std::vector<Photon>::iterator stop, Photon::Axis axis) {
+  // Empty recursion?
+  if (start == stop) {
+    return;
+  }
+
   // Sort all elements according to the selected axis.
   switch(axis) {
     case Photon::X:
@@ -155,12 +159,9 @@ int RecGetLightInRange(vec3& color, vec3& direction,
 } // anonymous namespace
 
 
-PhotonMap::PhotonMap(const int capacity) : m_capacity(capacity), m_count(0),
-    m_photons(capacity) {}
-
 void PhotonMap::BuildKDTree() {
   // Get the actual number of photons in the photon array.
-  int count = m_count.load();
+  int count = m_count;
   m_size = std::min(m_capacity, count);
 
   // Recursively build the KD tree (in place).

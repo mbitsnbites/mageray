@@ -34,6 +34,7 @@
 #include "base/platform.h"
 #include "base/types.h"
 #include "image.h"
+#include "photon_map.h"
 #include "ray.h"
 #include "vec.h"
 
@@ -52,11 +53,17 @@ struct TraceConfig {
 
   /// Soft shadow recursion depth (0 = no soft shadows).
   unsigned soft_shadow_depth;
+
+  /// Number of photons to use in the photon map (0 = no photon mapping).
+  unsigned max_photons;
 };
 
 class Tracer {
   public:
     Tracer();
+
+    /// Generate a photon map for the current scene.
+    void GeneratePhotonMap();
 
     /// Generate an image of the current scene.
     /// @param image The image to render to.
@@ -122,6 +129,8 @@ class Tracer {
     TraceConfig m_config;
 
     const Scene* m_scene;
+
+    PhotonMap m_photon_map;
 
     FORBID_COPY(Tracer);
 };
