@@ -78,11 +78,17 @@ class PhotonMap {
     /// @param range The radius to query.
     /// @returns The number of photons collected.
     int GetTotalLightInRange(vec3& color, vec3& direction, const vec3& position,
-        const vec3& normal, const scalar range) const;
+        const vec3& normal, const scalar range);
 
   private:
+    /// The number of elements that fit in the photon vector.
     const int m_capacity;
+
+    /// The current photon count (may exceed the capacity).
     std::atomic_int m_count;
+
+    /// The actual number of photons (defined by BuildKDTree).
+    int m_size;
 
     std::vector<Photon> m_photons;
 };

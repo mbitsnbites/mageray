@@ -53,6 +53,15 @@ class AABB {
       m_bounds[ZMAX] = maxz;
     }
 
+    AABB(const vec3& min, const vec3& max) {
+      m_bounds[XMIN] = min.x;
+      m_bounds[YMIN] = min.y;
+      m_bounds[ZMIN] = min.z;
+      m_bounds[XMAX] = max.x;
+      m_bounds[YMAX] = max.y;
+      m_bounds[ZMAX] = max.z;
+    }
+
     enum Bound {
       XMIN = 0,
       YMIN = 1,

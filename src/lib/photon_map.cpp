@@ -159,20 +159,34 @@ PhotonMap::PhotonMap(const int capacity) : m_capacity(capacity), m_count(0),
     m_photons(capacity) {}
 
 void PhotonMap::BuildKDTree() {
+  // Get the actual number of photons in the photon array.
+  int count = m_count.load();
+  m_size = std::min(m_capacity, count);
+
   // Recursively build the KD tree (in place).
-  BuildSubTree(m_photons.begin(), m_photons.begin() + m_count, Photon::X);
+  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, Photon::X);
 }
 
 int PhotonMap::GetTotalLightInRange(vec3& color, vec3& direction,
-    const vec3& position, const vec3& normal, const scalar range) const {
+    const vec3& position, const vec3& normal, const scalar range) {
+  // Set up bounding box.
+  AABB aabb(position - vec3(range), position + vec3(range));
+
   // Construct plane equation from position and normal.
   scalar plane_d = position.Dot(normal);
 
   // Get contributing light from the photon map.
   vec3 color_sum(0), direction_sum(0);
-  // int count = RecGetLightInRange(color, direction, )
+  auto start = m_photons.begin();
+  auto stop = start + m_size;
+  int count = RecGetLightInRange(color_sum, direction_sum, position, normal,
+      range * range, plane_d, aabb, start, stop, Photon::X);
 
-  return return;
+  // Return output parameters.
+  color = color_sum;
+  direction = direction_sum.Normalize();
+
+  return count;
 }
 
 } // namespace mageray
