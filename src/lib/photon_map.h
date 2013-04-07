@@ -42,13 +42,6 @@ struct Photon {
   vec3 position;
   vec3 direction;
   vec3 color;
-
-  // TODO(mage): Share this with AABB::Axis (e.g. as part of vec3).
-  enum Axis {
-    X = 0,
-    Y = 1,
-    Z = 2
-  };
 };
 
 class PhotonMap {

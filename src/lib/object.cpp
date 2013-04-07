@@ -87,14 +87,14 @@ void Object::GetBoundingBox(AABB& aabb) const {
 
   // Construct the 8 corner points of the bounding box.
   vec3 corners[8];
-  corners[0] = vec3(original[AABB::XMIN], original[AABB::YMIN], original[AABB::ZMIN]);
-  corners[1] = vec3(original[AABB::XMIN], original[AABB::YMIN], original[AABB::ZMAX]);
-  corners[2] = vec3(original[AABB::XMIN], original[AABB::YMAX], original[AABB::ZMIN]);
-  corners[3] = vec3(original[AABB::XMIN], original[AABB::YMAX], original[AABB::ZMAX]);
-  corners[4] = vec3(original[AABB::XMAX], original[AABB::YMIN], original[AABB::ZMIN]);
-  corners[5] = vec3(original[AABB::XMAX], original[AABB::YMIN], original[AABB::ZMAX]);
-  corners[6] = vec3(original[AABB::XMAX], original[AABB::YMAX], original[AABB::ZMIN]);
-  corners[7] = vec3(original[AABB::XMAX], original[AABB::YMAX], original[AABB::ZMAX]);
+  corners[0] = vec3(original.Min().x, original.Min().y, original.Min().z);
+  corners[1] = vec3(original.Min().x, original.Min().y, original.Max().z);
+  corners[2] = vec3(original.Min().x, original.Max().y, original.Min().z);
+  corners[3] = vec3(original.Min().x, original.Max().y, original.Max().z);
+  corners[4] = vec3(original.Max().x, original.Min().y, original.Min().z);
+  corners[5] = vec3(original.Max().x, original.Min().y, original.Max().z);
+  corners[6] = vec3(original.Max().x, original.Max().y, original.Min().z);
+  corners[7] = vec3(original.Max().x, original.Max().y, original.Max().z);
 
   // Transform all the corners.
   for (int i = 0; i < 8; ++i) {
@@ -102,16 +102,16 @@ void Object::GetBoundingBox(AABB& aabb) const {
   }
 
   // Find the bounding box that includes all the 8 transformed points.
-  aabb[AABB::XMIN] = aabb[AABB::XMAX] = corners[0].x;
-  aabb[AABB::YMIN] = aabb[AABB::YMAX] = corners[0].y;
-  aabb[AABB::ZMIN] = aabb[AABB::ZMAX] = corners[0].z;
+  aabb.Min().x = aabb.Max().x = corners[0].x;
+  aabb.Min().y = aabb.Max().y = corners[0].y;
+  aabb.Min().z = aabb.Max().z = corners[0].z;
   for (int i = 1; i < 8; ++i) {
-    if (corners[i].x < aabb[AABB::XMIN]) aabb[AABB::XMIN] = corners[i].x;
-    if (corners[i].x > aabb[AABB::XMAX]) aabb[AABB::XMAX] = corners[i].x;
-    if (corners[i].y < aabb[AABB::YMIN]) aabb[AABB::YMIN] = corners[i].y;
-    if (corners[i].y > aabb[AABB::YMAX]) aabb[AABB::YMAX] = corners[i].y;
-    if (corners[i].z < aabb[AABB::ZMIN]) aabb[AABB::ZMIN] = corners[i].z;
-    if (corners[i].z > aabb[AABB::ZMAX]) aabb[AABB::ZMAX] = corners[i].z;
+    if (corners[i].x < aabb.Min().x) aabb.Min().x = corners[i].x;
+    if (corners[i].x > aabb.Max().x) aabb.Max().x = corners[i].x;
+    if (corners[i].y < aabb.Min().y) aabb.Min().y = corners[i].y;
+    if (corners[i].y > aabb.Max().y) aabb.Max().y = corners[i].y;
+    if (corners[i].z < aabb.Min().z) aabb.Min().z = corners[i].z;
+    if (corners[i].z > aabb.Max().z) aabb.Max().z = corners[i].z;
   }
 }
 
@@ -130,8 +130,8 @@ void MeshObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
   if (LIKELY(m_mesh)) {
     aabb = m_mesh->BoundingBox();
   } else {
-    aabb[AABB::XMIN] = aabb[AABB::YMIN] = aabb[AABB::ZMIN] = 0.0;
-    aabb[AABB::XMAX] = aabb[AABB::YMAX] = aabb[AABB::ZMAX] = 0.0;
+    aabb.Min().x = aabb.Min().y = aabb.Min().z = 0.0;
+    aabb.Max().x = aabb.Max().y = aabb.Max().z = 0.0;
   }
 }
 
@@ -171,8 +171,8 @@ void SphereObject::CompleteHitInfoInObjectSpace(HitInfo& hit) const {
 
 void SphereObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
   scalar radius = std::sqrt(m_radius_squared);
-  aabb[AABB::XMIN] = aabb[AABB::YMIN] = aabb[AABB::ZMIN] = -radius;
-  aabb[AABB::XMAX] = aabb[AABB::YMAX] = aabb[AABB::ZMAX] = radius;
+  aabb.Min().x = aabb.Min().y = aabb.Min().z = -radius;
+  aabb.Max().x = aabb.Max().y = aabb.Max().z = radius;
 }
 
 } // namespace mageray

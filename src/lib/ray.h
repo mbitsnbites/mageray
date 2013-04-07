@@ -51,25 +51,25 @@ class Ray {
 
       // Determine closest and farthest AABB sides for the given direction.
       if (direction.x >= 0) {
-        m_close_sides[AABB::X] = AABB::XMIN;
-        m_far_sides[AABB::X] = AABB::XMAX;
+        m_close_min_max[vec3::X] = AABB::MIN;
+        m_far_min_max[vec3::X] = AABB::MAX;
       } else {
-        m_close_sides[AABB::X] = AABB::XMAX;
-        m_far_sides[AABB::X] = AABB::XMIN;
+        m_close_min_max[vec3::X] = AABB::MAX;
+        m_far_min_max[vec3::X] = AABB::MIN;
       }
       if (direction.y >= 0) {
-        m_close_sides[AABB::Y] = AABB::YMIN;
-        m_far_sides[AABB::Y] = AABB::YMAX;
+        m_close_min_max[vec3::Y] = AABB::MIN;
+        m_far_min_max[vec3::Y] = AABB::MAX;
       } else {
-        m_close_sides[AABB::Y] = AABB::YMAX;
-        m_far_sides[AABB::Y] = AABB::YMIN;
+        m_close_min_max[vec3::Y] = AABB::MAX;
+        m_far_min_max[vec3::Y] = AABB::MIN;
       }
       if (direction.z >= 0) {
-        m_close_sides[AABB::Z] = AABB::ZMIN;
-        m_far_sides[AABB::Z] = AABB::ZMAX;
+        m_close_min_max[vec3::Z] = AABB::MIN;
+        m_far_min_max[vec3::Z] = AABB::MAX;
       } else {
-        m_close_sides[AABB::Z] = AABB::ZMAX;
-        m_far_sides[AABB::Z] = AABB::ZMIN;
+        m_close_min_max[vec3::Z] = AABB::MAX;
+        m_far_min_max[vec3::Z] = AABB::MIN;
       }
 
       // Calculate the plane equation parameter for the plane that has the ray
@@ -111,14 +111,14 @@ class Ray {
 
     /// @returns A three element array (x, y, z) holding the closest sides of
     /// an AABB for this ray's direction.
-    const AABB::Bound* CloseSides() const {
-      return m_close_sides;
+    const AABB::MinMax* CloseMinMax() const {
+      return m_close_min_max;
     }
 
     /// @returns A three element array (x, y, z) holding the farthest sides of
     /// an AABB for this ray's direction.
-    const AABB::Bound* FarSides() const {
-      return m_far_sides;
+    const AABB::MinMax* FarMinMax() const {
+      return m_far_min_max;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Ray& ray) {
@@ -130,9 +130,9 @@ class Ray {
     vec3 m_origin;
     vec3 m_direction;
     vec3 m_inv_direction;
-    AABB::Bound m_close_sides[3];
-    AABB::Bound m_far_sides[3];
     scalar m_plane_d;
+    AABB::MinMax m_close_min_max[3];
+    AABB::MinMax m_far_min_max[3];
 };
 
 } // namespace mageray

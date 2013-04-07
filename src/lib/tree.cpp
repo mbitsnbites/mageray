@@ -54,10 +54,10 @@ void BoundingBoxUnion(AABB& aabb, std::vector<Node*>& leaves, unsigned start,
 }
 
 /// Find the optimal split direction for the given sub-tree.
-AABB::Axis BestSplitDirection(std::vector<Node*>& leaves, const AABB& aabb,
+vec3::Axis BestSplitDirection(std::vector<Node*>& leaves, const AABB& aabb,
     unsigned start, unsigned stop) {
   // Preliminary best axis is the one with the longest side in the AABB.
-  AABB::Axis best_axis = aabb.LargestAxis();
+  vec3::Axis best_axis = aabb.LargestAxis();
 
   // Total size of the sub tree.
   unsigned total = stop - start;
@@ -67,31 +67,29 @@ AABB::Axis BestSplitDirection(std::vector<Node*>& leaves, const AABB& aabb,
   }
 
   // Let the split threshold be in the middle of the axis.
-  scalar mid2_x = aabb[AABB::XMIN] + aabb[AABB::XMAX];
-  scalar mid2_y = aabb[AABB::YMIN] + aabb[AABB::YMAX];
-  scalar mid2_z = aabb[AABB::ZMIN] + aabb[AABB::ZMAX];
+  vec3 mid2 = aabb.Min() + aabb.Max();
 
   // Iterate the sub tree.
   unsigned counts[3];
-  counts[AABB::X] = counts[AABB::Y] = counts[AABB::Z] = 0;
+  counts[vec3::X] = counts[vec3::Y] = counts[vec3::Z] = 0;
   for (unsigned i = start; i < stop; ++i) {
     Node* leaf = leaves[i];
 
     // Check if this leaf is below or above the split threshold.
     const AABB& leaf_aabb = leaf->BoundingBox();
-    if (leaf_aabb[AABB::XMIN] + leaf_aabb[AABB::XMAX] < mid2_x) {
-      counts[AABB::X]++;
+    if (leaf_aabb.Min().x + leaf_aabb.Max().x < mid2.x) {
+      counts[vec3::X]++;
     }
-    if (leaf_aabb[AABB::YMIN] + leaf_aabb[AABB::YMAX] < mid2_y) {
-      counts[AABB::Y]++;
+    if (leaf_aabb.Min().y + leaf_aabb.Max().y < mid2.y) {
+      counts[vec3::Y]++;
     }
-    if (leaf_aabb[AABB::ZMIN] + leaf_aabb[AABB::ZMAX] < mid2_z) {
-      counts[AABB::Z]++;
+    if (leaf_aabb.Min().z + leaf_aabb.Max().z < mid2.z) {
+      counts[vec3::Z]++;
     }
   }
 
   // Find branch counts for the lightest branch.
-  for (unsigned i = AABB::X; i <= AABB::Z; ++i) {
+  for (unsigned i = vec3::X; i <= vec3::Z; ++i) {
     counts[i] = std::min(counts[i], total - counts[i]);
   }
 
@@ -102,10 +100,10 @@ AABB::Axis BestSplitDirection(std::vector<Node*>& leaves, const AABB& aabb,
   }
 
   // ...otherwise, select an axis based on how well balanced it is.
-  if (counts[AABB::X] > counts[AABB::Y]) {
-    best_axis = counts[AABB::X] > counts[AABB::Z] ? AABB::X : AABB::Z;
+  if (counts[vec3::X] > counts[vec3::Y]) {
+    best_axis = counts[vec3::X] > counts[vec3::Z] ? vec3::X : vec3::Z;
   } else {
-    best_axis = counts[AABB::Y] > counts[AABB::Z] ? AABB::Y : AABB::Z;
+    best_axis = counts[vec3::Y] > counts[vec3::Z] ? vec3::Y : vec3::Z;
   }
 
   return best_axis;
@@ -125,30 +123,10 @@ Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
   Node* node = &m_branch_nodes[m_branch_nodes_idx++];
 
   // Determine optimal split direction.
-  AABB::Axis axis = BestSplitDirection(leaves, aabb, start, stop);
-
-  // Select min/max dimensions depending on split direction.
-  AABB::Bound min_bound, max_bound;
-  switch (axis) {
-    case AABB::X: {
-      min_bound = AABB::XMIN;
-      max_bound = AABB::XMAX;
-      break;
-    }
-    case AABB::Y: {
-      min_bound = AABB::YMIN;
-      max_bound = AABB::YMAX;
-      break;
-    }
-    case AABB::Z: {
-      min_bound = AABB::ZMIN;
-      max_bound = AABB::ZMAX;
-      break;
-    }
-  }
+  vec3::Axis axis = BestSplitDirection(leaves, aabb, start, stop);
 
   // Get the split threshold (2 x middle point along split axis).
-  scalar mid2 = aabb[min_bound] + aabb[max_bound];
+  scalar mid2 = aabb.Min()[axis] + aabb.Max()[axis];
 
   // Sort the leaves array into two new sub-arrays:
   //  first sub-array: start to start_second (exclusive)
@@ -159,7 +137,7 @@ Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
 
     // Check if this leaf is below or above the split threshold.
     const AABB& leaf_aabb = leaf->BoundingBox();
-    scalar leaf_mid2 = leaf_aabb[min_bound] + leaf_aabb[max_bound];
+    scalar leaf_mid2 = leaf_aabb.Min()[axis] + leaf_aabb.Max()[axis];
     if (leaf_mid2 < mid2) {
       // Keep the leaf in the first half.
       i++;
@@ -297,12 +275,12 @@ void TriangleTree::Build(const MeshData& data) {
 
     // Calculate the bounding box for the triangle.
     AABB& triangle_aabb = node->BoundingBox();
-    triangle_aabb[AABB::XMIN] = std::min(p1.x, std::min(p2.x, p3.x));
-    triangle_aabb[AABB::YMIN] = std::min(p1.y, std::min(p2.y, p3.y));
-    triangle_aabb[AABB::ZMIN] = std::min(p1.z, std::min(p2.z, p3.z));
-    triangle_aabb[AABB::XMAX] = std::max(p1.x, std::max(p2.x, p3.x));
-    triangle_aabb[AABB::YMAX] = std::max(p1.y, std::max(p2.y, p3.y));
-    triangle_aabb[AABB::ZMAX] = std::max(p1.z, std::max(p2.z, p3.z));
+    triangle_aabb.Min().x = std::min(p1.x, std::min(p2.x, p3.x));
+    triangle_aabb.Min().y = std::min(p1.y, std::min(p2.y, p3.y));
+    triangle_aabb.Min().z = std::min(p1.z, std::min(p2.z, p3.z));
+    triangle_aabb.Max().x = std::max(p1.x, std::max(p2.x, p3.x));
+    triangle_aabb.Max().y = std::max(p1.y, std::max(p2.y, p3.y));
+    triangle_aabb.Max().z = std::max(p1.z, std::max(p2.z, p3.z));
   }
 
   // Calculate total bounding box.

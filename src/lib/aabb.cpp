@@ -36,30 +36,30 @@ namespace mageray {
 bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
   // Calculate the intersections with the three closest sides of the bounding
   // box.
-  vec3 aabb_closest(m_bounds[ray.CloseSides()[X]],
-                    m_bounds[ray.CloseSides()[Y]],
-                    m_bounds[ray.CloseSides()[Z]]);
+  vec3 aabb_closest(Bound(ray.CloseMinMax()[vec3::X]).x,
+                    Bound(ray.CloseMinMax()[vec3::Y]).y,
+                    Bound(ray.CloseMinMax()[vec3::Z]).z);
   scalar t_x = (aabb_closest.x - ray.Origin().x) * ray.InvDirection().x;
   scalar t_y = (aabb_closest.y - ray.Origin().y) * ray.InvDirection().y;
   scalar t_z = (aabb_closest.z - ray.Origin().z) * ray.InvDirection().z;
 
   // The farthest hit is our candidate.
-  Axis axis;
+  vec3::Axis axis;
   scalar t;
   if (t_x > t_y) {
     if (t_x > t_z) {
-      axis = X;
+      axis = vec3::X;
       t = t_x;
     } else {
-      axis = Z;
+      axis = vec3::Z;
       t = t_z;
     }
   } else {
     if (t_y > t_z) {
-      axis = Y;
+      axis = vec3::Y;
       t = t_y;
     } else {
-      axis = Z;
+      axis = vec3::Z;
       t = t_z;
     }
   }
@@ -72,48 +72,23 @@ bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
 
   // Calculate intersection point, and check if we're inside the bounds of the
   // side.
-  switch (axis) {
-    case X: {
-      scalar y = ray.Origin().y + t * ray.Direction().y;
-      if (y < m_bounds[YMIN] || y > m_bounds[YMAX]) {
-        return false;
-      }
-      scalar z = ray.Origin().z + t * ray.Direction().z;
-      if (z < m_bounds[ZMIN] || z > m_bounds[ZMAX]) {
-        return false;
-      }
-      break;
-    }
-    case Y: {
-      scalar x = ray.Origin().x + t * ray.Direction().x;
-      if (x < m_bounds[XMIN] || x > m_bounds[XMAX]) {
-        return false;
-      }
-      scalar z = ray.Origin().z + t * ray.Direction().z;
-      if (z < m_bounds[ZMIN] || z > m_bounds[ZMAX]) {
-        return false;
-      }
-      break;
-    }
-    case Z: {
-      scalar x = ray.Origin().x + t * ray.Direction().x;
-      if (x < m_bounds[XMIN] || x > m_bounds[XMAX]) {
-        return false;
-      }
-      scalar y = ray.Origin().y + t * ray.Direction().y;
-      if (y < m_bounds[YMIN] || y > m_bounds[YMAX]) {
-        return false;
-      }
-      break;
-    }
+  vec3::Axis axis2 = vec3::NextAxis(axis);
+  vec3::Axis axis3 = vec3::NextAxis(axis2);
+  scalar a = ray.Origin()[axis2] + t * ray.Direction()[axis2];
+  if (a < m_min[axis2] || a > m_max[axis2]) {
+    return false;
+  }
+  scalar b = ray.Origin()[axis3] + t * ray.Direction()[axis3];
+  if (b < m_min[axis3] || b > m_max[axis3]) {
+    return false;
   }
 
   // If the intersection point was behind the ray origin, check that the
   // bounding box is not completely behind the ray origin.
   if (UNLIKELY(t < 0)) {
-    vec3 aabb_far(m_bounds[ray.FarSides()[X]],
-                  m_bounds[ray.FarSides()[Y]],
-                  m_bounds[ray.FarSides()[Z]]);
+    vec3 aabb_far(Bound(ray.FarMinMax()[vec3::X]).x,
+                  Bound(ray.FarMinMax()[vec3::Y]).y,
+                  Bound(ray.FarMinMax()[vec3::Z]).z);
     if (ray.PointBehind(aabb_far)) {
       return false;
     }

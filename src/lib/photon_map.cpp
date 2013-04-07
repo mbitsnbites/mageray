@@ -49,7 +49,7 @@ bool ComparePhotonZ(const Photon& p1, const Photon& p2) {
 }
 
 void BuildSubTree(const std::vector<Photon>::iterator start,
-    const std::vector<Photon>::iterator stop, Photon::Axis axis) {
+    const std::vector<Photon>::iterator stop, vec3::Axis axis) {
   // Empty recursion?
   if (start == stop) {
     return;
@@ -57,13 +57,13 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
 
   // Sort all elements according to the selected axis.
   switch(axis) {
-    case Photon::X:
+    case vec3::X:
       std::sort(start, stop, ComparePhotonX);
       break;
-    case Photon::Y:
+    case vec3::Y:
       std::sort(start, stop, ComparePhotonY);
       break;
-    case Photon::Z:
+    case vec3::Z:
       std::sort(start, stop, ComparePhotonZ);
       break;
   }
@@ -76,7 +76,7 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
   // bounding box (or similar) instead. That would require an additional field
   // in the Photon struct so that the tree lookup knows how to traverse the
   // tree.
-  Photon::Axis next_axis = static_cast<Photon::Axis>((axis + 1) % 3);
+  vec3::Axis next_axis = vec3::NextAxis(axis);
 
   // Recursively build the two child trees.
   BuildSubTree(start, mid, next_axis);
@@ -94,7 +94,7 @@ int RecGetLightInRange(vec3& color, vec3& direction,
     const vec3& position, const vec3& normal, const scalar range2,
     const scalar plane_d, const AABB& aabb,
     const std::vector<Photon>::iterator start,
-    const std::vector<Photon>::iterator stop, Photon::Axis axis) {
+    const std::vector<Photon>::iterator stop, vec3::Axis axis) {
   // Empty recursion?
   if (start == stop) {
     return 0;
@@ -116,36 +116,36 @@ int RecGetLightInRange(vec3& color, vec3& direction,
   // Are there any more child nodes?
   if (stop - start > 1) {
     // Select the next split axis.
-    Photon::Axis next_axis = static_cast<Photon::Axis>((axis + 1) % 3);
+    vec3::Axis next_axis = vec3::NextAxis(axis);
 
     // Recurse further?
     switch(axis) {
-      case Photon::X:
-        if (mid->position.x >= aabb[AABB::XMIN]) {
+      case vec3::X:
+        if (mid->position.x >= aabb.Min().x) {
           count += RecGetLightInRange(color, direction, position, normal,
               range2, plane_d, aabb, start, mid, next_axis);
         }
-        if (mid->position.x <= aabb[AABB::XMAX]) {
+        if (mid->position.x <= aabb.Max().x) {
           count += RecGetLightInRange(color, direction, position, normal,
               range2, plane_d, aabb, mid, stop, next_axis);
         }
         break;
-      case Photon::Y:
-        if (mid->position.y >= aabb[AABB::YMIN]) {
+      case vec3::Y:
+        if (mid->position.y >= aabb.Min().y) {
           count += RecGetLightInRange(color, direction, position, normal,
               range2, plane_d, aabb, start, mid, next_axis);
         }
-        if (mid->position.y <= aabb[AABB::YMAX]) {
+        if (mid->position.y <= aabb.Max().y) {
           count += RecGetLightInRange(color, direction, position, normal,
               range2, plane_d, aabb, mid, stop, next_axis);
         }
         break;
-      case Photon::Z:
-        if (mid->position.z >= aabb[AABB::ZMIN]) {
+      case vec3::Z:
+        if (mid->position.z >= aabb.Min().z) {
           count += RecGetLightInRange(color, direction, position, normal,
               range2, plane_d, aabb, start, mid, next_axis);
         }
-        if (mid->position.z <= aabb[AABB::ZMAX]) {
+        if (mid->position.z <= aabb.Max().z) {
           count += RecGetLightInRange(color, direction, position, normal,
               range2, plane_d, aabb, mid, stop, next_axis);
         }
@@ -165,7 +165,7 @@ void PhotonMap::BuildKDTree() {
   m_size = std::min(m_capacity, count);
 
   // Recursively build the KD tree (in place).
-  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, Photon::X);
+  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, vec3::X);
 }
 
 int PhotonMap::GetTotalLightInRange(vec3& color, vec3& direction,
@@ -181,7 +181,7 @@ int PhotonMap::GetTotalLightInRange(vec3& color, vec3& direction,
   auto start = m_photons.begin();
   auto stop = start + m_size;
   int count = RecGetLightInRange(color_sum, direction_sum, position, normal,
-      range * range, plane_d, aabb, start, stop, Photon::X);
+      range * range, plane_d, aabb, start, stop, vec3::X);
 
   // Return output parameters.
   color = color_sum;

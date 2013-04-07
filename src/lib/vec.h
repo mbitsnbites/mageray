@@ -42,6 +42,12 @@ struct vec3 {
   scalar y;    ///< Second component of the vector.
   scalar z;    ///< Third component of the vector.
 
+  enum Axis {
+    X = 0,
+    Y = 1,
+    Z = 2
+  };
+
   vec3() {}
 
   vec3(const scalar s) :
@@ -159,6 +165,7 @@ struct vec3 {
     return vec3(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
   }
 
+  /// @returns The normalized vector.
   vec3 Normalize() const {
     scalar denom = this->AbsSqr();
 
@@ -174,6 +181,12 @@ struct vec3 {
     }
 
     return *this * (scalar(1.0) / std::sqrt(denom));
+  }
+
+  /// @returns The next axis, modulo Z.
+  static Axis NextAxis(const Axis a) {
+    static const Axis next_axis[3] = {Y, Z, X};
+    return next_axis[a];
   }
 
   friend std::ostream& operator<<(std::ostream& os, const vec3& v) {
