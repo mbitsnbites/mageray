@@ -232,6 +232,7 @@ Tracer::Tracer() : m_scene(NULL) {
   m_config.antialias_depth = 0;
   m_config.soft_shadow_depth = 3;
   m_config.max_photons = 1000000;
+  m_config.max_photon_depth = 6;
 }
 
 void Tracer::DoWork(ThreadController* controller, Image* image) const {
@@ -304,25 +305,27 @@ void Tracer::GeneratePhotonMap() {
     lights.push_back(it->get());
   }
 
+  // Initialize a random number generator.
+  Random<std::mt19937> rnd;
+
   // Generate photon map.
   bool done = false;
-  while (!done) {
-    #pragma omp parallel for
-    for (unsigned batch = 0; batch < 100; ++batch) {
-      for (unsigned i = 0; i < 100; ++i) {
+//  while (!done) {
+//    #pragma omp parallel for
+    for (unsigned batch = 0; batch < 10000 && !done; ++batch) {
+      for (unsigned i = 0; i < 500 && !done; ++i) {
         // Select a random light source.
-        // TODO(mage): Implement me!
+        Light* light = lights[rnd.Int(0, lights.size() - 1)];
 
         // Do several rays for this light source (better cache performance).
         for (unsigned j = 0; j < 100; ++j) {
           // Select a random direction.
-          // TODO(mage): Implement me!
+          vec3 dir = rnd.SignedVec3().Normalize();
 
           // Shoot a ray into the scene.
-          // TODO(mage): Implement me!
-
-          // Should we produce a new photon?
-          if (true) {
+          Ray ray(light->Position(), dir);
+          PhotonInfo info;
+          if (TracePhoton(ray, info, rnd, 1)) {
             Photon* photon = m_photon_map.NextPhoton();
             if (UNLIKELY(!photon)) {
               done = true;
@@ -330,11 +333,13 @@ void Tracer::GeneratePhotonMap() {
             }
 
             // Fill out photon information.
-            // TODO(mage): Implement me.
+            photon->position = info.position;
+            photon->direction = info.direction;
+            photon->color = light->Color(); // TODO(mage): Wrong!
           }
         }
       }
-    }
+//    }
   }
 
   // Build the KD tree.
@@ -478,6 +483,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
 
   // Light contribution.
   vec3 light_contrib(0);
+#if 0
   if (material_param.diffuse != vec3(0.0) ||
       material_param.specular != vec3(0.0)) {
     // Iterate all the lights in the scene.
@@ -490,30 +496,145 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
       scalar light_dist = light_dir.Abs();
       light_dir = light_dir * (scalar(1.0) / light_dist);
 
-      // We use abs() here, since we can't really know if the normal is
-      // inverted or not.
-      scalar cos_alpha = std::abs(light_dir.Dot(hit.normal));
+      scalar cos_alpha = light_dir.Dot(hit.normal);
+      if (cos_alpha >= scalar(0.0)) {
+        Shader::LightParam light_param;
+        light_param.light = light;
+        light_param.dir = light_dir;
+        light_param.dist = light_dist;
+        light_param.cos_alpha = cos_alpha;
+        light_param.amount = scalar(1.0);
 
-      Shader::LightParam light_param;
-      light_param.light = light;
-      light_param.dir = light_dir;
-      light_param.dist = light_dist;
-      light_param.cos_alpha = cos_alpha;
-      light_param.amount = scalar(1.0);
+        // Determine light visibility factor (0.0 for completely shadowed).
+        light_param.amount = Shadow(light, hit.point);
 
-      // Determine light visibility factor (0.0 for completely shadowed).
-      light_param.amount = Shadow(light, hit.point);
-
-      // Run per-light shader.
-      light_contrib += shader->LightPass(surface_param, material_param,
-          light_param);
+        // Run per-light shader.
+        light_contrib += shader->LightPass(surface_param, material_param,
+            light_param);
+      }
     }
   }
+#endif
+
+  // Get light contribtion from photon map.
+  vec3 photon_color = m_photon_map.GetTotalLightInRange(hit.point, hit.normal,
+      scalar(0.05));
+  light_contrib += photon_color.Sqrt() * scalar(0.1);
 
   // Run final shader pass.
   info.color += shader->FinalPass(surface_param, material_param, light_contrib);
 
   return true;
+}
+
+bool Tracer::TracePhoton(const Ray& ray, PhotonInfo& info,
+    Random<std::mt19937>& random, const unsigned depth) const {
+  if (depth > m_config.max_photon_depth) {
+    return false;
+  }
+
+  // Intersect scene.
+  HitInfo hit = HitInfo::CreateNoHit();
+  if (!m_scene->m_object_tree.Intersect(ray, hit)) {
+    return false;
+  }
+
+  // Get surface properties.
+  hit.object->CompleteHitInfo(ray, hit);
+
+  // Get material.
+  const Material* material = hit.object->Material();
+
+  // Uh, nothing much to do here...
+  if (UNLIKELY(!material || !material->Shader())) {
+    info.position = hit.point;
+    info.direction = vec3(0);
+    return depth > 1;
+  }
+
+  // View direction.
+  vec3 view_dir = (hit.point - ray.Origin()).Normalize();
+
+  // Get the shader for this material.
+  const Shader* shader = material->Shader();
+  ASSERT(shader, "Missing shader.");
+
+  Shader::SurfaceParam surface_param;
+  surface_param.material = material;
+  surface_param.position = hit.point;
+  surface_param.normal = hit.normal;
+  surface_param.uv = hit.uv;
+  surface_param.view_dir = view_dir;
+
+  // Get material properties.
+  Shader::MaterialParam material_param;
+  shader->MaterialPass(surface_param, material_param);
+
+  vec3 mirror = material_param.specular * material->Mirror();
+  scalar opacity = scalar(1.0) - material_param.alpha;
+
+  // Monte-carlo, select which direction to take...
+  scalar p_mirror = mirror.Abs();
+  scalar p_transparency = opacity;
+  scalar p_diffuse = material_param.diffuse.Abs();
+  scalar p_total = p_mirror + p_transparency + p_diffuse;
+  scalar selection = p_total * random.Scalar();
+
+  // Reflection?
+  if (selection < p_mirror) {
+    // Reflected direction.
+    vec3 reflect_dir = ray.Direction() -
+        hit.normal * (scalar(2.0) * hit.normal.Dot(ray.Direction()));
+
+    // Nudge origin point in order to avoid re-intersecting the origin surface.
+    // TODO(mage): The "nudge distance" should be relative to object scale
+    // somehow.
+    vec3 reflect_start = hit.point + reflect_dir * scalar(0.0001);
+
+    // Trace photon.
+    Ray reflect_ray(reflect_start, reflect_dir);
+    return TracePhoton(reflect_ray, info, random, depth + 1);
+  }
+
+  // Transparency?
+  if (selection < p_mirror + p_transparency) {
+    // Refracted direction.
+    // TODO(mage): Implement me!
+    vec3 refract_dir = ray.Direction();
+
+    // Nudge origin point in order to avoid re-intersecting the origin surface.
+    // TODO(mage): The "nudge distance" should be relative to object scale
+    // somehow.
+    vec3 refract_start = hit.point + refract_dir * scalar(0.0001);
+
+    // Trace photon.
+    Ray refract_ray(refract_start, refract_dir);
+    return TracePhoton(refract_ray, info, random, depth + 1);
+  }
+
+  // Diffuse reflection?
+  vec3 diffuse_dir = (hit.normal + random.SignedVec3() * scalar(0.5)).Normalize();
+  scalar cos_alpha = hit.normal.Dot(diffuse_dir);
+  if (cos_alpha > random.Float()) {
+    vec3 diffuse_start = hit.point + diffuse_dir * scalar(0.0001);
+    Ray diffuse_ray(diffuse_start, diffuse_dir);
+    return TracePhoton(diffuse_ray, info, random, depth + 1);
+  }
+
+  // We're not interested in direct light (will be handled by direct rendering
+  // pass).
+#if 0
+  if (depth > 1) {
+#else
+  if (true || depth > 1) {
+#endif
+    // This should produce a photon!
+    info.position = hit.point;
+    info.direction = ray.Direction();
+    return true;
+  }
+
+  return false;
 }
 
 } // namespace mageray

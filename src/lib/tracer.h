@@ -32,6 +32,7 @@
 #include <mutex>
 
 #include "base/platform.h"
+#include "base/random.h"
 #include "base/types.h"
 #include "image.h"
 #include "photon_map.h"
@@ -56,6 +57,9 @@ struct TraceConfig {
 
   /// Number of photons to use in the photon map (0 = no photon mapping).
   unsigned max_photons;
+
+  /// Maximum recursion depth for tracing photons.
+  unsigned max_photon_depth;
 };
 
 class Tracer {
@@ -125,6 +129,16 @@ class Tracer {
 
     /// Trace a single ray.
     bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
+
+    /// Result information for a single traced photon.
+    struct PhotonInfo {
+      vec3 position;
+      vec3 direction;
+    };
+
+    /// Trace a single photon.
+    bool TracePhoton(const Ray& ray, PhotonInfo& info,
+        Random<std::mt19937>& random, const unsigned depth) const;
 
     TraceConfig m_config;
 

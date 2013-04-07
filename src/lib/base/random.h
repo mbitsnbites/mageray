@@ -32,6 +32,7 @@
 #include <random>
 
 #include "base/types.h"
+#include "vec.h"
 
 namespace mageray {
 
@@ -110,6 +111,12 @@ class Random {
       return static_cast<int>(Unsigned());
     }
 
+    /// @returns A 32-bit signed integer in the range [min, max].
+    int Int(int min, int max) {
+      float r = Float();
+      return static_cast<int>(static_cast<float>(max - min + 1) * r) + min;
+    }
+
     /// @returns A 32-bit unsigned integer in the range [0, 2^32-1].
     unsigned Unsigned() {
       return m_random();
@@ -121,7 +128,7 @@ class Random {
       if (!r) {
         return 0.0f;
       }
-      return AsFloat(((0x7e - LeadingZeros(r)) << 23) | r & 0x007fffff);
+      return AsFloat(((0x7e - LeadingZeros(r)) << 23) | (r & 0x007fffff));
     }
 
     /// @returns A 32-bit floating point value in the range (-1.0, 1.0).
@@ -131,7 +138,7 @@ class Random {
         return 0.0f;
       }
       return AsFloat((r << 31) | ((0x7e - LeadingZeros(r)) << 23) |
-          r & 0x007fffff);
+          (r & 0x007fffff));
     }
 
     /// @returns A scalar value in the range (0.0, 1.0).

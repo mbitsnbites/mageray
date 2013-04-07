@@ -81,14 +81,12 @@ class PhotonMap {
     }
 
     /// Get the total light in the given range.
-    /// @param[out] color The total color (photon energy).
-    /// @param[out] direction The average light direction.
     /// @param position The position in space to query.
     /// @param normal The surface normal of the surface to query.
     /// @param range The radius to query.
-    /// @returns The number of photons collected.
-    int GetTotalLightInRange(vec3& color, vec3& direction, const vec3& position,
-        const vec3& normal, const scalar range);
+    /// @returns The total color (photon energy).
+    vec3 GetTotalLightInRange(const vec3& position,
+        const vec3& normal, const scalar range) const;
 
   private:
     /// The number of elements that fit in the photon vector.

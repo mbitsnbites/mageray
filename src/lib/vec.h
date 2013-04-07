@@ -145,6 +145,11 @@ struct vec3 {
     return vec3(-x, -y, -z);
   }
 
+  /// @returns The element wise square root of the vector.
+  vec3 Sqrt() const {
+    return vec3(std::sqrt(x), std::sqrt(y), std::sqrt(z));
+  }
+
   /// @returns The squared absolute value of the vector, |v|^2.
   scalar AbsSqr() const {
     return x * x + y * y + z * z;

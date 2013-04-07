@@ -31,6 +31,7 @@
 #include <algorithm>
 
 #include "aabb.h"
+#include "base/perf.h"
 
 namespace mageray {
 
@@ -83,33 +84,28 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
   BuildSubTree(mid + 1, stop, next_axis);
 }
 
-bool inline PhotonInRange(const Photon& photon, const vec3& position,
-    const vec3& normal, const scalar range2, const scalar plane_d) {
-  // Check if the point is in the plane (roughly), and within the circle.
-  return std::abs(photon.position.Dot(normal) - plane_d) <= EPSILON &&
-      (position - photon.position).AbsSqr() <= range2;
-}
+vec3 RecGetLightInRange(const vec3& position, const vec3& normal,
+    const scalar range2, const AABB& aabb,
+    const std::vector<Photon>::const_iterator start,
+    const std::vector<Photon>::const_iterator stop, const vec3::Axis axis) {
+  vec3 color(0);
 
-int RecGetLightInRange(vec3& color, vec3& direction,
-    const vec3& position, const vec3& normal, const scalar range2,
-    const scalar plane_d, const AABB& aabb,
-    const std::vector<Photon>::iterator start,
-    const std::vector<Photon>::iterator stop, vec3::Axis axis) {
   // Empty recursion?
   if (start == stop) {
-    return 0;
+    return color;
   }
 
   // Determine mid element (the point for this node in the tree).
   auto mid = start + ((stop - start) / 2);
 
   // Is this a point to collect?
-  int count = 0;
   if (aabb.PointInside(mid->position)) {
-    if (PhotonInRange(*mid, position, normal, range2, plane_d)) {
-      color += mid->color;
-      direction += mid->direction;
-      count = 1;
+    scalar cos_alpha = -normal.Dot(mid->direction);
+    if (cos_alpha >= scalar(0.0)) {
+      scalar r2 = (position - mid->position).AbsSqr();
+      if (r2 < range2) {
+        color += mid->color * (cos_alpha * (scalar(1.0) - r2 / range2));
+      }
     }
   }
 
@@ -119,75 +115,45 @@ int RecGetLightInRange(vec3& color, vec3& direction,
     vec3::Axis next_axis = vec3::NextAxis(axis);
 
     // Recurse further?
-    switch(axis) {
-      case vec3::X:
-        if (mid->position.x >= aabb.Min().x) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, start, mid, next_axis);
-        }
-        if (mid->position.x <= aabb.Max().x) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, mid, stop, next_axis);
-        }
-        break;
-      case vec3::Y:
-        if (mid->position.y >= aabb.Min().y) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, start, mid, next_axis);
-        }
-        if (mid->position.y <= aabb.Max().y) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, mid, stop, next_axis);
-        }
-        break;
-      case vec3::Z:
-        if (mid->position.z >= aabb.Min().z) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, start, mid, next_axis);
-        }
-        if (mid->position.z <= aabb.Max().z) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, mid, stop, next_axis);
-        }
-        break;
+    if (mid->position[axis] >= aabb.Min()[axis]) {
+      color += RecGetLightInRange(position, normal,
+          range2, aabb, start, mid, next_axis);
+    }
+    if (mid->position[axis] <= aabb.Max()[axis]) {
+      color += RecGetLightInRange(position, normal,
+          range2, aabb, mid + 1, stop, next_axis);
     }
   }
 
-  return count;
+  return color;
 }
 
 } // anonymous namespace
 
 
 void PhotonMap::BuildKDTree() {
+  ScopedPerf _perf("BuildKDTree");
+
   // Get the actual number of photons in the photon array.
   int count = m_count;
   m_size = std::min(m_capacity, count);
 
   // Recursively build the KD tree (in place).
   BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, vec3::X);
+
+  _perf.Done();
 }
 
-int PhotonMap::GetTotalLightInRange(vec3& color, vec3& direction,
-    const vec3& position, const vec3& normal, const scalar range) {
+vec3 PhotonMap::GetTotalLightInRange(const vec3& position,
+    const vec3& normal, const scalar range) const {
   // Set up bounding box.
   AABB aabb(position - vec3(range), position + vec3(range));
 
-  // Construct plane equation from position and normal.
-  scalar plane_d = position.Dot(normal);
-
   // Get contributing light from the photon map.
-  vec3 color_sum(0), direction_sum(0);
   auto start = m_photons.begin();
   auto stop = start + m_size;
-  int count = RecGetLightInRange(color_sum, direction_sum, position, normal,
-      range * range, plane_d, aabb, start, stop, vec3::X);
-
-  // Return output parameters.
-  color = color_sum;
-  direction = direction_sum.Normalize();
-
-  return count;
+  return RecGetLightInRange(position, normal, range * range, aabb, start, stop,
+      vec3::X);
 }
 
 } // namespace mageray
