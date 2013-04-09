@@ -42,6 +42,16 @@ struct Photon {
   vec3 position;
   vec3 direction;
   vec3 color;
+  unsigned axis; // Really vec3::Axis, but we want to guarantee alignment.
+
+  vec3::Axis Axis() const {
+    return static_cast<vec3::Axis>(axis);
+  }
+
+  void SetAxis(const vec3::Axis _axis) {
+    axis = static_cast<int>(_axis);
+  }
+
 };
 
 class PhotonMap {

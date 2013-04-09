@@ -50,11 +50,20 @@ bool ComparePhotonZ(const Photon& p1, const Photon& p2) {
 }
 
 void BuildSubTree(const std::vector<Photon>::iterator start,
-    const std::vector<Photon>::iterator stop, vec3::Axis axis) {
+    const std::vector<Photon>::iterator stop) {
   // Empty recursion?
   if (start == stop) {
     return;
   }
+
+  // Calculate bounding box for this branch.
+  AABB aabb(start->position, start->position);
+  for (auto it = start + 1; it != stop; it++) {
+    aabb += it->position;
+  }
+
+  // Select the optimal axis to sort along.
+  vec3::Axis axis = aabb.LargestAxis();
 
   // Sort all elements according to the selected axis.
   switch(axis) {
@@ -70,24 +79,18 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
   }
 
   // Determine mid element (the point for this node in the tree).
-  auto mid = start + ((stop - start) / 2);
-
-  // Select the next axis to sort along.
-  // TODO(mage): We might want to select the sort axis based on the sub tree
-  // bounding box (or similar) instead. That would require an additional field
-  // in the Photon struct so that the tree lookup knows how to traverse the
-  // tree.
-  vec3::Axis next_axis = vec3::NextAxis(axis);
+  auto node = start + ((stop - start) / 2);
+  node->SetAxis(axis);
 
   // Recursively build the two child trees.
-  BuildSubTree(start, mid, next_axis);
-  BuildSubTree(mid + 1, stop, next_axis);
+  BuildSubTree(start, node);
+  BuildSubTree(node + 1, stop);
 }
 
 vec3 RecGetLightInRange(const vec3& position, const vec3& normal,
     const scalar range2, const AABB& aabb,
     const std::vector<Photon>::const_iterator start,
-    const std::vector<Photon>::const_iterator stop, const vec3::Axis axis) {
+    const std::vector<Photon>::const_iterator stop) {
   vec3 color(0);
 
   // Empty recursion?
@@ -96,32 +99,30 @@ vec3 RecGetLightInRange(const vec3& position, const vec3& normal,
   }
 
   // Determine mid element (the point for this node in the tree).
-  auto mid = start + ((stop - start) / 2);
+  auto node = start + ((stop - start) / 2);
 
   // Is this a point to collect?
-  if (aabb.PointInside(mid->position)) {
-    scalar cos_alpha = -normal.Dot(mid->direction);
+  if (aabb.PointInside(node->position)) {
+    scalar cos_alpha = -normal.Dot(node->direction);
     if (cos_alpha >= scalar(0.0)) {
-      scalar r2 = (position - mid->position).AbsSqr();
+      scalar r2 = (position - node->position).AbsSqr();
       if (r2 < range2) {
-        color += mid->color * (cos_alpha * (scalar(1.0) - r2 / range2));
+        color += node->color * (cos_alpha * (scalar(1.0) - r2 / range2));
       }
     }
   }
 
   // Are there any more child nodes?
   if (stop - start > 1) {
-    // Select the next split axis.
-    vec3::Axis next_axis = vec3::NextAxis(axis);
-
     // Recurse further?
-    if (mid->position[axis] >= aabb.Min()[axis]) {
-      color += RecGetLightInRange(position, normal,
-          range2, aabb, start, mid, next_axis);
+    vec3::Axis axis = node->Axis();
+    scalar p = node->position[axis];
+    if (p >= aabb.Min()[axis]) {
+      color += RecGetLightInRange(position, normal, range2, aabb, start, node);
     }
-    if (mid->position[axis] <= aabb.Max()[axis]) {
-      color += RecGetLightInRange(position, normal,
-          range2, aabb, mid + 1, stop, next_axis);
+    if (p <= aabb.Max()[axis]) {
+      color += RecGetLightInRange(position, normal, range2, aabb, node + 1,
+          stop);
     }
   }
 
@@ -139,7 +140,7 @@ void PhotonMap::BuildKDTree() {
   m_size = std::min(m_capacity, count);
 
   // Recursively build the KD tree (in place).
-  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, vec3::X);
+  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size);
 
   _perf.Done();
 }
@@ -151,9 +152,8 @@ vec3 PhotonMap::GetTotalLightInRange(const vec3& position,
 
   // Get contributing light from the photon map.
   auto start = m_photons.begin();
-  auto stop = start + m_size;
-  return RecGetLightInRange(position, normal, range * range, aabb, start, stop,
-      vec3::X);
+  return RecGetLightInRange(position, normal, range * range, aabb, start,
+    start + m_size);
 }
 
 } // namespace mageray
