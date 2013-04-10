@@ -306,7 +306,7 @@ void Tracer::GeneratePhotonMap() {
   }
 
   // Initialize a random number generator.
-  Random<std::mt19937> rnd;
+  Random rnd;
 
   // Generate photon map.
   bool done = false;
@@ -325,7 +325,7 @@ void Tracer::GeneratePhotonMap() {
           // Shoot a ray into the scene.
           Ray ray(light->Position(), dir);
           PhotonInfo info;
-          if (TracePhoton(ray, info, rnd, 1)) {
+          if (TracePhoton(ray, info, rnd, 1, light->Color())) {
             Photon* photon = m_photon_map.NextPhoton();
             if (UNLIKELY(!photon)) {
               done = true;
@@ -335,7 +335,7 @@ void Tracer::GeneratePhotonMap() {
             // Fill out photon information.
             photon->position = info.position;
             photon->direction = info.direction;
-            photon->color = light->Color(); // TODO(mage): Wrong!
+            photon->color = info.color;
           }
         }
       }
@@ -519,7 +519,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
   // Get light contribtion from photon map.
   vec3 photon_color = m_photon_map.GetTotalLightInRange(hit.point, hit.normal,
       scalar(0.05));
-  light_contrib += photon_color.Sqrt() * scalar(0.1);
+  light_contrib += material_param.diffuse * photon_color.Sqrt() * scalar(0.1);
 
   // Run final shader pass.
   info.color += shader->FinalPass(surface_param, material_param, light_contrib);
@@ -527,8 +527,8 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
   return true;
 }
 
-bool Tracer::TracePhoton(const Ray& ray, PhotonInfo& info,
-    Random<std::mt19937>& random, const unsigned depth) const {
+bool Tracer::TracePhoton(const Ray& ray, PhotonInfo& info, Random& random,
+    const unsigned depth, const vec3& color) const {
   if (depth > m_config.max_photon_depth) {
     return false;
   }
@@ -593,7 +593,8 @@ bool Tracer::TracePhoton(const Ray& ray, PhotonInfo& info,
 
     // Trace photon.
     Ray reflect_ray(reflect_start, reflect_dir);
-    return TracePhoton(reflect_ray, info, random, depth + 1);
+    return TracePhoton(reflect_ray, info, random, depth + 1,
+        color * material_param.specular);
   }
 
   // Transparency?
@@ -609,7 +610,7 @@ bool Tracer::TracePhoton(const Ray& ray, PhotonInfo& info,
 
     // Trace photon.
     Ray refract_ray(refract_start, refract_dir);
-    return TracePhoton(refract_ray, info, random, depth + 1);
+    return TracePhoton(refract_ray, info, random, depth + 1, color);
   }
 
   // Diffuse reflection?
@@ -618,7 +619,8 @@ bool Tracer::TracePhoton(const Ray& ray, PhotonInfo& info,
   if (cos_alpha > random.Float()) {
     vec3 diffuse_start = hit.point + diffuse_dir * scalar(0.0001);
     Ray diffuse_ray(diffuse_start, diffuse_dir);
-    return TracePhoton(diffuse_ray, info, random, depth + 1);
+    return TracePhoton(diffuse_ray, info, random, depth + 1,
+        color * material_param.diffuse);
   }
 
   // We're not interested in direct light (will be handled by direct rendering
@@ -631,6 +633,7 @@ bool Tracer::TracePhoton(const Ray& ray, PhotonInfo& info,
     // This should produce a photon!
     info.position = hit.point;
     info.direction = ray.Direction();
+    info.color = color;
     return true;
   }
 

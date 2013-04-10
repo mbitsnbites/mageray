@@ -9,7 +9,9 @@
 
     <materials>
       <material name="glass" color="0.8 0.8 1.0" diffuse="0.25" ambient="0.05" mirror="0.7" specular="1" hardness="60" />
-      <material name="dull" color="1 0.5 1" diffuse="0.95" ambient="0.05" specular="0.5" hardness="30" />
+      <material name="red" color="1 0.2 0.2" diffuse="0.95" ambient="0.05" specular="0.5" hardness="30" />
+      <material name="green" color="0.2 1 0.2" diffuse="0.95" ambient="0.05" specular="0.5" hardness="30" />
+      <material name="white" color="1 1 1" diffuse="0.95" ambient="0.05" specular="0.5" hardness="30" />
     </materials>
 
     <lights>
@@ -52,41 +54,41 @@
       </sphereobject>
 
       <!-- Some happy buddhas -->
-      <meshobject mesh="happy" material="dull">
+      <meshobject mesh="happy" material="white">
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
       </meshobject>
-      <meshobject mesh="happy" material="dull">
+      <meshobject mesh="happy" material="red">
         <rotate>0 0 45</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
       </meshobject>
-      <meshobject mesh="happy" material="dull">
+      <meshobject mesh="happy" material="white">
         <rotate>0 0 90</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
       </meshobject>
-      <meshobject mesh="happy" material="dull">
+      <meshobject mesh="happy" material="green">
         <rotate>0 0 135</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
       </meshobject>
-      <meshobject mesh="happy" material="dull">
+      <meshobject mesh="happy" material="white">
         <rotate>0 0 180</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
       </meshobject>
-      <meshobject mesh="happy" material="dull">
+      <meshobject mesh="happy" material="red">
         <rotate>0 0 225</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
       </meshobject>
-      <meshobject mesh="happy" material="dull">
+      <meshobject mesh="happy" material="white">
         <rotate>0 0 270</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
       </meshobject>
-      <meshobject mesh="happy" material="dull">
+      <meshobject mesh="happy" material="green">
         <rotate>0 0 315</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>

@@ -134,11 +134,12 @@ class Tracer {
     struct PhotonInfo {
       vec3 position;
       vec3 direction;
+      vec3 color;
     };
 
     /// Trace a single photon.
-    bool TracePhoton(const Ray& ray, PhotonInfo& info,
-        Random<std::mt19937>& random, const unsigned depth) const;
+    bool TracePhoton(const Ray& ray, PhotonInfo& info, Random& random,
+        const unsigned depth, const vec3& color) const;
 
     TraceConfig m_config;
 
