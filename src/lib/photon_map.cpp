@@ -138,11 +138,15 @@ void PhotonMap::BuildKDTree() {
   // Get the actual number of photons in the photon array.
   int count = m_count;
   m_size = std::min(m_capacity, count);
+  DLOG("Number of photons in map: %d", m_size);
 
   // Recursively build the KD tree (in place).
   BuildSubTree(m_photons.begin(), m_photons.begin() + m_size);
 
   _perf.Done();
+
+  // Determine the median distance between photons in the KD tree.
+  DetermineMedianDistance();
 }
 
 vec3 PhotonMap::GetTotalLightInRange(const vec3& position,
@@ -154,6 +158,33 @@ vec3 PhotonMap::GetTotalLightInRange(const vec3& position,
   auto start = m_photons.begin();
   return RecGetLightInRange(position, normal, range * range, aabb, start,
     start + m_size);
+}
+
+void PhotonMap::DetermineMedianDistance() {
+  ScopedPerf _perf("Determine median distance");
+  if (m_size < 2) {
+    m_median_distance = scalar(0.0);
+    return;
+  }
+
+  std::vector<scalar> distances(m_size);
+
+  // TODO(mage): This is a very simple approximation. Should use a nearest
+  // neighbour search instead.
+  distances[0] = (m_photons[0].position -
+      m_photons[m_size - 1].position).AbsSqr();
+  for (unsigned i = 1; i < m_size; ++i) {
+    distances[i] = (m_photons[i].position -
+        m_photons[i - 1].position).AbsSqr();
+  }
+
+  // Calculate median distance.
+  std::sort(distances.begin(), distances.end());
+  m_median_distance = std::sqrt(distances[m_size / 2]);
+
+  _perf.Done();
+
+  DLOG("Median distance = %f", double(m_median_distance));
 }
 
 } // namespace mageray

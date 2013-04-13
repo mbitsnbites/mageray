@@ -517,9 +517,14 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
 #endif
 
   // Get light contribtion from photon map.
-  vec3 photon_color = m_photon_map.GetTotalLightInRange(hit.point, hit.normal,
-      scalar(0.05));
-  light_contrib += material_param.diffuse * photon_color.Sqrt() * scalar(0.1);
+  if (m_photon_map.HasPhotons()) {
+    unsigned max_photons = 100;
+    scalar max_r = std::sqrt(scalar(max_photons) / PI) *
+        m_photon_map.MedianDistance();
+    vec3 photon_color = m_photon_map.GetTotalLightInRange(hit.point, hit.normal,
+        max_r);
+    light_contrib += material_param.diffuse * photon_color.Sqrt() * scalar(0.1);
+  }
 
   // Run final shader pass.
   info.color += shader->FinalPass(surface_param, material_param, light_contrib);

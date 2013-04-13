@@ -90,6 +90,11 @@ class PhotonMap {
       return m_size > 0;
     }
 
+    /// @returns the median distance between photons.
+    scalar MedianDistance() const {
+      return m_median_distance;
+    }
+
     /// Get the total light in the given range.
     /// @param position The position in space to query.
     /// @param normal The surface normal of the surface to query.
@@ -99,6 +104,8 @@ class PhotonMap {
         const vec3& normal, const scalar range) const;
 
   private:
+    void DetermineMedianDistance();
+
     /// The number of elements that fit in the photon vector.
     int m_capacity;
 
@@ -106,7 +113,11 @@ class PhotonMap {
     std::atomic_int m_count;
 
     /// The actual number of photons (defined by BuildKDTree).
-    int m_size;
+    unsigned m_size;
+
+    /// The median distance between photons in the tree (defined by
+    /// DetermineMedianDistance).
+    scalar m_median_distance;
 
     std::vector<Photon> m_photons;
 };
