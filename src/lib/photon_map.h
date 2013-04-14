@@ -82,6 +82,13 @@ class PhotonMap {
       return index < m_capacity ? &m_photons[index] : NULL;
     }
 
+    /// Check if the photon map is full.
+    /// @returns true if the photon map was full.
+    /// @note This method is thread safe.
+    bool IsFull() {
+      return m_count >= m_capacity;
+    }
+
     /// Build a KD tree of the collected photons.
     void BuildKDTree();
 

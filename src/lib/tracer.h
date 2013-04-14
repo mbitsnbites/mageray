@@ -29,6 +29,7 @@
 #ifndef MAGERAY_TRACER_H_
 #define MAGERAY_TRACER_H_
 
+#include <atomic>
 #include <mutex>
 
 #include "base/platform.h"
@@ -130,22 +131,16 @@ class Tracer {
     /// Trace a single ray.
     bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
 
-    /// Result information for a single traced photon.
-    struct PhotonInfo {
-      vec3 position;
-      vec3 direction;
-      vec3 color;
-    };
-
     /// Trace a single photon.
-    bool TracePhoton(const Ray& ray, PhotonInfo& info, Random& random,
-        const unsigned depth, const vec3& color) const;
+    void TracePhoton(const Ray& ray, Random& random, const unsigned depth,
+        const vec3& color);
 
     TraceConfig m_config;
 
     const Scene* m_scene;
 
     PhotonMap m_photon_map;
+    scalar m_photon_scale;
 
     FORBID_COPY(Tracer);
 };
