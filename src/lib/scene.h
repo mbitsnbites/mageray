@@ -51,8 +51,6 @@ class XMLElement;
 
 namespace mageray {
 
-class Tracer;
-
 class Scene {
   public:
     Scene() {
@@ -78,6 +76,21 @@ class Scene {
     /// @returns true if successful.
     bool LoadFromXML(std::istream& stream);
 
+    /// Get the camera for this scene.
+    const mageray::Camera& Camera() const {
+      return m_camera;
+    }
+
+    /// Get the lights in this scene.
+    const std::list<std::unique_ptr<Light> >& Lights() const {
+      return m_lights;
+    }
+
+    /// Get the object tree for this scene.
+    const mageray::ObjectTree& ObjectTree() const {
+      return m_object_tree;
+    }
+
   private:
     void LoadCamera(tinyxml2::XMLElement* element);
     void LoadImage(tinyxml2::XMLElement* element);
@@ -93,9 +106,9 @@ class Scene {
 
     std::string m_file_path;
 
-    Camera m_camera;
+    mageray::Camera m_camera;
 
-    ObjectTree m_object_tree;
+    mageray::ObjectTree m_object_tree;
 
     std::map<std::string, std::unique_ptr<Image> > m_images;
     std::map<std::string, std::unique_ptr<Mesh> > m_meshes;
@@ -104,8 +117,6 @@ class Scene {
 
     std::list<std::unique_ptr<Light> > m_lights;
     std::list<std::unique_ptr<Object> > m_objects;
-
-    friend class Tracer;
 
     FORBID_COPY(Scene);
 };

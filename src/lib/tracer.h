@@ -85,7 +85,7 @@ class Tracer {
   private:
     /// Thread coordination class.
     /// The thread controller is responsible for coordinating work packages
-    /// between threads.
+    /// between ray tracing threads.
     class ThreadController {
       public:
         ThreadController(const int width, const int height);
@@ -130,10 +130,6 @@ class Tracer {
 
     /// Trace a single ray.
     bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
-
-    /// Trace a single photon.
-    void TracePhoton(const Ray& ray, Random& random, const unsigned depth,
-        const vec3& color);
 
     TraceConfig m_config;
 
