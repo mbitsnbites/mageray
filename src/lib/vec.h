@@ -188,6 +188,24 @@ struct vec3 {
     return *this * (scalar(1.0) / std::sqrt(denom));
   }
 
+  /// Calculate the refracted vector for a given normal.
+  vec3 Refract(const vec3& normal, scalar ior) const {
+    scalar cos1 = -normal.Dot(*this);
+    ior = scalar(1.0) / ior;
+    scalar a = scalar(1.0) - ior * ior * (scalar(1.0) - cos1 * cos1);
+    if (a >= scalar(0.0)) {
+      scalar cos2 = std::sqrt(a);
+      if (cos1 >= scalar(0.0)) {
+        return *this * ior + normal * (ior * cos1 - cos2);
+      } else {
+        return *this * ior + normal * (ior * cos1 + cos2);
+      }
+    } else {
+      // Total internal reflection.
+      return *this + normal * (scalar(2.0) * cos1);
+    }
+  }
+
   /// @returns The next axis, modulo Z.
   static Axis NextAxis(const Axis a) {
     static const Axis next_axis[3] = {Y, Z, X};

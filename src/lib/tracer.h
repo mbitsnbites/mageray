@@ -45,24 +45,6 @@ namespace mageray {
 class Light;
 class Scene;
 
-/// Ray-tracing configuration parameters.
-struct TraceConfig {
-  /// Maximum number of trace recursions.
-  unsigned max_recursions;
-
-  /// Anti aliasing depth (0 = no anti aliasing).
-  unsigned antialias_depth;
-
-  /// Soft shadow recursion depth (0 = no soft shadows).
-  unsigned soft_shadow_depth;
-
-  /// Number of photons to use in the photon map (0 = no photon mapping).
-  unsigned max_photons;
-
-  /// Maximum recursion depth for tracing photons.
-  unsigned max_photon_depth;
-};
-
 class Tracer {
   public:
     Tracer();
@@ -76,10 +58,6 @@ class Tracer {
 
     void SetScene(const Scene* scene) {
       m_scene = scene;
-    }
-
-    TraceConfig& Config() {
-      return m_config;
     }
 
   private:
@@ -130,8 +108,6 @@ class Tracer {
 
     /// Trace a single ray.
     bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
-
-    TraceConfig m_config;
 
     const Scene* m_scene;
 
