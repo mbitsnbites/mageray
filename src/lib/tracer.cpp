@@ -548,6 +548,12 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
 
 void Tracer::GeneratePhotonMap() {
   ASSERT(m_scene, "The scene is undefined.");
+
+  if (m_scene->Config().max_photons < 1) {
+    DLOG("Photon mapping disabled.");
+    return;
+  }
+
   ScopedPerf _photon_map = ScopedPerf("Generate photon map");
 
   // Allocate memory for the photons.

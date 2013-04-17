@@ -109,7 +109,7 @@ void Scene::Reset() {
   m_config.max_recursions = 4;
   m_config.antialias_depth = 0;
   m_config.soft_shadow_depth = 3;
-  m_config.max_photons = 1000000;
+  m_config.max_photons = 0;
   m_config.max_photon_depth = 4;
   m_config.direct_lighting = true;
 
