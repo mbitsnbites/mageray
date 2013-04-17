@@ -29,17 +29,18 @@
 #ifndef MAGERAY_BASE_RANDOM_H_
 #define MAGERAY_BASE_RANDOM_H_
 
-#include <random>
-
+#include "base/platform.h"
 #include "base/types.h"
+#include "vec.h"
 
 namespace mageray {
 
 /// Mersenne twister pseudo random number generator.
 /// This is fairly similar to std::mt19937 (C++11), and the implementation is
-/// based on the pseudo code fond at Wikipedia
-/// (http://en.wikipedia.org/wiki/Mersenne_twister). It's not as fast as
-/// std::mt19937 though (g++ v4.6).
+/// based on Takuji Nishimura's and Makoto Matsumoto's C implementation here:
+/// http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/CODES/mt19937ar.c
+/// Original code is copyright (C) 1997 - 2002, Makoto Matsumoto and
+/// Takuji Nishimura, all rights reserved.
 class MersenneTwister {
   public:
     MersenneTwister() {
@@ -55,31 +56,39 @@ class MersenneTwister {
     /// applying a linear random generator on a single value.
     /// @param s The seed.
     void seed(const unsigned s = 5489) {
-      unsigned x = s;
-      for (unsigned i = 0; i < 624; ++i) {
+      unsigned x = m_numbers[0] = s;
+      for (unsigned i = 1; i < 624; ++i) {
+        x = 1812433253 * (x ^ (x >> 30)) + i;
         m_numbers[i] = x;
-        x = 1812433253 * (x ^ (x >> 30)) + 1;
       }
       m_index = 0;
     }
 
     /// @returns a new random number.
     unsigned operator()() {
-      m_index = (m_index + 1) % 624;
-      unsigned i = m_index;
+      if (UNLIKELY(m_index >= 624)) {
+        // Re-generate 624 words at a time (avoids modulo operators).
+        static const unsigned mag[2] = {0, 0x9908b0df};
+        unsigned k, y;
+        for (k = 0; k < 624 - 397; k++) {
+          y = (m_numbers[k] & 0x80000000) | (m_numbers[k + 1] & 0x7fffffff);
+          m_numbers[k] = m_numbers[k + 397] ^ (y >> 1) ^ mag[y & 1];
+        }
+        for (; k < 624 - 1; k++) {
+          y = (m_numbers[k] & 0x80000000) | (m_numbers[k + 1] & 0x7fffffff);
+          m_numbers[k] = m_numbers[k + 397 - 624] ^ (y >> 1) ^ mag[y & 1];
+        }
+        y = (m_numbers[624 - 1] & 0x80000000) | (m_numbers[0] & 0x7fffffff);
+        m_numbers[624 - 1] = m_numbers[397 - 1] ^ (y >> 1) ^ mag[y & 1];
+        m_index = 0;
+      }
 
       // Generate output.
-      unsigned y = m_numbers[i];
-      y = y ^ (y >> 11);
-      y = y ^ ((y << 7) & 2636928640);
-      y = y ^ ((y << 15) & 4022730752);
-      y = y ^ (y >> 17);
-
-      // Update array.
-      unsigned x = (m_numbers[i] & 0x80000000) +
-          (m_numbers[(i + 1) % 624] & 0x7fffffff);
-      unsigned z = m_numbers[(i + 397) % 624] ^ (x >> 1);
-      m_numbers[i] = x & 1 ? z ^ 2567483615 : z;
+      unsigned y = m_numbers[m_index++];
+      y ^= y >> 11;
+      y ^= (y << 7) & 0x9d2c5680;
+      y ^= (y << 15) & 0xefc60000;
+      y ^= y >> 18;
 
       return y;
     }
@@ -89,14 +98,13 @@ class MersenneTwister {
     unsigned m_index;
 };
 
-/// Random number generation template class.
+/// Random number generation helper class.
 /// Random numbers can be generated for a variety of different types.
 ///
 /// This random number generator wrapper works with random number generator
 /// classes that generate 32-bit unsigned integers, and have the following
 /// methods: seed(unsigned), unsigned operator()(). This includes std::mt19937
 /// and MersenneTwister, for instance.
-template <class R>
 class Random {
   public:
     /// Set the seed for the random number generator.
@@ -110,6 +118,12 @@ class Random {
       return static_cast<int>(Unsigned());
     }
 
+    /// @returns A 32-bit signed integer in the range [min, max].
+    int Int(int min, int max) {
+      float r = Float();
+      return static_cast<int>(static_cast<float>(max - min + 1) * r) + min;
+    }
+
     /// @returns A 32-bit unsigned integer in the range [0, 2^32-1].
     unsigned Unsigned() {
       return m_random();
@@ -121,7 +135,7 @@ class Random {
       if (!r) {
         return 0.0f;
       }
-      return AsFloat(((0x7e - LeadingZeros(r)) << 23) | r & 0x007fffff);
+      return AsFloat(((0x7e - LeadingZeros(r)) << 23) | (r & 0x007fffff));
     }
 
     /// @returns A 32-bit floating point value in the range (-1.0, 1.0).
@@ -131,7 +145,7 @@ class Random {
         return 0.0f;
       }
       return AsFloat((r << 31) | ((0x7e - LeadingZeros(r)) << 23) |
-          r & 0x007fffff);
+          (r & 0x007fffff));
     }
 
     /// @returns A scalar value in the range (0.0, 1.0).
@@ -178,7 +192,7 @@ class Random {
 #endif
     }
 
-    /// Interprests an integer as a 32-bit IEEE 794 floating point value.
+    /// Interprets an integer as a 32-bit IEEE 794 floating point value.
     static float AsFloat(uint32_t x) {
       union {
         uint32_t i;
@@ -189,7 +203,7 @@ class Random {
     }
 
     // Random number generator.
-    R m_random;
+    MersenneTwister m_random;
 };
 
 } // namespace mageray

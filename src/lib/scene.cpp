@@ -105,7 +105,36 @@ void Scene::Reset() {
   m_lights.clear();
   m_objects.clear();
 
+  // Default configuration.
+  m_config.max_recursions = 4;
+  m_config.antialias_depth = 0;
+  m_config.soft_shadow_depth = 3;
+  m_config.max_photons = 0;
+  m_config.max_photon_depth = 4;
+  m_config.direct_lighting = true;
+
   InitDefaultShaders();
+}
+
+void Scene::LoadConfig(tinyxml2::XMLElement* element) {
+  if (const char* str = element->Attribute("max_recursions")) {
+    m_config.max_recursions = ParseScalarString(str);
+  }
+  if (const char* str = element->Attribute("antialias_depth")) {
+    m_config.antialias_depth = ParseScalarString(str);
+  }
+  if (const char* str = element->Attribute("soft_shadow_depth")) {
+    m_config.soft_shadow_depth = ParseScalarString(str);
+  }
+  if (const char* str = element->Attribute("max_photons")) {
+    m_config.max_photons = ParseScalarString(str);
+  }
+  if (const char* str = element->Attribute("max_photon_depth")) {
+    m_config.max_photon_depth = ParseScalarString(str);
+  }
+  if (const char* str = element->Attribute("direct_lighting")) {
+    m_config.direct_lighting = ParseScalarString(str) != scalar(0.0);
+  }
 }
 
 void Scene::LoadCamera(tinyxml2::XMLElement* element) {
@@ -404,6 +433,11 @@ bool Scene::LoadFromXML(std::istream& stream) {
       throw scene_parse_error(&doc, "Missing mageray element.");
     }
     // TODO(mage): Check version number.
+
+    // Load config node (if any).
+    if (tinyxml2::XMLElement* node = mageray_node->FirstChildElement("config")) {
+      LoadConfig(node);
+    }
 
     // Load scene node.
     tinyxml2::XMLElement* scene_node = mageray_node->FirstChildElement("scene");

@@ -31,6 +31,7 @@
 #include <algorithm>
 
 #include "aabb.h"
+#include "base/perf.h"
 
 namespace mageray {
 
@@ -49,11 +50,20 @@ bool ComparePhotonZ(const Photon& p1, const Photon& p2) {
 }
 
 void BuildSubTree(const std::vector<Photon>::iterator start,
-    const std::vector<Photon>::iterator stop, vec3::Axis axis) {
+    const std::vector<Photon>::iterator stop) {
   // Empty recursion?
   if (start == stop) {
     return;
   }
+
+  // Calculate bounding box for this branch.
+  AABB aabb(start->position, start->position);
+  for (auto it = start + 1; it != stop; it++) {
+    aabb += it->position;
+  }
+
+  // Select the optimal axis to sort along.
+  vec3::Axis axis = aabb.LargestAxis();
 
   // Sort all elements according to the selected axis.
   switch(axis) {
@@ -69,125 +79,112 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
   }
 
   // Determine mid element (the point for this node in the tree).
-  auto mid = start + ((stop - start) / 2);
-
-  // Select the next axis to sort along.
-  // TODO(mage): We might want to select the sort axis based on the sub tree
-  // bounding box (or similar) instead. That would require an additional field
-  // in the Photon struct so that the tree lookup knows how to traverse the
-  // tree.
-  vec3::Axis next_axis = vec3::NextAxis(axis);
+  auto node = start + ((stop - start) / 2);
+  node->SetAxis(axis);
 
   // Recursively build the two child trees.
-  BuildSubTree(start, mid, next_axis);
-  BuildSubTree(mid + 1, stop, next_axis);
+  BuildSubTree(start, node);
+  BuildSubTree(node + 1, stop);
 }
 
-bool inline PhotonInRange(const Photon& photon, const vec3& position,
-    const vec3& normal, const scalar range2, const scalar plane_d) {
-  // Check if the point is in the plane (roughly), and within the circle.
-  return std::abs(photon.position.Dot(normal) - plane_d) <= EPSILON &&
-      (position - photon.position).AbsSqr() <= range2;
-}
+vec3 RecGetLightInRange(const vec3& position, const vec3& normal,
+    const scalar range2, const AABB& aabb,
+    const std::vector<Photon>::const_iterator start,
+    const std::vector<Photon>::const_iterator stop) {
+  vec3 color(0);
 
-int RecGetLightInRange(vec3& color, vec3& direction,
-    const vec3& position, const vec3& normal, const scalar range2,
-    const scalar plane_d, const AABB& aabb,
-    const std::vector<Photon>::iterator start,
-    const std::vector<Photon>::iterator stop, vec3::Axis axis) {
   // Empty recursion?
   if (start == stop) {
-    return 0;
+    return color;
   }
 
   // Determine mid element (the point for this node in the tree).
-  auto mid = start + ((stop - start) / 2);
+  auto node = start + ((stop - start) / 2);
 
   // Is this a point to collect?
-  int count = 0;
-  if (aabb.PointInside(mid->position)) {
-    if (PhotonInRange(*mid, position, normal, range2, plane_d)) {
-      color += mid->color;
-      direction += mid->direction;
-      count = 1;
+  if (aabb.PointInside(node->position)) {
+    scalar cos_alpha = -normal.Dot(node->direction);
+    if (cos_alpha >= scalar(0.0)) {
+      scalar r2 = (position - node->position).AbsSqr();
+      if (r2 < range2) {
+        color += node->color * (cos_alpha * (scalar(1.0) - r2 / range2));
+      }
     }
   }
 
   // Are there any more child nodes?
   if (stop - start > 1) {
-    // Select the next split axis.
-    vec3::Axis next_axis = vec3::NextAxis(axis);
-
     // Recurse further?
-    switch(axis) {
-      case vec3::X:
-        if (mid->position.x >= aabb.Min().x) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, start, mid, next_axis);
-        }
-        if (mid->position.x <= aabb.Max().x) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, mid, stop, next_axis);
-        }
-        break;
-      case vec3::Y:
-        if (mid->position.y >= aabb.Min().y) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, start, mid, next_axis);
-        }
-        if (mid->position.y <= aabb.Max().y) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, mid, stop, next_axis);
-        }
-        break;
-      case vec3::Z:
-        if (mid->position.z >= aabb.Min().z) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, start, mid, next_axis);
-        }
-        if (mid->position.z <= aabb.Max().z) {
-          count += RecGetLightInRange(color, direction, position, normal,
-              range2, plane_d, aabb, mid, stop, next_axis);
-        }
-        break;
+    vec3::Axis axis = node->Axis();
+    scalar p = node->position[axis];
+    if (p >= aabb.Min()[axis]) {
+      color += RecGetLightInRange(position, normal, range2, aabb, start, node);
+    }
+    if (p <= aabb.Max()[axis]) {
+      color += RecGetLightInRange(position, normal, range2, aabb, node + 1,
+          stop);
     }
   }
 
-  return count;
+  return color;
 }
 
 } // anonymous namespace
 
 
 void PhotonMap::BuildKDTree() {
+  ScopedPerf _perf("BuildKDTree");
+
   // Get the actual number of photons in the photon array.
   int count = m_count;
   m_size = std::min(m_capacity, count);
+  DLOG("Number of photons in map: %d", m_size);
 
   // Recursively build the KD tree (in place).
-  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, vec3::X);
+  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size);
+
+  _perf.Done();
+
+  // Determine the median distance between photons in the KD tree.
+  DetermineMedianDistance();
 }
 
-int PhotonMap::GetTotalLightInRange(vec3& color, vec3& direction,
-    const vec3& position, const vec3& normal, const scalar range) {
+vec3 PhotonMap::GetTotalLightInRange(const vec3& position,
+    const vec3& normal, const scalar range) const {
   // Set up bounding box.
   AABB aabb(position - vec3(range), position + vec3(range));
 
-  // Construct plane equation from position and normal.
-  scalar plane_d = position.Dot(normal);
-
   // Get contributing light from the photon map.
-  vec3 color_sum(0), direction_sum(0);
   auto start = m_photons.begin();
-  auto stop = start + m_size;
-  int count = RecGetLightInRange(color_sum, direction_sum, position, normal,
-      range * range, plane_d, aabb, start, stop, vec3::X);
+  return RecGetLightInRange(position, normal, range * range, aabb, start,
+    start + m_size);
+}
 
-  // Return output parameters.
-  color = color_sum;
-  direction = direction_sum.Normalize();
+void PhotonMap::DetermineMedianDistance() {
+  ScopedPerf _perf("Determine median distance");
+  if (m_size < 2) {
+    m_median_distance = scalar(0.0);
+    return;
+  }
 
-  return count;
+  std::vector<scalar> distances(m_size);
+
+  // TODO(mage): This is a very simple approximation. Should use a nearest
+  // neighbour search instead.
+  distances[0] = (m_photons[0].position -
+      m_photons[m_size - 1].position).AbsSqr();
+  for (unsigned i = 1; i < m_size; ++i) {
+    distances[i] = (m_photons[i].position -
+        m_photons[i - 1].position).AbsSqr();
+  }
+
+  // Calculate median distance.
+  std::sort(distances.begin(), distances.end());
+  m_median_distance = std::sqrt(distances[m_size / 2]);
+
+  _perf.Done();
+
+  DLOG("Median distance = %f", double(m_median_distance));
 }
 
 } // namespace mageray

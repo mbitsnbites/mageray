@@ -51,7 +51,31 @@ class XMLElement;
 
 namespace mageray {
 
-class Tracer;
+/// Ray-tracing configuration parameters.
+// TODO(mage): This should be part of the tracer, but we put it here since we
+// parse the XML file within the scene (which is really not right).
+struct TraceConfig {
+  /// Maximum number of trace recursions.
+  unsigned max_recursions;
+
+  /// Anti aliasing depth (0 = no anti aliasing).
+  unsigned antialias_depth;
+
+  /// Soft shadow recursion depth (0 = no soft shadows).
+  unsigned soft_shadow_depth;
+
+  /// Number of photons to use in the photon map (0 = no photon mapping).
+  unsigned max_photons;
+
+  /// Maximum recursion depth for tracing photons.
+  unsigned max_photon_depth;
+
+  /// Enable direct lighting during ray tracing pass.
+  /// If direct lighting is not enabled, the photon map is used for the direct
+  /// lighting.
+  bool direct_lighting;
+};
+
 
 class Scene {
   public:
@@ -78,7 +102,28 @@ class Scene {
     /// @returns true if successful.
     bool LoadFromXML(std::istream& stream);
 
+    /// Get the camera for this scene.
+    const mageray::Camera& Camera() const {
+      return m_camera;
+    }
+
+    /// Get the lights in this scene.
+    const std::list<std::unique_ptr<Light> >& Lights() const {
+      return m_lights;
+    }
+
+    /// Get the object tree for this scene.
+    const mageray::ObjectTree& ObjectTree() const {
+      return m_object_tree;
+    }
+
+    /// Get the ray tracing configuration settings.
+    const TraceConfig& Config() const {
+      return m_config;
+    }
+
   private:
+    void LoadConfig(tinyxml2::XMLElement* element);
     void LoadCamera(tinyxml2::XMLElement* element);
     void LoadImage(tinyxml2::XMLElement* element);
     void LoadMesh(tinyxml2::XMLElement* element);
@@ -93,9 +138,9 @@ class Scene {
 
     std::string m_file_path;
 
-    Camera m_camera;
+    mageray::Camera m_camera;
 
-    ObjectTree m_object_tree;
+    mageray::ObjectTree m_object_tree;
 
     std::map<std::string, std::unique_ptr<Image> > m_images;
     std::map<std::string, std::unique_ptr<Mesh> > m_meshes;
@@ -105,7 +150,7 @@ class Scene {
     std::list<std::unique_ptr<Light> > m_lights;
     std::list<std::unique_ptr<Object> > m_objects;
 
-    friend class Tracer;
+    TraceConfig m_config;
 
     FORBID_COPY(Scene);
 };

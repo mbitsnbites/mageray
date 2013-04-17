@@ -77,11 +77,15 @@ int main(int argc, const char* argv[]) {
     return 0;
   }
 
-  // Ray trace image.
-  std::cout << std::endl << "[Rendering image]" << std::endl;
   Tracer tracer;
   tracer.SetScene(&scene);
+
+  // Generate photon map.
+  std::cout << std::endl << "[Generating photon map]" << std::endl;
   tracer.GeneratePhotonMap();
+
+  // Ray trace image.
+  std::cout << std::endl << "[Rendering image]" << std::endl;
   tracer.GenerateImage(img);
 
   // Save image.

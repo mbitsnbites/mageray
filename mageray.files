@@ -45,3 +45,4 @@ src/lib/tracer.cpp
 src/lib/base/threads.h
 src/lib/photon_map.h
 src/lib/photon_map.cpp
+src/lib/base/random.h

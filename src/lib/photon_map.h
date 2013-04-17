@@ -42,6 +42,16 @@ struct Photon {
   vec3 position;
   vec3 direction;
   vec3 color;
+  unsigned axis; // Really vec3::Axis, but we want to guarantee alignment.
+
+  vec3::Axis Axis() const {
+    return static_cast<vec3::Axis>(axis);
+  }
+
+  void SetAxis(const vec3::Axis _axis) {
+    axis = static_cast<int>(_axis);
+  }
+
 };
 
 class PhotonMap {
@@ -72,6 +82,13 @@ class PhotonMap {
       return index < m_capacity ? &m_photons[index] : NULL;
     }
 
+    /// Check if the photon map is full.
+    /// @returns true if the photon map was full.
+    /// @note This method is thread safe.
+    bool IsFull() {
+      return m_count >= m_capacity;
+    }
+
     /// Build a KD tree of the collected photons.
     void BuildKDTree();
 
@@ -80,17 +97,22 @@ class PhotonMap {
       return m_size > 0;
     }
 
+    /// @returns the median distance between photons.
+    scalar MedianDistance() const {
+      return m_median_distance;
+    }
+
     /// Get the total light in the given range.
-    /// @param[out] color The total color (photon energy).
-    /// @param[out] direction The average light direction.
     /// @param position The position in space to query.
     /// @param normal The surface normal of the surface to query.
     /// @param range The radius to query.
-    /// @returns The number of photons collected.
-    int GetTotalLightInRange(vec3& color, vec3& direction, const vec3& position,
-        const vec3& normal, const scalar range);
+    /// @returns The total color (photon energy).
+    vec3 GetTotalLightInRange(const vec3& position,
+        const vec3& normal, const scalar range) const;
 
   private:
+    void DetermineMedianDistance();
+
     /// The number of elements that fit in the photon vector.
     int m_capacity;
 
@@ -98,7 +120,11 @@ class PhotonMap {
     std::atomic_int m_count;
 
     /// The actual number of photons (defined by BuildKDTree).
-    int m_size;
+    unsigned m_size;
+
+    /// The median distance between photons in the tree (defined by
+    /// DetermineMedianDistance).
+    scalar m_median_distance;
 
     std::vector<Photon> m_photons;
 };

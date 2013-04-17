@@ -29,9 +29,11 @@
 #ifndef MAGERAY_TRACER_H_
 #define MAGERAY_TRACER_H_
 
+#include <atomic>
 #include <mutex>
 
 #include "base/platform.h"
+#include "base/random.h"
 #include "base/types.h"
 #include "image.h"
 #include "photon_map.h"
@@ -42,21 +44,6 @@ namespace mageray {
 
 class Light;
 class Scene;
-
-/// Ray-tracing configuration parameters.
-struct TraceConfig {
-  /// Maximum number of trace recursions.
-  unsigned max_recursions;
-
-  /// Anti aliasing depth (0 = no anti aliasing).
-  unsigned antialias_depth;
-
-  /// Soft shadow recursion depth (0 = no soft shadows).
-  unsigned soft_shadow_depth;
-
-  /// Number of photons to use in the photon map (0 = no photon mapping).
-  unsigned max_photons;
-};
 
 class Tracer {
   public:
@@ -73,14 +60,10 @@ class Tracer {
       m_scene = scene;
     }
 
-    TraceConfig& Config() {
-      return m_config;
-    }
-
   private:
     /// Thread coordination class.
     /// The thread controller is responsible for coordinating work packages
-    /// between threads.
+    /// between ray tracing threads.
     class ThreadController {
       public:
         ThreadController(const int width, const int height);
@@ -126,11 +109,10 @@ class Tracer {
     /// Trace a single ray.
     bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
 
-    TraceConfig m_config;
-
     const Scene* m_scene;
 
     PhotonMap m_photon_map;
+    scalar m_photon_scale;
 
     FORBID_COPY(Tracer);
 };

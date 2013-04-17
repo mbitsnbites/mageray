@@ -105,6 +105,17 @@ class AABB {
       return *this;
     }
 
+    /// Extend the bounding box to include a new point.
+    AABB& operator+=(const vec3& p) {
+      if (p.x < m_min.x) m_min.x = p.x;
+      if (p.y < m_min.y) m_min.y = p.y;
+      if (p.z < m_min.z) m_min.z = p.z;
+      if (p.x > m_max.x) m_max.x = p.x;
+      if (p.y > m_max.y) m_max.y = p.y;
+      if (p.z > m_max.z) m_max.z = p.z;
+      return *this;
+    }
+
     /// Check if a ray intersects this bounding box.
     /// @param ray The ray.
     /// @param[in,out] closest_t The closes intersection distance this far.
