@@ -111,6 +111,7 @@ void Scene::Reset() {
   m_config.soft_shadow_depth = 3;
   m_config.max_photons = 0;
   m_config.max_photon_depth = 4;
+  m_config.photon_energy = scalar(1000.0);
   m_config.direct_lighting = true;
 
   InitDefaultShaders();
@@ -131,6 +132,9 @@ void Scene::LoadConfig(tinyxml2::XMLElement* element) {
   }
   if (const char* str = element->Attribute("max_photon_depth")) {
     m_config.max_photon_depth = ParseScalarString(str);
+  }
+  if (const char* str = element->Attribute("photon_energy")) {
+    m_config.photon_energy = ParseScalarString(str);
   }
   if (const char* str = element->Attribute("direct_lighting")) {
     m_config.direct_lighting = ParseScalarString(str) != scalar(0.0);

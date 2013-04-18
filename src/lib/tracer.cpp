@@ -585,7 +585,8 @@ void Tracer::GeneratePhotonMap() {
   int num_rays = controller.TotalRays();
 
   // Adjust photon energy scale based on number of emitted light rays.
-  m_photon_scale = scalar(1000.0) / static_cast<scalar>(num_rays);
+  m_photon_scale = m_scene->Config().photon_energy /
+      static_cast<scalar>(num_rays);
   DLOG("Number of light rays shot: %d", num_rays);
   DLOG("Photon intensity scale: %f", double(m_photon_scale));
 

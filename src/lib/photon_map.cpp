@@ -29,9 +29,12 @@
 #include "photon_map.h"
 
 #include <algorithm>
+#include <thread>
 
 #include "aabb.h"
 #include "base/perf.h"
+#include "base/platform.h"
+#include "base/threads.h"
 
 namespace mageray {
 
@@ -50,7 +53,7 @@ bool ComparePhotonZ(const Photon& p1, const Photon& p2) {
 }
 
 void BuildSubTree(const std::vector<Photon>::iterator start,
-    const std::vector<Photon>::iterator stop) {
+    const std::vector<Photon>::iterator stop, int threaded_depth) {
   // Empty recursion?
   if (start == stop) {
     return;
@@ -83,8 +86,22 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
   node->SetAxis(axis);
 
   // Recursively build the two child trees.
-  BuildSubTree(start, node);
-  BuildSubTree(node + 1, stop);
+  if (UNLIKELY(threaded_depth == 1)) {
+    // Spawn new threads when we're at the correct depth to better utilize
+    // multi-core CPUs.
+    std::thread t1 = std::thread([&] {
+      BuildSubTree(start, node, threaded_depth - 1);
+    });
+    std::thread t2 = std::thread([&] {
+      BuildSubTree(node + 1, stop, threaded_depth - 1);
+    });
+    t1.join();
+    t2.join();
+  } else {
+    BuildSubTree(start, node, threaded_depth - 1);
+    BuildSubTree(node + 1, stop, threaded_depth - 1);
+  }
+
 }
 
 vec3 RecGetLightInRange(const vec3& position, const vec3& normal,
@@ -140,8 +157,25 @@ void PhotonMap::BuildKDTree() {
   m_size = std::min(m_capacity, count);
   DLOG("Number of photons in map: %d", m_size);
 
+  // Select at which tree depth to split execution into parallell threads.
+  // threaded_depth interpretation:
+  //   0 -> Single threaded
+  //   1 -> 2 threads
+  //   2 -> 4 threads
+  //   3 -> 8 threads
+  //   etc.
+  int threaded_depth;
+  int concurrency = Thread::hardware_concurrency();
+  if (concurrency >= 4)
+    threaded_depth = 2;
+  else if (concurrency >= 2)
+    threaded_depth = 1;
+  else
+    threaded_depth = 0;
+  DLOG("Hardware concurrency=%d, threaded_depth=%d", concurrency, threaded_depth);
+
   // Recursively build the KD tree (in place).
-  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size);
+  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, threaded_depth);
 
   _perf.Done();
 
