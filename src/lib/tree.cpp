@@ -165,7 +165,7 @@ Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
   // Recursively build new sub-trees.
   Node* first_branch;
   Node* second_branch;
-  if (UNLIKELY(threaded_depth == 1)) {
+  if (UNLIKELY(threaded_depth >= 1)) {
     // Spawn new threads when we're at the correct depth to better utilize
     // multi-core CPUs.
     std::promise<Node*> result1;
@@ -207,7 +207,9 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
   //   etc.
   int threaded_depth;
   int concurrency = Thread::hardware_concurrency();
-  if (concurrency >= 4)
+  if (concurrency >= 8)
+    threaded_depth = 3;
+  else if (concurrency >= 4)
     threaded_depth = 2;
   else if (concurrency >= 2)
     threaded_depth = 1;

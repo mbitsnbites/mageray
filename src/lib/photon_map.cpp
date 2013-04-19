@@ -53,7 +53,8 @@ bool ComparePhotonZ(const Photon& p1, const Photon& p2) {
 }
 
 void BuildSubTree(const std::vector<Photon>::iterator start,
-    const std::vector<Photon>::iterator stop, int threaded_depth) {
+    const std::vector<Photon>::iterator stop, const Photon* parent,
+    int threaded_depth) {
   // Empty recursion?
   if (start == stop) {
     return;
@@ -68,17 +69,19 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
   // Select the optimal axis to sort along.
   vec3::Axis axis = aabb.LargestAxis();
 
-  // Sort all elements according to the selected axis.
-  switch(axis) {
-    case vec3::X:
-      std::sort(start, stop, ComparePhotonX);
-      break;
-    case vec3::Y:
-      std::sort(start, stop, ComparePhotonY);
-      break;
-    case vec3::Z:
-      std::sort(start, stop, ComparePhotonZ);
-      break;
+  if (!parent || parent->axis != axis) {
+    // Sort all elements according to the selected axis.
+    switch(axis) {
+      case vec3::X:
+        std::sort(start, stop, ComparePhotonX);
+        break;
+      case vec3::Y:
+        std::sort(start, stop, ComparePhotonY);
+        break;
+      case vec3::Z:
+        std::sort(start, stop, ComparePhotonZ);
+        break;
+    }
   }
 
   // Determine mid element (the point for this node in the tree).
@@ -86,20 +89,18 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
   node->SetAxis(axis);
 
   // Recursively build the two child trees.
-  if (UNLIKELY(threaded_depth == 1)) {
+  if (UNLIKELY(threaded_depth >= 1)) {
     // Spawn new threads when we're at the correct depth to better utilize
     // multi-core CPUs.
-    std::thread t1 = std::thread([&] {
-      BuildSubTree(start, node, threaded_depth - 1);
-    });
-    std::thread t2 = std::thread([&] {
-      BuildSubTree(node + 1, stop, threaded_depth - 1);
-    });
+    std::thread t1 = std::thread(BuildSubTree, start, node, &*node,
+        threaded_depth - 1);
+    std::thread t2 = std::thread(BuildSubTree, node + 1, stop, &*node,
+        threaded_depth - 1);
     t1.join();
     t2.join();
   } else {
-    BuildSubTree(start, node, threaded_depth - 1);
-    BuildSubTree(node + 1, stop, threaded_depth - 1);
+    BuildSubTree(start, node, &*node, threaded_depth - 1);
+    BuildSubTree(node + 1, stop, &*node, threaded_depth - 1);
   }
 
 }
@@ -166,7 +167,9 @@ void PhotonMap::BuildKDTree() {
   //   etc.
   int threaded_depth;
   int concurrency = Thread::hardware_concurrency();
-  if (concurrency >= 4)
+  if (concurrency >= 8)
+    threaded_depth = 3;
+  else if (concurrency >= 4)
     threaded_depth = 2;
   else if (concurrency >= 2)
     threaded_depth = 1;
@@ -175,7 +178,8 @@ void PhotonMap::BuildKDTree() {
   DLOG("Hardware concurrency=%d, threaded_depth=%d", concurrency, threaded_depth);
 
   // Recursively build the KD tree (in place).
-  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, threaded_depth);
+  BuildSubTree(m_photons.begin(), m_photons.begin() + m_size, NULL,
+      threaded_depth);
 
   _perf.Done();
 
