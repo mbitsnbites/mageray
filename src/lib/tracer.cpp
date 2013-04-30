@@ -402,9 +402,9 @@ void PhotonWorker::TracePhoton(const Ray& ray, const unsigned depth,
   shader->MaterialPass(surface_param, material_param);
 
   // Get probabilities for reflection, diffuse and transparency.
-  scalar p_reflection = material_param.specular.Abs() * material->Mirror();
+  scalar p_reflection = material_param.specular.Abs();
   scalar p_diffuse = material_param.diffuse.Abs();
-  scalar p_transparency = scalar(1.0) - material_param.alpha;
+  scalar p_transparency = material_param.transparency.Abs();
 
   // Preserve energy.
   p_transparency *= scalar(1.0) - p_reflection;
@@ -439,7 +439,8 @@ void PhotonWorker::TracePhoton(const Ray& ray, const unsigned depth,
   if (selection < p_reflection) {
     // Reflected direction.
     vec3 reflect_dir = ray.Direction() -
-        hit.normal * (scalar(2.0) * hit.normal.Dot(ray.Direction()));
+        material_param.normal *
+        (scalar(2.0) * material_param.normal.Dot(ray.Direction()));
 
     // Nudge origin point in order to avoid re-intersecting the origin surface.
     // TODO(mage): The "nudge distance" should be relative to object scale
@@ -456,7 +457,7 @@ void PhotonWorker::TracePhoton(const Ray& ray, const unsigned depth,
   // Transparency?
   if (selection < p_transparency) {
     // Refracted direction.
-    vec3 refract_dir = ray.Direction().Normalize().Refract(hit.normal, material->Ior());
+    vec3 refract_dir = ray.Direction().Normalize().Refract(material_param.normal, material->Ior());
 
     // Nudge origin point in order to avoid re-intersecting the origin surface.
     // TODO(mage): The "nudge distance" should be relative to object scale
@@ -473,11 +474,13 @@ void PhotonWorker::TracePhoton(const Ray& ray, const unsigned depth,
   // Diffuse reflection?
   if (selection < p_diffuse) {
     vec3 diffuse_dir = m_random.SignedVec3().Normalize();
-    scalar cos_alpha = diffuse_dir.Dot(hit.normal);
+    scalar cos_alpha = diffuse_dir.Dot(material_param.normal);
     if (cos_alpha < scalar(0.0)) {
-      diffuse_dir = diffuse_dir - hit.normal * (scalar(2.0) * cos_alpha);
+      diffuse_dir = diffuse_dir -
+          material_param.normal * (scalar(2.0) * cos_alpha);
     }
-    diffuse_dir = (diffuse_dir + hit.normal * scalar(0.1)).Normalize();
+    diffuse_dir = (diffuse_dir +
+                   material_param.normal * scalar(0.1)).Normalize();
     vec3 diffuse_start = hit.point + diffuse_dir * scalar(0.0001);
     Ray diffuse_ray(diffuse_start, diffuse_dir);
     TracePhoton(diffuse_ray, depth + 1, color * material_param.diffuse);
@@ -687,13 +690,13 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
   shader->MaterialPass(surface_param, material_param);
 
   // Compensate material properties to preserve energy.
-  // TODO(mage): These values should be put back into the material_param
-  // struct, otherwise the subsequent shader passes will be wrong, for instance.
-  vec3 reflection = material_param.specular * material->Mirror();
-  vec3 transparency = vec3(scalar(1.0) - material_param.alpha);
+  vec3 reflection = material->Mirror() ? material_param.specular : vec3(0.0);
+  vec3 transparency = material_param.transparency;
   vec3 diffuse = material_param.diffuse;
   transparency = transparency * (vec3(1.0) - reflection);
   diffuse = diffuse * (vec3(1.0) - transparency);
+  material_param.transparency = transparency;
+  material_param.diffuse = diffuse;
 
   bool has_reflection = reflection.AbsSqr() > EPSILON;
   bool has_transparency = transparency.AbsSqr() > EPSILON;
@@ -704,7 +707,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
   if (has_reflection) {
     // Reflected direction.
     vec3 reflect_dir = ray.Direction() -
-        hit.normal * (scalar(2.0) * hit.normal.Dot(ray.Direction()));
+        material_param.normal * (scalar(2.0) * material_param.normal.Dot(ray.Direction()));
 
     // Nudge origin point in order to avoid re-intersecting the origin surface.
     // TODO(mage): The "nudge distance" should be relative to object scale
@@ -722,7 +725,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
   // Transparency?
   if (has_transparency) {
     // Refracted direction.
-    vec3 refract_dir = ray.Direction().Normalize().Refract(hit.normal, material->Ior());
+    vec3 refract_dir = ray.Direction().Normalize().Refract(material_param.normal, material->Ior());
 
     // Nudge origin point in order to avoid re-intersecting the origin surface.
     // TODO(mage): The "nudge distance" should be relative to object scale
@@ -730,15 +733,15 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
     vec3 refract_start = hit.point + refract_dir * scalar(0.0001);
 
     // Trace ray.
-    scalar opacity = scalar(1.0) - material_param.alpha;
+    scalar filter = material_param.transparency.Abs();
     Ray refract_ray(refract_start, refract_dir);
     TraceInfo refract_info;
     if (TraceRay(refract_ray, refract_info, depth + 1)) {
       info.color += refract_info.color * transparency;
-      opacity *= scalar(1.0) - refract_info.alpha;
+      filter *= scalar(1.0) - refract_info.alpha;
     }
 
-    info.alpha = scalar(1.0) - opacity;
+    info.alpha = scalar(1.0) - filter;
   }
 
   // Light contribution.
@@ -755,7 +758,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
         scalar light_dist = light_dir.Abs();
         light_dir = light_dir * (scalar(1.0) / light_dist);
 
-        scalar cos_alpha = light_dir.Dot(hit.normal);
+        scalar cos_alpha = light_dir.Dot(material_param.normal);
         if (cos_alpha >= scalar(0.0)) {
           Shader::LightParam light_param;
           light_param.light = light;
@@ -780,7 +783,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
       scalar max_r = std::sqrt(scalar(max_photons) / PI) *
           m_photon_map.MedianDistance();
       vec3 photon_color = m_photon_map.GetTotalLightInRange(hit.point,
-          hit.normal, max_r);
+          material_param.normal, max_r);
       photon_color = photon_color * (m_photon_scale / (max_r * max_r));
       light_contrib += photon_color * diffuse;
     }

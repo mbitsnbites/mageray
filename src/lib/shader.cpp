@@ -61,11 +61,12 @@ void PhongShader::MaterialPass(const SurfaceParam& sp,
   // Diffuse color.
   if (sp.material->DiffuseMap().HasImage()) {
     Pixel c = sp.material->DiffuseMap().Sample(sp.uv);
-    mp.diffuse = vec3(c.r(), c.g(), c.b()) * scalar(1.0 / 255.0);
-    mp.alpha = c.a() * scalar(1.0 / 255.0);
+    vec3 color = vec3(c.r(), c.g(), c.b()) * scalar(1.0 / 255.0);
+    mp.diffuse = color;
+    mp.transparency = color * (c.a() * scalar(1.0 / 255.0));
   } else {
-    mp.diffuse = sp.material->Color() * sp.material->Diffuse();
-    mp.alpha = sp.material->Alpha();
+    mp.diffuse = sp.material->Diffuse();
+    mp.transparency = sp.material->Transparency();
   }
 
   // Specular color.
@@ -73,7 +74,7 @@ void PhongShader::MaterialPass(const SurfaceParam& sp,
     Pixel c = sp.material->SpecularMap().Sample(sp.uv);
     mp.specular = vec3(c.r(), c.g(), c.b()) * scalar(1.0 / 255.0);
   } else {
-    mp.specular = vec3(sp.material->Specular());
+    mp.specular = sp.material->Specular();
   }
 
   // Normal (possibly modified by a normal map).
@@ -94,6 +95,7 @@ vec3 PhongShader::LightPass(const SurfaceParam& sp,
       std::pow(sp.view_dir.Dot(light_reflect_dir), sp.material->Hardness());
 
   // Light falloff, depnding on distance.
+  // TODO(mage): Make this behave the same way as the photon map.
   scalar falloff = lp.light->Distance() / (lp.light->Distance() + lp.dist);
 
   // Diffuse and specular contribution.

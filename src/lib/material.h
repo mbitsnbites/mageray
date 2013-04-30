@@ -46,36 +46,44 @@ class Material {
 
     void Reset();
 
-    void SetColor(const vec3& color) {
-      m_color = color;
-    }
-
-    const vec3& Color() const {
-      return m_color;
-    }
-
-    void SetAmbient(const scalar& ambient) {
+    void SetAmbient(const vec3& ambient) {
       m_ambient = ambient;
     }
 
-    const scalar& Ambient() const {
+    const vec3& Ambient() const {
       return m_ambient;
     }
 
-    void SetDiffuse(const scalar& diffuse) {
+    void SetDiffuse(const vec3& diffuse) {
       m_diffuse = diffuse;
     }
 
-    const scalar& Diffuse() const {
+    const vec3& Diffuse() const {
       return m_diffuse;
     }
 
-    void SetSpecular(const scalar& specular) {
+    void SetSpecular(const vec3& specular) {
       m_specular = specular;
     }
 
-    const scalar& Specular() const {
+    const vec3& Specular() const {
       return m_specular;
+    }
+
+    void SetTransparency(const vec3& transparency) {
+      m_transparency = transparency;
+    }
+
+    const vec3& Transparency() const {
+      return m_transparency;
+    }
+
+    void SetMirror(const bool mirror) {
+      m_mirror = mirror;
+    }
+
+    bool Mirror() const {
+      return m_mirror;
     }
 
     void SetHardness(const scalar& hardness) {
@@ -84,22 +92,6 @@ class Material {
 
     const scalar& Hardness() const {
       return m_hardness;
-    }
-
-    void SetMirror(const scalar& mirror) {
-      m_mirror = mirror;
-    }
-
-    const scalar& Mirror() const {
-      return m_mirror;
-    }
-
-    void SetAlpha(const scalar& alpha) {
-      m_alpha = alpha;
-    }
-
-    const scalar& Alpha() const {
-      return m_alpha;
     }
 
     void SetIor(const scalar& ior) {
@@ -143,13 +135,12 @@ class Material {
     }
 
   private:
-    vec3 m_color;
-    scalar m_ambient;
-    scalar m_diffuse;
-    scalar m_specular;
+    vec3 m_ambient;
+    vec3 m_diffuse;
+    vec3 m_specular;
+    vec3 m_transparency;
+    bool m_mirror;
     scalar m_hardness;
-    scalar m_mirror;
-    scalar m_alpha;
     scalar m_ior;
 
     Sampler m_diffuse_map;

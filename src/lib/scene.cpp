@@ -92,6 +92,18 @@ scalar ParseScalarString(const char* str) {
   return s;
 }
 
+bool ParseBoolString(const char* str) {
+  std::istringstream ss(str);
+  bool b;
+  ss >> b;
+  if (ss.fail()) {
+    std::string msg = std::string("Unable to parse \"") +
+        str + std::string("\" as a boolean value.");
+    throw scene_parse_error(NULL, msg.c_str());
+  }
+  return b;
+}
+
 }
 
 void Scene::Reset() {
@@ -239,26 +251,23 @@ void Scene::LoadMaterial(tinyxml2::XMLElement* element) {
     throw scene_parse_error(element, "Out of memory?");
   }
 
-  if (const char* str = element->Attribute("color")) {
-    material->SetColor(ParseVec3String(str));
-  }
   if (const char* str = element->Attribute("ambient")) {
     material->SetAmbient(ParseScalarString(str));
   }
   if (const char* str = element->Attribute("diffuse")) {
-    material->SetDiffuse(ParseScalarString(str));
+    material->SetDiffuse(ParseVec3String(str));
   }
   if (const char* str = element->Attribute("specular")) {
-    material->SetSpecular(ParseScalarString(str));
+    material->SetSpecular(ParseVec3String(str));
+  }
+  if (const char* str = element->Attribute("transparency")) {
+    material->SetTransparency(ParseVec3String(str));
+  }
+  if (const char* str = element->Attribute("mirror")) {
+    material->SetMirror(ParseBoolString(str));
   }
   if (const char* str = element->Attribute("hardness")) {
     material->SetHardness(ParseScalarString(str));
-  }
-  if (const char* str = element->Attribute("mirror")) {
-    material->SetMirror(ParseScalarString(str));
-  }
-  if (const char* str = element->Attribute("alpha")) {
-    material->SetAlpha(ParseScalarString(str));
   }
   if (const char* str = element->Attribute("ior")) {
     material->SetIor(ParseScalarString(str));

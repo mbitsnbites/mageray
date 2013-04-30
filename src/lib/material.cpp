@@ -31,17 +31,18 @@
 namespace mageray {
 
 void Material::Reset() {
-  m_color = vec3(1.0, 1.0, 1.0);
-  m_ambient = 0.0;
-  m_diffuse = 1.0;
-  m_specular = 0.5;
-  m_hardness = 50.0;
-  m_mirror = 0.0;
-  m_alpha = 1.0;
-  m_ior = 1.0;
+  m_ambient = vec3(0.0, 0.0, 0.0);
+  m_diffuse = vec3(1.0, 1.0, 1.0);
+  m_specular = vec3(0.5, 0.5, 0.5);
+  m_transparency = vec3(0.0, 0.0, 0.0);
+  m_mirror = false;
+  m_hardness = scalar(50.0);
+  m_ior = scalar(1.0);
+
   m_diffuse_map.SetImage(NULL);
   m_specular_map.SetImage(NULL);
   m_normal_map.SetImage(NULL);
+
   m_shader = NULL;
 }
 

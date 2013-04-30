@@ -52,8 +52,8 @@ class Shader {
 
     struct MaterialParam {
         vec3 diffuse;         ///< Diffuse color.
-        scalar alpha;         ///< Opacity.
         vec3 specular;        ///< Specular color.
+        vec3 transparency;    ///< Transparency.
         vec3 normal;          ///< World space surface normal.
     };
 
