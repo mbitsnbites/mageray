@@ -408,7 +408,7 @@ void PhotonWorker::TracePhoton(const Ray& ray, const unsigned depth,
 
   // Preserve energy.
   p_transparency *= scalar(1.0) - p_reflection;
-  p_diffuse *= scalar(1.0) - p_transparency;
+  p_diffuse *= (scalar(1.0) - p_transparency) * (scalar(1.0) - p_reflection);
 
   // Monte-carlo, select which direction to take from here...
   scalar selection = m_random.Scalar();
@@ -694,7 +694,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
   vec3 transparency = material_param.transparency;
   vec3 diffuse = material_param.diffuse;
   transparency = transparency * (vec3(1.0) - reflection);
-  diffuse = diffuse * (vec3(1.0) - transparency);
+  diffuse = diffuse * (vec3(1.0) - transparency) * (vec3(1.0) - reflection);
   material_param.transparency = transparency;
   material_param.diffuse = diffuse;
 

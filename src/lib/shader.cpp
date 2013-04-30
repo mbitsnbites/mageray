@@ -63,7 +63,7 @@ void PhongShader::MaterialPass(const SurfaceParam& sp,
     Pixel c = sp.material->DiffuseMap().Sample(sp.uv);
     vec3 color = vec3(c.r(), c.g(), c.b()) * scalar(1.0 / 255.0);
     mp.diffuse = color;
-    mp.transparency = color * (c.a() * scalar(1.0 / 255.0));
+    mp.transparency = color * ((255 - c.a()) * scalar(1.0 / 255.0));
   } else {
     mp.diffuse = sp.material->Diffuse();
     mp.transparency = sp.material->Transparency();

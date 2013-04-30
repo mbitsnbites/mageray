@@ -8,9 +8,9 @@
     </meshes>
 
     <materials>
-      <material name="glass" diffuse="0.1 0.1 0.15" ambient="0.03 0.03 0.05" specular="0.7 0.7 0.7" mirror="1" hardness="60" />
-      <material name="red" diffuse="1 0.2 0.2" ambient="0.03 0.01 0.01" specular="0.5 0.5 0.5" hardness="30" />
-      <material name="green" diffuse="0.2 1 0.2" ambient="0.01 0.03 0.01" specular="0.5 0.5 0.5" hardness="30" />
+      <material name="glass" diffuse="0.8 0.8 1" ambient="0.03 0.03 0.05" specular="0.7 0.7 0.7" mirror="1" hardness="60" />
+      <material name="red" diffuse="1 0.2 0.2" ambient="0.05 0.02 0.02" specular="0.5 0.5 0.5" hardness="30" />
+      <material name="green" diffuse="0.2 1 0.2" ambient="0.02 0.05 0.02" specular="0.5 0.5 0.5" hardness="30" />
       <material name="white" diffuse="1 1 1" ambient="0.05 0.05 0.05" specular="0.5 0.5 0.5" hardness="30" />
     </materials>
 
