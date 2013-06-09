@@ -207,11 +207,13 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
   //   etc.
   int threaded_depth;
   int concurrency = Thread::hardware_concurrency();
-  if (concurrency >= 8)
+  if (concurrency > 8)
+    threaded_depth = 4;
+  else if (concurrency > 4)
     threaded_depth = 3;
-  else if (concurrency >= 4)
+  else if (concurrency > 2)
     threaded_depth = 2;
-  else if (concurrency >= 2)
+  else if (concurrency > 1)
     threaded_depth = 1;
   else
     threaded_depth = 0;
