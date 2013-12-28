@@ -34,6 +34,7 @@
 
 #include "base/log.h"
 #include "base/types.h"
+#include "aabb.h"
 #include "vec.h"
 
 namespace mageray {
@@ -102,15 +103,46 @@ class PhotonMap {
       return m_median_distance;
     }
 
-    /// Get the total light in the given range.
-    /// @param position The position in space to query.
-    /// @param normal The surface normal of the surface to query.
-    /// @param range The radius to query.
-    /// @returns The total color (photon energy).
-    vec3 GetTotalLightInRange(const vec3& position,
-        const vec3& normal, const scalar range) const;
+  private:
+    struct CollectedPhoton {
+      bool operator<(const CollectedPhoton& other) const {
+        return distance < other.distance;
+      }
+
+      const Photon* photon;
+      scalar distance;
+    };
+
+  public:
+    class Collector {
+      public:
+        Collector(const PhotonMap& map, unsigned max_count, scalar max_range) :
+            m_photon_map(&map), m_collected(max_count), m_max_range(max_range) {}
+
+        /// Get the total light at the given surface point.
+        /// @param position The position in space to query.
+        /// @param normal The surface normal of the surface to query.
+        /// @returns The total color (photon energy).
+        vec3 CollectLight(const vec3& position, const vec3& normal);
+
+      private:
+        const PhotonMap* m_photon_map;
+        std::vector<CollectedPhoton> m_collected;
+        scalar m_max_range;
+    };
 
   private:
+    static void RecCollectPhotons(std::vector<CollectedPhoton>& collected,
+                                  unsigned& count, const vec3& position,
+                                  const vec3& normal, scalar& range2,
+                                  AABB& aabb,
+                                  const std::vector<Photon>::const_iterator start,
+                                  const std::vector<Photon>::const_iterator stop);
+
+    unsigned CollectPhotons(std::vector<CollectedPhoton>& collected,
+                            const scalar range, const vec3& position,
+                            const vec3& normal) const;
+
     void DetermineMedianDistance();
 
     /// The number of elements that fit in the photon vector.

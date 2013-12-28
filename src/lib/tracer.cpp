@@ -247,10 +247,9 @@ class PhotonWorker {
     /// Photon tracer thread controller.
     class Controller {
       public:
-        Controller(unsigned seed, const mageray::Scene* scene,
-            unsigned max_rays);
+        Controller(const mageray::Scene* scene, unsigned max_rays);
 
-        Light* GetNextLight(unsigned& num_rays);
+        Light* GetNextLight(Random &random, unsigned& num_rays);
 
         const mageray::Scene* Scene() const {
           return m_scene;
@@ -266,7 +265,6 @@ class PhotonWorker {
 
       private:
         std::mutex m_lock;
-        Random m_random;
         const mageray::Scene* m_scene;
         unsigned m_rays_left;
         unsigned m_total_rays;
@@ -290,12 +288,9 @@ class PhotonWorker {
     std::thread* m_thread;
 };
 
-PhotonWorker::Controller::Controller(unsigned seed, const mageray::Scene *scene,
+PhotonWorker::Controller::Controller(const mageray::Scene *scene,
     unsigned max_rays) : m_scene(scene), m_rays_left(max_rays),
     m_total_rays(0) {
-  // Initialize random number generator.
-  m_random.Seed(seed);
-
   // Set up a random-access vector for all the light sources.
   m_lights.reserve(m_scene->Lights().size());
   for (auto it = m_scene->Lights().begin(); it != m_scene->Lights().end();
@@ -304,7 +299,7 @@ PhotonWorker::Controller::Controller(unsigned seed, const mageray::Scene *scene,
   }
 }
 
-Light* PhotonWorker::Controller::GetNextLight(unsigned& num_rays) {
+Light* PhotonWorker::Controller::GetNextLight(Random& random, unsigned& num_rays) {
   Light* light = NULL;
   num_rays = 0;
 
@@ -312,7 +307,7 @@ Light* PhotonWorker::Controller::GetNextLight(unsigned& num_rays) {
 
   if (m_rays_left > 0) {
     // Select a random light source.
-    light = m_lights[m_random.Int(0, m_lights.size() - 1)];
+    light = m_lights[random.Int(0, m_lights.size() - 1)];
 
     // Number of rays to shoot from this light source in this batch.
     num_rays = std::min(unsigned(100), m_rays_left);
@@ -347,7 +342,7 @@ void PhotonWorker::Wait() {
 
 void PhotonWorker::Run() {
   unsigned num_rays;
-  while (Light* light = m_controller->GetNextLight(num_rays)) {
+  while (Light* light = m_controller->GetNextLight(m_random, num_rays)) {
     // Do several rays for this light source (better cache performance).
     for (unsigned j = num_rays; j; --j) {
       // Select a random direction.
@@ -506,6 +501,17 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
   vec3 u_step = right * (scalar(1.0) / img_height);
   vec3 v_step = up * (scalar(-1.0) / img_height);
 
+  // Create a photon collector for this thread.
+#if 0
+  unsigned max_photons = 100;
+  scalar max_r = scalar(50.0) * std::sqrt(scalar(max_photons) / PI) *
+      m_photon_map.MedianDistance();
+#else
+  unsigned max_photons = 10;
+  scalar max_r(0.5);
+#endif
+  PhotonMap::Collector collector(m_photon_map, max_photons, max_r);
+
   // As long as there is work to do...
   int left, top, width, height;
   while (controller->NextArea(left, top, width, height)) {
@@ -531,7 +537,7 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
         // Trace a ray into the scene.
         Pixel result(0);
         TraceInfo info;
-        if (TraceRay(ray, info, 0)) {
+        if (TraceRay(ray, info, collector, 0)) {
           result = Pixel(std::min(scalar(1.0), info.color.x),
                          std::min(scalar(1.0), info.color.y),
                          std::min(scalar(1.0), info.color.z),
@@ -568,7 +574,7 @@ void Tracer::GeneratePhotonMap() {
 
   // Set up the thread controller.
   unsigned max_rays = m_scene->Config().max_photons * 500;
-  PhotonWorker::Controller controller(123341, m_scene, max_rays);
+  PhotonWorker::Controller controller(m_scene, max_rays);
 
   // Start threads.
   std::list<PhotonWorker*> workers;
@@ -642,8 +648,8 @@ scalar Tracer::Shadow(const Light* light, const vec3& position) const {
   }
 }
 
-bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
-    const {
+bool Tracer::TraceRay(const Ray& ray, TraceInfo& info,
+    PhotonMap::Collector& collector, const unsigned depth) const {
   if (depth > m_scene->Config().max_recursions) {
     return false;
   }
@@ -717,7 +723,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
     // Trace ray.
     Ray reflect_ray(reflect_start, reflect_dir);
     TraceInfo reflect_info;
-    if (TraceRay(reflect_ray, reflect_info, depth + 1)) {
+    if (TraceRay(reflect_ray, reflect_info, collector, depth + 1)) {
       info.color += reflect_info.color * reflection;
     }
   }
@@ -736,7 +742,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
     scalar filter = material_param.transparency.Abs();
     Ray refract_ray(refract_start, refract_dir);
     TraceInfo refract_info;
-    if (TraceRay(refract_ray, refract_info, depth + 1)) {
+    if (TraceRay(refract_ray, refract_info, collector, depth + 1)) {
       info.color += refract_info.color * transparency;
       filter *= scalar(1.0) - refract_info.alpha;
     }
@@ -779,13 +785,8 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth)
 
     // Get light contribtion from photon map.
     if (m_photon_map.HasPhotons() && has_diffuse) {
-      unsigned max_photons = 100;
-      scalar max_r = std::sqrt(scalar(max_photons) / PI) *
-          m_photon_map.MedianDistance();
-      vec3 photon_color = m_photon_map.GetTotalLightInRange(hit.point,
-          material_param.normal, max_r);
-      photon_color = photon_color * (m_photon_scale / (max_r * max_r));
-      light_contrib += photon_color * diffuse;
+      vec3 photon_color = collector.CollectLight(hit.point, material_param.normal);
+      light_contrib += photon_color * diffuse * m_photon_scale;
     }
   }
 

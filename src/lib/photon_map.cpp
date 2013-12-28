@@ -105,48 +105,6 @@ void BuildSubTree(const std::vector<Photon>::iterator start,
 
 }
 
-vec3 RecGetLightInRange(const vec3& position, const vec3& normal,
-    const scalar range2, const AABB& aabb,
-    const std::vector<Photon>::const_iterator start,
-    const std::vector<Photon>::const_iterator stop) {
-  vec3 color(0);
-
-  // Empty recursion?
-  if (start == stop) {
-    return color;
-  }
-
-  // Determine mid element (the point for this node in the tree).
-  auto node = start + ((stop - start) / 2);
-
-  // Is this a point to collect?
-  if (aabb.PointInside(node->position)) {
-    scalar cos_alpha = -normal.Dot(node->direction);
-    if (cos_alpha >= scalar(0.0)) {
-      scalar r2 = (position - node->position).AbsSqr();
-      if (r2 < range2) {
-        color += node->color * (cos_alpha * (scalar(1.0) - r2 / range2));
-      }
-    }
-  }
-
-  // Are there any more child nodes?
-  if (stop - start > 1) {
-    // Recurse further?
-    vec3::Axis axis = node->Axis();
-    scalar p = node->position[axis];
-    if (p >= aabb.Min()[axis]) {
-      color += RecGetLightInRange(position, normal, range2, aabb, start, node);
-    }
-    if (p <= aabb.Max()[axis]) {
-      color += RecGetLightInRange(position, normal, range2, aabb, node + 1,
-          stop);
-    }
-  }
-
-  return color;
-}
-
 } // anonymous namespace
 
 
@@ -189,17 +147,6 @@ void PhotonMap::BuildKDTree() {
   DetermineMedianDistance();
 }
 
-vec3 PhotonMap::GetTotalLightInRange(const vec3& position,
-    const vec3& normal, const scalar range) const {
-  // Set up bounding box.
-  AABB aabb(position - vec3(range), position + vec3(range));
-
-  // Get contributing light from the photon map.
-  auto start = m_photons.begin();
-  return RecGetLightInRange(position, normal, range * range, aabb, start,
-    start + m_size);
-}
-
 void PhotonMap::DetermineMedianDistance() {
   ScopedPerf _perf("Determine median distance");
   if (m_size < 2) {
@@ -225,6 +172,132 @@ void PhotonMap::DetermineMedianDistance() {
   _perf.Done();
 
   DLOG("Median distance = %f", double(m_median_distance));
+}
+
+/* static */
+void PhotonMap::RecCollectPhotons(
+    std::vector<CollectedPhoton>& collected, unsigned& count,
+    const vec3& position, const vec3& normal, scalar& range2,
+    AABB& aabb, const std::vector<Photon>::const_iterator start,
+    const std::vector<Photon>::const_iterator stop) {
+  // Empty recursion?
+  if (start == stop) {
+    return;
+  }
+
+  // Determine mid element (the point for this node in the tree).
+  auto node = start + ((stop - start) / 2);
+
+  // Is this a photon to collect?
+  if (aabb.PointInside(node->position)) {
+    // TODO(mage): Further discrimination... (inside plane, etc)
+    scalar cos_alpha = -normal.Dot(node->direction);
+    if (cos_alpha >= scalar(0.0)) {
+      scalar r2 = (position - node->position).AbsSqr();
+      if (r2 < range2) {
+        const Photon* photon = &*node;
+        if (count < collected.size()) {
+          collected[count].photon = photon;
+          collected[count].distance = r2;
+          count++;
+          if (UNLIKELY(count == collected.size())) {
+            // Make a max heap.
+            std::make_heap(collected.begin(), collected.end());
+
+            // Update the maximum range.
+            range2 = collected.front().distance;
+
+            // Update the AABB.
+            scalar range = std::sqrt(range2);
+            aabb.Min() = position - vec3(range);
+            aabb.Max() = position + vec3(range);
+          }
+        } else {
+          // Update heap.
+          std::pop_heap(collected.begin(), collected.end());
+          collected.back().photon = photon;
+          collected.back().distance = r2;
+          std::push_heap(collected.begin(), collected.end());
+
+          // Update the maximum range.
+          range2 = collected.front().distance;
+
+          // Update the AABB.
+          scalar range = std::sqrt(range2);
+          aabb.Min() = position - vec3(range);
+          aabb.Max() = position + vec3(range);
+        }
+      }
+    }
+  }
+
+  // Are there any more child nodes?
+  if (stop - start > 1) {
+    // Recurse further?
+    vec3::Axis axis = node->Axis();
+    scalar p = node->position[axis];
+    if (position[axis] < p) {
+      if (p >= aabb.Min()[axis]) {
+        RecCollectPhotons(collected, count, position, normal, range2, aabb, start, node);
+      }
+      if (p <= aabb.Max()[axis]) {
+        RecCollectPhotons(collected, count, position, normal, range2, aabb, node + 1, stop);
+      }
+    } else {
+      if (p <= aabb.Max()[axis]) {
+        RecCollectPhotons(collected, count, position, normal, range2, aabb, node + 1, stop);
+      }
+      if (p >= aabb.Min()[axis]) {
+        RecCollectPhotons(collected, count, position, normal, range2, aabb, start, node);
+      }
+    }
+  }
+}
+
+unsigned PhotonMap::CollectPhotons(
+    std::vector<CollectedPhoton>& collected,
+    const scalar range, const vec3& position, const vec3& normal) const {
+  // Set up bounding box.
+  AABB aabb(position - vec3(range), position + vec3(range));
+
+  // Get contributing light from the photon map.
+  auto start = m_photons.begin();
+  auto stop = start + m_size;
+  unsigned count = 0;
+  scalar range2 = range * range;
+  RecCollectPhotons(collected, count, position, normal, range2, aabb, start, stop);
+  return count;
+}
+
+vec3 PhotonMap::Collector::CollectLight(const vec3& position,
+    const vec3& normal) {
+  // Collect photons.
+  unsigned count = m_photon_map->CollectPhotons(
+        m_collected, m_max_range, position, normal);
+
+  vec3 photon_color = vec3(0);
+  if (count > 0) {
+    // Maximum distance.
+    scalar max_radius2 = scalar(0.0);
+    for (unsigned i = 0; i < count; ++i) {
+      if (m_collected[i].distance > max_radius2) {
+        max_radius2 = m_collected[i].distance;
+      }
+    }
+
+    // Sum of photon energy...
+    scalar dist_scale = scalar(1.0) / max_radius2;
+    for (unsigned i = 0; i < count; ++i) {
+      const Photon* photon = m_collected[i].photon;
+			scalar cos_alpha = -normal.Dot(photon->direction);
+			photon_color += photon->color * (cos_alpha * (scalar(1.0) - m_collected[i].distance * dist_scale));
+    }
+
+    // ...divided by area.
+    photon_color = photon_color * (scalar(1.0) / (PI * max_radius2));
+  }
+
+  return photon_color;
 }
 
 } // namespace mageray

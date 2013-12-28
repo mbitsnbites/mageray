@@ -107,7 +107,9 @@ class Tracer {
     scalar Shadow(const Light* light, const vec3& position) const;
 
     /// Trace a single ray.
-    bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
+    bool TraceRay(const Ray& ray, TraceInfo& info,
+                  PhotonMap::Collector& collector,
+                  const unsigned depth) const;
 
     const Scene* m_scene;
 
