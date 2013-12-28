@@ -61,7 +61,7 @@ class Mesh {
     /// @param ray The ray to shoot into the tree.
     /// @param[in,out] hit Current closest hit information.
     /// @returns True if the ray intersects with the mesh.
-    bool Intersect(const Ray& ray, HitInfo& hit) {
+    bool Intersect(const Ray& ray, HitInfo& hit) const {
       return m_tree.Intersect(ray, hit);
     }
 
@@ -70,7 +70,7 @@ class Mesh {
     void CompleteHitInfo(HitInfo& hit) const;
 
     /// @returns The bounding box for the mesh.
-    const AABB& BoundingBox() {
+    const AABB& BoundingBox() const {
       return m_tree.BoundingBox();
     }
 

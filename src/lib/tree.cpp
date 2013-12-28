@@ -119,9 +119,6 @@ Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
     return leaves[start];
   }
 
-  // Get the next branch node from the pre-allocated array.
-  Node* node = &m_branch_nodes[m_branch_nodes_idx++];
-
   // Determine optimal split direction.
   vec3::Axis axis = BestSplitDirection(leaves, aabb, start, stop);
 
@@ -185,9 +182,10 @@ Node* Tree::BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
     second_branch = BuildSubtree(leaves, second_aabb, start_second, stop, threaded_depth - 1);
   }
 
-  // Fill out the branch node info.
-  node->BoundingBox() = aabb;
-  node->SetChildren(first_branch, second_branch);
+  // "Create" a new branch node.
+  Node* node = &m_branch_nodes[m_branch_nodes_idx++];
+  node->Define(aabb, first_branch, second_branch);
+
   return node;
 }
 
@@ -269,22 +267,21 @@ void TriangleTree::Build(const MeshData& data) {
     const vec3 p2 = data.vertices[triangle->b].position;
     const vec3 p3 = data.vertices[triangle->c].position;
 
-    // Get a reference to the (so far empty) leaf node, and add the it to the
-    // node pointer vector (for quick sorting).
-    TriangleNode* node = static_cast<TriangleNode*>(&m_leaf_nodes[i]);
-    leaves[i] = node;
-
-    // Set the triangle item for this leaf node.
-    node->SetItem(triangle);
-
     // Calculate the bounding box for the triangle.
-    AABB& triangle_aabb = node->BoundingBox();
+    AABB triangle_aabb;
     triangle_aabb.Min().x = std::min(p1.x, std::min(p2.x, p3.x));
     triangle_aabb.Min().y = std::min(p1.y, std::min(p2.y, p3.y));
     triangle_aabb.Min().z = std::min(p1.z, std::min(p2.z, p3.z));
     triangle_aabb.Max().x = std::max(p1.x, std::max(p2.x, p3.x));
     triangle_aabb.Max().y = std::max(p1.y, std::max(p2.y, p3.y));
     triangle_aabb.Max().z = std::max(p1.z, std::max(p2.z, p3.z));
+
+    // "Create" a new leaf node.
+    TriangleNode* node = static_cast<TriangleNode*>(&m_leaf_nodes[i]);
+    node->Define(triangle_aabb, triangle);
+
+    // Add the leaf node to the node pointer vector (for quick sorting).
+    leaves[i] = node;
   }
 
   // Calculate total bounding box.
@@ -399,7 +396,7 @@ void ObjectTree::Build(const std::list<std::unique_ptr<Object> >& objects) {
 
   // Create a vector of leaf nodes, and calculate the total bounding box while
   // we're at it.
-  AABB aabb;
+  AABB aabb_union;
   m_leaf_nodes.resize(objects.size());
   std::vector<Node*> leaves(objects.size());
   auto it = objects.begin();
@@ -408,23 +405,23 @@ void ObjectTree::Build(const std::list<std::unique_ptr<Object> >& objects) {
     const Object* object = it->get();
     it++;
 
-    // Get a reference to the (so far empty) leaf node, and add the it to the
-    // node pointer vector (for quick sorting).
-    ObjectNode* node = static_cast<ObjectNode*>(&m_leaf_nodes[i]);
-    leaves[i] = node;
-
-    // Set the object item for this leaf node.
-    node->SetItem(object);
-
     // Get the bounding box for the object.
-    object->GetBoundingBox(node->BoundingBox());
+    AABB aabb;
+    object->GetBoundingBox(aabb);
 
-    // Update the union bounding box for all the triangles.
+    // Update the union bounding box for all the objects.
     if (UNLIKELY(!i)) {
-      aabb = node->BoundingBox();
+      aabb_union = aabb;
     } else {
-      aabb += node->BoundingBox();
+      aabb_union += aabb;
     }
+
+    // "Create" a new leaf node.
+    ObjectNode* node = static_cast<ObjectNode*>(&m_leaf_nodes[i]);
+    node->Define(aabb, object);
+
+    // Add the leaf node to the node pointer vector (for quick sorting).
+    leaves[i] = node;
   }
 
   _leaf_perf.Done();
@@ -432,7 +429,7 @@ void ObjectTree::Build(const std::list<std::unique_ptr<Object> >& objects) {
   // Build the tree. Here we pass the temporary leaf pointer vector, since
   // it's faster to sort it than the leaf items themselves (less memory to
   // copy).
-  Tree::Build(leaves, aabb);
+  Tree::Build(leaves, aabb_union);
 
   _perf.Done();
 }

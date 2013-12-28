@@ -79,6 +79,9 @@ void Mesh::MakeSphere(int res, scalar radius) {
     }
   }
 
+  // Build triangle tree.
+  m_tree.Build(m_data);
+
   _perf.Done();
 }
 

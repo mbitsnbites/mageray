@@ -53,7 +53,7 @@ class Node {
     Node() {}
 
     /// @returns The axis aligned bounding box for this node.
-    AABB& BoundingBox() {
+    const AABB& BoundingBox() const {
       return m_aabb;
     }
 
@@ -74,8 +74,11 @@ class Node {
       return m_branch.second;
     }
 
-    /// Set the child nodes of this branch node.
-    void SetChildren(Node* first, Node* second) {
+    /// Define the node properties.
+    // TODO(m): This should be part of the constructor. Then all the members
+    // could be turned into const.
+    void Define(const AABB& aabb, Node* first, Node* second) {
+      m_aabb = aabb;
       m_branch.first = first;
       m_branch.second = second;
     }
@@ -99,8 +102,11 @@ class Node {
 template <class T>
 class TypedNode : public Node {
   public:
-    /// Set the item of a leaf node.
-    void SetItem(const T* item) {
+    /// Define the node properties.
+    // TODO(m): This should be part of the constructor. Then all the members
+    // could be turned into const.
+    void Define(const AABB& aabb, const T* item) {
+      m_aabb = aabb;
       m_leaf.item = item;
       m_leaf.dummy = NULL;
     }
@@ -119,7 +125,7 @@ class Tree {
     Tree() {}
 
     /// @returns The bounding box for the tree.
-    const AABB& BoundingBox() {
+    const AABB& BoundingBox() const {
       ASSERT(!Empty(), "The tree is undefined.");
       return m_root->BoundingBox();
     }

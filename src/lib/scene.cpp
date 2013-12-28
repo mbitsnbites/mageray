@@ -352,11 +352,6 @@ void Scene::LoadMeshObject(tinyxml2::XMLElement* element) {
     throw scene_parse_error(element, "Missing mesh attribute.");
   }
 
-  std::unique_ptr<MeshObject> object(new MeshObject());
-  if (!object.get()) {
-    throw scene_parse_error(element, "Out of memory?");
-  }
-
   // Find the named mesh.
   auto it = m_meshes.find(mesh);
   if (it == m_meshes.end()) {
@@ -365,8 +360,8 @@ void Scene::LoadMeshObject(tinyxml2::XMLElement* element) {
     throw scene_parse_error(element, msg.c_str());
   }
 
-  // Assign a mesh to the object.
-  object->SetMesh(it->second.get());
+  // Create an object from the mesh.
+  std::unique_ptr<Object> object(new Object(it->second.get()));
 
   // Collect generic object information.
   LoadObject(element, object.get());
@@ -376,18 +371,32 @@ void Scene::LoadMeshObject(tinyxml2::XMLElement* element) {
 }
 
 void Scene::LoadSphereObject(tinyxml2::XMLElement* element) {
-  const char* radius = element->Attribute("radius");
-  if (!radius) {
+  const char* radius_str = element->Attribute("radius");
+  if (!radius_str) {
     throw scene_parse_error(element, "Missing radius attribute.");
   }
+  scalar radius = ParseScalarString(radius_str);
 
-  std::unique_ptr<SphereObject> object(new SphereObject());
+  // Find existing sphere mesh.
+  std::string mesh_name = std::string("sphere_") + std::string(radius_str);
+  auto it = m_generated_meshes.find(mesh_name);
+  if (it == m_generated_meshes.end()) {
+    // Create a new sphere mesh.
+    std::unique_ptr<Mesh> mesh(new Mesh());
+    if (!mesh.get()) {
+      throw scene_parse_error(element, "Out of memory?");
+    }
+    // FIXME(m): Magic number 32 - it's the sphere resolution.
+    mesh->MakeSphere(32, radius);
+    m_generated_meshes[mesh_name] = std::move(mesh);
+    it = m_generated_meshes.find(mesh_name);
+  }
+
+  // Create an object from the mesh.
+  std::unique_ptr<Object> object(new Object(it->second.get()));
   if (!object.get()) {
     throw scene_parse_error(element, "Out of memory?");
   }
-
-  // Set the radius for the sphere.
-  object->SetRadius(ParseScalarString(radius));
 
   // Collect generic object information.
   LoadObject(element, object.get());

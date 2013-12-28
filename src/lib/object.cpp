@@ -34,7 +34,8 @@
 
 namespace mageray {
 
-Object::Object() : m_material(NULL) {
+Object::Object(const Mesh* mesh) : m_material(NULL), m_mesh(mesh) {
+  ASSERT(m_mesh, "Undefined mesh.");
   m_matrix = mat3x4::Identity();
   m_inv_matrix = mat3x4::Identity();
 }
@@ -61,7 +62,7 @@ bool Object::Intersect(const Ray& ray, HitInfo& hit) const {
   const Ray transformed_ray(origin, direction);
 
   // Perform intersection.
-  bool got_hit = IntersectInObjectSpace(transformed_ray, hit);
+  bool got_hit = m_mesh->Intersect(transformed_ray, hit);
   if (got_hit) {
     hit.object = this;
   }
@@ -74,7 +75,7 @@ void Object::CompleteHitInfo(const Ray& ray, HitInfo& hit) const {
   hit.point = ray.Origin() + ray.Direction() * hit.t;
 
   // Get hit information in object space.
-  CompleteHitInfoInObjectSpace(hit);
+  m_mesh->CompleteHitInfo(hit);
 
   // Transform normal to world space.
   hit.normal = m_matrix.TransformDirection(hit.normal).Normalize();
@@ -82,8 +83,7 @@ void Object::CompleteHitInfo(const Ray& ray, HitInfo& hit) const {
 
 void Object::GetBoundingBox(AABB& aabb) const {
   // Get the object space bounding box.
-  AABB original;
-  GetBoundingBoxInObjectSpace(original);
+  const AABB original = m_mesh->BoundingBox();
 
   // Construct the 8 corner points of the bounding box.
   vec3 corners[8];
@@ -113,66 +113,6 @@ void Object::GetBoundingBox(AABB& aabb) const {
     if (corners[i].z < aabb.Min().z) aabb.Min().z = corners[i].z;
     if (corners[i].z > aabb.Max().z) aabb.Max().z = corners[i].z;
   }
-}
-
-bool MeshObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const {
-  if (LIKELY(m_mesh)) {
-    return m_mesh->Intersect(ray, hit);
-  }
-  return false;
-}
-
-void MeshObject::CompleteHitInfoInObjectSpace(HitInfo& hit) const {
-  m_mesh->CompleteHitInfo(hit);
-}
-
-void MeshObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
-  if (LIKELY(m_mesh)) {
-    aabb = m_mesh->BoundingBox();
-  } else {
-    aabb.Min().x = aabb.Min().y = aabb.Min().z = 0.0;
-    aabb.Max().x = aabb.Max().y = aabb.Max().z = 0.0;
-  }
-}
-
-bool SphereObject::IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const {
-  scalar a = ray.Direction().Dot(ray.Direction());
-  scalar b = -ray.Direction().Dot(ray.Origin());
-  scalar c = ray.Origin().Dot(ray.Origin()) - m_radius_squared;
-
-  scalar root_term = b * b - a * c;
-  if (root_term < scalar(0.0)) {
-    return false;
-  }
-  root_term = std::sqrt(root_term);
-
-  scalar t = b > root_term ? b - root_term : b + root_term;
-  t /= a;
-
-  if (t < EPSILON || t >= hit.t) {
-    return false;
-  }
-
-  // Store object space point for later (normal calculation).
-  hit.object_space_point = ray.Origin() + ray.Direction() * t;
-
-  // We had a hit.
-  hit.t = t;
-  return true;
-}
-
-void SphereObject::CompleteHitInfoInObjectSpace(HitInfo& hit) const {
-  // The normal is the normalized point in space.
-  hit.normal = hit.object_space_point * m_inv_radius;
-
-  // The U/V coordinate is undefined.
-  hit.uv = vec2(0);
-}
-
-void SphereObject::GetBoundingBoxInObjectSpace(AABB& aabb) const {
-  scalar radius = std::sqrt(m_radius_squared);
-  aabb.Min().x = aabb.Min().y = aabb.Min().z = -radius;
-  aabb.Max().x = aabb.Max().y = aabb.Max().z = radius;
 }
 
 } // namespace mageray

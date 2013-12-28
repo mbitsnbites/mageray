@@ -147,6 +147,7 @@ class Scene {
 
     std::map<std::string, std::unique_ptr<Image> > m_images;
     std::map<std::string, std::unique_ptr<Mesh> > m_meshes;
+    std::map<std::string, std::unique_ptr<Mesh> > m_generated_meshes;
     std::map<std::string, std::unique_ptr<Shader> > m_shaders;
     std::map<std::string, std::unique_ptr<Material> > m_materials;
 

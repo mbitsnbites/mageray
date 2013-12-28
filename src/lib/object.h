@@ -39,7 +39,7 @@ namespace mageray {
 
 class Object {
   public:
-    Object();
+    Object(const Mesh* mesh);
     ~Object() {}
 
     /// Translate the object.
@@ -98,69 +98,15 @@ class Object {
     /// @param aabb[out] The bounding box (in world space) for this object.
     void GetBoundingBox(AABB& aabb) const;
 
-  protected:
-    /// Find intersection between object and ray.
-    /// @param ray The ray to shoot against the object (in object space).
-    /// @param[in,out] hit Current closest hit information.
-    /// @returns True if the ray intersects with the object.
-    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const = 0;
-
-    /// Fill out remaining hit information.
-    /// @param hit The HitInfo to fill out.
-    virtual void CompleteHitInfoInObjectSpace(HitInfo& hit) const = 0;
-
-    /// Get the bounding box for this object.
-    /// @param aabb[out] The bounding box (in object space) for this object.
-    virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const = 0;
-
+  private:
     mat3x4 m_matrix;
     mat3x4 m_inv_matrix;
 
     mageray::Material* m_material;
 
-  private:
+    const Mesh* m_mesh;
+
     FORBID_COPY(Object);
-};
-
-class MeshObject : public Object {
-  public:
-    MeshObject() : Object(), m_mesh(NULL) {}
-
-    void SetMesh(Mesh* mesh) {
-      m_mesh = mesh;
-    }
-
-  protected:
-    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const;
-
-    virtual void CompleteHitInfoInObjectSpace(HitInfo& hit) const;
-
-    virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const;
-
-  private:
-    Mesh* m_mesh;
-};
-
-class SphereObject : public Object {
-  public:
-    SphereObject() : Object(), m_radius_squared(scalar(1.0)) {}
-
-    void SetRadius(const scalar& radius) {
-      ASSERT(radius > scalar(0.0), "Sphere radius must be positive.");
-      m_radius_squared = radius * radius;
-      m_inv_radius = scalar(1.0) / radius;
-    }
-
-  protected:
-    virtual bool IntersectInObjectSpace(const Ray& ray, HitInfo& hit) const;
-
-    virtual void CompleteHitInfoInObjectSpace(HitInfo& hit) const;
-
-    virtual void GetBoundingBoxInObjectSpace(AABB& aabb) const;
-
-  private:
-    scalar m_radius_squared;
-    scalar m_inv_radius;
 };
 
 } // namespace mageray
