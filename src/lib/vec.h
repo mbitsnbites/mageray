@@ -208,8 +208,8 @@ struct vec3 {
 
   /// @returns The next axis, modulo Z.
   static Axis NextAxis(const Axis a) {
-    static const Axis next_axis[3] = {Y, Z, X};
-    return next_axis[a];
+    // Note: This assumes that the Axis enum is defined as (X=0, Y=1, Z=2).
+    return static_cast<Axis>((a + 1) % 3);
   }
 
   friend std::ostream& operator<<(std::ostream& os, const vec3& v) {
