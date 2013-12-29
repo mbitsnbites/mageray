@@ -55,19 +55,16 @@ struct HitInfo {
     return hit_info;
   }
 
-  const Object* object; ///< The object that was hit.
-  scalar t;             ///< Closest intersection t so far.
+  const Object* object;     ///< The object that was hit.
+  scalar t;                 ///< Closest intersection t so far.
 
-  // Specific to triangle mesh intersections.
+  // Triangle mesh intersection information.
   const Triangle* triangle; ///< Which triangle was intersected.
-  vec2 tri_uv;          ///< Triangle space U/V info (from intersection).
+  vec2 tri_uv;              ///< Triangle space U/V info (from intersection).
 
-  // Specific to sphere intersections.
-  vec3 object_space_point;  ///< Point in object space.
-
-  vec3 point;           ///< Point in space.
-  vec3 normal;          ///< Surface normal.
-  vec2 uv;              ///< U/V coordinate (for texture mapping).
+  vec3 point;               ///< Point in space.
+  vec3 normal;              ///< Surface normal.
+  vec2 uv;                  ///< U/V coordinate (for texture mapping).
 };
 
 } // namespace mageray
