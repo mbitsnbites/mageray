@@ -78,18 +78,8 @@ class Ray {
     }
 
     /// @returns The ray origin.
-    vec3& Origin() {
-      return m_origin;
-    }
-
-    /// @returns The ray origin.
     const vec3& Origin() const {
       return m_origin;
-    }
-
-    /// @returns The ray direction.
-    vec3& Direction() {
-      return m_direction;
     }
 
     /// @returns The ray direction.
