@@ -34,6 +34,8 @@
 
 using namespace mageray;
 
+namespace {
+
 std::string ExtractBasePath(const std::string& file_name) {
   size_t separator_pos = file_name.find_last_of("/\\");
   if (separator_pos == std::string::npos) {
@@ -42,17 +44,61 @@ std::string ExtractBasePath(const std::string& file_name) {
   return file_name.substr(0, separator_pos + 1);
 }
 
+void ShowUsage(const char* prg_name) {
+  std::cout << "Usage: " << prg_name << " [options] scene image" << std::endl;
+  std::cout << "Options:" << std::endl;
+  std::cout << " -w width" << std::endl;
+  std::cout << " -h height" << std::endl;
+}
+
+}
+
 int main(int argc, const char* argv[]) {
-  if (argc != 3) {
-    std::cout << "Usage: " << argv[0] << " scene image" << std::endl;
+  std::cout << "mageray v0.1" << std::endl;
+
+  if (argc < 3) {
+    ShowUsage(argv[0]);
     return 0;
   }
 
-  std::cout << "mageray v0.1" << std::endl;
+  // Collect command line arguments.
+  unsigned width = 1024;
+  unsigned height = 768;
+  const char* file_names[2];
+  int file_name_idx = 0;
+  for (int i = 1; i < argc; ++i) {
+    std::string a(argv[i]);
+    if (a == "-w") {
+      if ((i + 1) == argc) {
+        std::cerr << "Too few arguments." << std::endl;
+        ShowUsage(argv[0]);
+        return 0;
+      }
+      ++i;
+      width = std::stoi(argv[i]);
+    }
+    else if (a == "-h") {
+      if ((i + 1) == argc) {
+        std::cerr << "Too few arguments." << std::endl;
+        ShowUsage(argv[0]);
+        return 0;
+      }
+      ++i;
+      height = std::stoi(argv[i]);
+    }
+    else {
+      if (file_name_idx >= 2) {
+        std::cerr << "Too many arguments." << std::endl;
+        ShowUsage(argv[0]);
+        return 0;
+      }
+      file_names[file_name_idx++] = argv[i];
+    }
+  }
 
-  // Get arguments.
-  const std::string scene_file(argv[1]);
-  const std::string image_file(argv[2]);
+  // Get file name arguments.
+  const std::string scene_file(file_names[0]);
+  const std::string image_file(file_names[1]);
 
   // Determine resource folder.
   const std::string file_path = ExtractBasePath(scene_file);
@@ -64,11 +110,6 @@ int main(int argc, const char* argv[]) {
   if (!scene.LoadFromXML(scene_file.c_str())) {
     return 0;
   }
-
-  // TODO(mage): Collect image quality parameters from command line and/or
-  // the scene file.
-  unsigned width = 1024;
-  unsigned height = 768;
 
   // Create a target image.
   Image img;
@@ -85,7 +126,7 @@ int main(int argc, const char* argv[]) {
   tracer.GeneratePhotonMap();
 
   // Ray trace image.
-  std::cout << std::endl << "[Rendering image]" << std::endl;
+  std::cout << std::endl << "[Rendering image (" << width << "x" << height << ")]" << std::endl;
   tracer.GenerateImage(img);
 
   // Save image.
