@@ -94,9 +94,9 @@ class Object {
     /// @param[in,out] hit The HitInfo to fill out.
     void CompleteHitInfo(const Ray& ray, HitInfo& hit) const;
 
-    /// Get the bounding box for this object.
-    /// @param aabb[out] The bounding box (in world space) for this object.
-    void GetBoundingBox(AABB& aabb) const;
+    /// Get the transformed bounding box for this object.
+    /// @returns The bounding box (in world space) for this object.
+    AABB TransformedBoundingBox() const;
 
   private:
     mat3x4 m_matrix;

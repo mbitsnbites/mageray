@@ -406,8 +406,7 @@ void ObjectTree::Build(const std::list<std::unique_ptr<Object> >& objects) {
     it++;
 
     // Get the bounding box for the object.
-    AABB aabb;
-    object->GetBoundingBox(aabb);
+    const AABB aabb = object->TransformedBoundingBox();
 
     // Update the union bounding box for all the objects.
     if (UNLIKELY(!i)) {

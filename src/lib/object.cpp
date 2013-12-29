@@ -81,7 +81,7 @@ void Object::CompleteHitInfo(const Ray& ray, HitInfo& hit) const {
   hit.normal = m_matrix.TransformDirection(hit.normal).Normalize();
 }
 
-void Object::GetBoundingBox(AABB& aabb) const {
+AABB Object::TransformedBoundingBox() const {
   // Get the object space bounding box.
   const AABB original = m_mesh->BoundingBox();
 
@@ -102,6 +102,7 @@ void Object::GetBoundingBox(AABB& aabb) const {
   }
 
   // Find the bounding box that includes all the 8 transformed points.
+  AABB aabb;
   aabb.Min().x = aabb.Max().x = corners[0].x;
   aabb.Min().y = aabb.Max().y = corners[0].y;
   aabb.Min().z = aabb.Max().z = corners[0].z;
@@ -113,6 +114,8 @@ void Object::GetBoundingBox(AABB& aabb) const {
     if (corners[i].z < aabb.Min().z) aabb.Min().z = corners[i].z;
     if (corners[i].z > aabb.Max().z) aabb.Max().z = corners[i].z;
   }
+
+  return aabb;
 }
 
 } // namespace mageray
