@@ -39,23 +39,21 @@ namespace mageray {
 
 class Mesh {
   public:
-    Mesh() {}
-    ~Mesh() {}
-
     /// Load a mesh from a stream.
     /// @param stream The stream from which to read the mesh.
-    /// @returns true if the operation succeeded.
-    bool Load(std::istream& stream);
+    /// @returns A Mesh object if the operation succeeded, or NULL.
+    static Mesh* Load(std::istream& stream);
 
     /// Load a mesh from a file.
     /// @param file_name File to load.
-    /// @returns true if the file could be loaded.
-    bool Load(const char* file_name);
+    /// @returns A Mesh object if the operation succeeded, or NULL.
+    static Mesh* Load(const char* file_name);
 
     /// Build a sphere mesh.
     /// @param res Sphere resolution.
     /// @param radius The sphere radius.
-    void MakeSphere(int res, scalar radius);
+    /// @returns A Mesh object if the operation succeeded, or NULL.
+    static Mesh* MakeSphere(int res, scalar radius);
 
     /// Find intersection between mesh and ray.
     /// @param ray The ray to shoot into the tree.
@@ -75,6 +73,8 @@ class Mesh {
     }
 
   private:
+    Mesh() {}
+
     /// The raw mesh data.
     MeshData m_data;
 

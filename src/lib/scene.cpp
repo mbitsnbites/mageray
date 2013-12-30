@@ -205,13 +205,10 @@ void Scene::LoadMesh(tinyxml2::XMLElement* element) {
   }
 
   // Load the mesh.
-  std::unique_ptr<Mesh> mesh(new Mesh());
-  if (!mesh.get()) {
-    throw scene_parse_error(element, "Out of memory?");
-  }
   std::string file_name = m_file_path + file;
   DLOG("Loading mesh file %s.", file_name.c_str());
-  if (!mesh->Load(file_name.c_str())) {
+  std::unique_ptr<Mesh> mesh(Mesh::Load(file_name.c_str()));
+  if (!mesh.get()) {
     std::string msg = std::string("Unable to load mesh file \"") +
         file_name + std::string("\".");
     throw scene_parse_error(element, msg.c_str());
@@ -382,12 +379,11 @@ void Scene::LoadSphereObject(tinyxml2::XMLElement* element) {
   auto it = m_generated_meshes.find(mesh_name);
   if (it == m_generated_meshes.end()) {
     // Create a new sphere mesh.
-    std::unique_ptr<Mesh> mesh(new Mesh());
-    if (!mesh.get()) {
-      throw scene_parse_error(element, "Out of memory?");
-    }
     // FIXME(m): Magic number 32 - it's the sphere resolution.
-    mesh->MakeSphere(32, radius);
+    std::unique_ptr<Mesh> mesh(Mesh::MakeSphere(32, radius));
+    if (!mesh.get()) {
+      throw scene_parse_error(element, "Unable to create sphere mesh.");
+    }
     m_generated_meshes[mesh_name] = std::move(mesh);
     it = m_generated_meshes.find(mesh_name);
   }

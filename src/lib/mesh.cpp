@@ -29,6 +29,7 @@
 #include "mesh.h"
 
 #include <fstream>
+#include <memory>
 
 #include "base/log.h"
 #include "base/perf.h"
@@ -36,13 +37,51 @@
 
 namespace mageray {
 
-void Mesh::MakeSphere(int res, scalar radius) {
+Mesh* Mesh::Load(std::istream& stream) {
+  std::unique_ptr<Mesh> mesh(new Mesh());
+  if (!mesh.get()) {
+    return NULL;
+  }
+
+  // Try different file formats.
+  bool success = false;
+  if (OpenCTMImporter::Detect(stream)) {
+    OpenCTMImporter importer(mesh->m_data);
+    success = importer.Load(stream);
+  }
+
+  if (success) {
+    // Build triangle tree.
+    mesh->m_tree.Build(mesh->m_data);
+    return mesh.release();
+  }
+
+  LOG("Unable to load mesh file.");
+  return NULL;
+}
+
+Mesh* Mesh::Load(const char* file_name) {
+  std::ifstream is(file_name, std::ios_base::in | std::ios_base::binary);
+  if (is.good()) {
+    return Load(is);
+  }
+
+  LOG("Unable to open mesh file %s.", file_name);
+  return NULL;
+}
+
+Mesh* Mesh::MakeSphere(int res, scalar radius) {
   ScopedPerf _perf = ScopedPerf(__FUNCTION__);
+
+  std::unique_ptr<Mesh> mesh(new Mesh());
+  if (!mesh.get()) {
+    return NULL;
+  }
 
   // Make vertices
   int vertex_span = res + 1;
   int num_vertices = vertex_span * (res + 1);
-  m_data.vertices.resize(num_vertices);
+  mesh->m_data.vertices.resize(num_vertices);
   scalar step = scalar(1.0) / static_cast<scalar>(res);
   scalar u = 0;
   for (int i = 0, k = 0; i <= res; ++i) {
@@ -52,7 +91,7 @@ void Mesh::MakeSphere(int res, scalar radius) {
     for (int j = 0; j <= res; ++j) {
       scalar cos_phi = std::cos(PI*v);
       scalar sin_phi = std::sin(PI*v);
-      Vertex* vertex = &m_data.vertices[k++];
+      Vertex* vertex = &mesh->m_data.vertices[k++];
       vertex->normal = vec3(
         cos_theta * sin_phi,
         sin_theta * sin_phi,
@@ -67,11 +106,11 @@ void Mesh::MakeSphere(int res, scalar radius) {
 
   // Make triangles
   int num_triangles = res * res * 2;
-  m_data.triangles.resize(num_triangles);
+  mesh->m_data.triangles.resize(num_triangles);
   for (int i = 0, k = 0; i < res; ++i) {
     for (int j = 0; j < res; ++j) {
-      Triangle* triangle1 = &m_data.triangles[k++];
-      Triangle* triangle2 = &m_data.triangles[k++];
+      Triangle* triangle1 = &mesh->m_data.triangles[k++];
+      Triangle* triangle2 = &mesh->m_data.triangles[k++];
       triangle1->a = triangle2->a = i * vertex_span + j;
       triangle1->b = i * vertex_span + j + 1;
       triangle1->c = triangle2->b = (i + 1) * vertex_span + j + 1;
@@ -80,37 +119,11 @@ void Mesh::MakeSphere(int res, scalar radius) {
   }
 
   // Build triangle tree.
-  m_tree.Build(m_data);
+  mesh->m_tree.Build(mesh->m_data);
 
   _perf.Done();
-}
 
-bool Mesh::Load(std::istream& stream) {
-  // Try different file formats.
-  bool success = false;
-  if (OpenCTMImporter::Detect(stream)) {
-    OpenCTMImporter importer(m_data);
-    success = importer.Load(stream);
-  }
-
-  if (success) {
-    // Build triangle tree.
-    m_tree.Build(m_data);
-  } else {
-    LOG("Unable to load mesh file.");
-  }
-
-  return success;
-}
-
-bool Mesh::Load(const char* file_name) {
-  std::ifstream is(file_name, std::ios_base::in | std::ios_base::binary);
-  if (is.good()) {
-    return Load(is);
-  }
-
-  LOG("Unable to open mesh file %s.", file_name);
-  return false;
+  return mesh.release();
 }
 
 void Mesh::CompleteHitInfo(HitInfo& hit) const {
