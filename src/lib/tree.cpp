@@ -246,26 +246,26 @@ bool Tree::Intersect(const Ray& ray, HitInfo& hit) const {
   return RecursiveIntersect(m_root, ray, hit);
 }
 
-void TriangleTree::Build(const MeshData& data) {
+void TriangleTree::Build(const MeshData* data) {
   ScopedPerf _perf = ScopedPerf("Build triangle tree");
 
   // We keep a reference to the vertices.
-  m_data = &data;
+  m_data = data;
 
   ScopedPerf _leaf_perf = ScopedPerf("Generate leaf nodes");
 
   // Create a vector of leaf nodes.
-  m_leaf_nodes.resize(data.triangles.size());
-  std::vector<Node*> leaves(data.triangles.size());
+  m_leaf_nodes.resize(m_data->triangles.size());
+  std::vector<Node*> leaves(m_data->triangles.size());
   #pragma omp parallel for
-  for (unsigned i = 0; i < data.triangles.size(); i++) {
+  for (unsigned i = 0; i < m_data->triangles.size(); i++) {
     // Get the triangle.
-    const Triangle* triangle = &data.triangles[i];
+    const Triangle* triangle = &m_data->triangles[i];
 
     // Get the three vertex positions for the triangle.
-    const vec3 p1 = data.vertices[triangle->a].position;
-    const vec3 p2 = data.vertices[triangle->b].position;
-    const vec3 p3 = data.vertices[triangle->c].position;
+    const vec3 p1 = m_data->vertices[triangle->a].position;
+    const vec3 p2 = m_data->vertices[triangle->b].position;
+    const vec3 p3 = m_data->vertices[triangle->c].position;
 
     // Calculate the bounding box for the triangle.
     AABB triangle_aabb;

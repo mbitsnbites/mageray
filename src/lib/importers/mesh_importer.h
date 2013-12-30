@@ -37,7 +37,7 @@ namespace mageray {
 
 class MeshImporter {
   public:
-    MeshImporter(MeshData& data) : m_data(&data) {}
+    MeshImporter(MeshData* data) : m_data(data) {}
     virtual ~MeshImporter() {}
 
     /// Load a mesh from a stream.

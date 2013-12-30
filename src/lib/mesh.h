@@ -73,10 +73,10 @@ class Mesh {
     }
 
   private:
-    Mesh() {}
+    Mesh(MeshData* data);
 
     /// The raw mesh data.
-    MeshData m_data;
+    std::unique_ptr<MeshData> m_data;
 
     /// The triangle tree (referencing the raw mesh data).
     TriangleTree m_tree;

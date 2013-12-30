@@ -194,7 +194,7 @@ class TriangleTree : public Tree {
   public:
     /// Build a triangle tree from raw mesh data.
     /// @param data The mesh data (triangle and vertex arrays).
-    void Build(const MeshData& data);
+    void Build(const MeshData* data);
 
   protected:
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,

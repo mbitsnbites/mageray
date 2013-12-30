@@ -37,23 +37,22 @@
 
 namespace mageray {
 
+Mesh::Mesh(MeshData* data) : m_data(data) {
+  m_tree.Build(m_data.get());
+}
+
 Mesh* Mesh::Load(std::istream& stream) {
-  std::unique_ptr<Mesh> mesh(new Mesh());
-  if (!mesh.get()) {
-    return NULL;
-  }
+  std::unique_ptr<MeshData> data(new MeshData());
 
   // Try different file formats.
   bool success = false;
   if (OpenCTMImporter::Detect(stream)) {
-    OpenCTMImporter importer(mesh->m_data);
+    OpenCTMImporter importer(data.get());
     success = importer.Load(stream);
   }
 
   if (success) {
-    // Build triangle tree.
-    mesh->m_tree.Build(mesh->m_data);
-    return mesh.release();
+    return new Mesh(data.release());
   }
 
   LOG("Unable to load mesh file.");
@@ -73,15 +72,12 @@ Mesh* Mesh::Load(const char* file_name) {
 Mesh* Mesh::MakeSphere(int res, scalar radius) {
   ScopedPerf _perf = ScopedPerf(__FUNCTION__);
 
-  std::unique_ptr<Mesh> mesh(new Mesh());
-  if (!mesh.get()) {
-    return NULL;
-  }
+  std::unique_ptr<MeshData> data(new MeshData());
 
   // Make vertices
   int vertex_span = res + 1;
   int num_vertices = vertex_span * (res + 1);
-  mesh->m_data.vertices.resize(num_vertices);
+  data->vertices.resize(num_vertices);
   scalar step = scalar(1.0) / static_cast<scalar>(res);
   scalar u = 0;
   for (int i = 0, k = 0; i <= res; ++i) {
@@ -91,7 +87,7 @@ Mesh* Mesh::MakeSphere(int res, scalar radius) {
     for (int j = 0; j <= res; ++j) {
       scalar cos_phi = std::cos(PI*v);
       scalar sin_phi = std::sin(PI*v);
-      Vertex* vertex = &mesh->m_data.vertices[k++];
+      Vertex* vertex = &data->vertices[k++];
       vertex->normal = vec3(
         cos_theta * sin_phi,
         sin_theta * sin_phi,
@@ -106,11 +102,11 @@ Mesh* Mesh::MakeSphere(int res, scalar radius) {
 
   // Make triangles
   int num_triangles = res * res * 2;
-  mesh->m_data.triangles.resize(num_triangles);
+  data->triangles.resize(num_triangles);
   for (int i = 0, k = 0; i < res; ++i) {
     for (int j = 0; j < res; ++j) {
-      Triangle* triangle1 = &mesh->m_data.triangles[k++];
-      Triangle* triangle2 = &mesh->m_data.triangles[k++];
+      Triangle* triangle1 = &data->triangles[k++];
+      Triangle* triangle2 = &data->triangles[k++];
       triangle1->a = triangle2->a = i * vertex_span + j;
       triangle1->b = i * vertex_span + j + 1;
       triangle1->c = triangle2->b = (i + 1) * vertex_span + j + 1;
@@ -119,18 +115,18 @@ Mesh* Mesh::MakeSphere(int res, scalar radius) {
   }
 
   // Build triangle tree.
-  mesh->m_tree.Build(mesh->m_data);
+  Mesh* mesh = new Mesh(data.release());
 
   _perf.Done();
 
-  return mesh.release();
+  return mesh;
 }
 
 void Mesh::CompleteHitInfo(HitInfo& hit) const {
   // Pick the three triangle vertices.
-  const Vertex* v1 = &m_data.vertices[hit.triangle->a];
-  const Vertex* v2 = &m_data.vertices[hit.triangle->b];
-  const Vertex* v3 = &m_data.vertices[hit.triangle->c];
+  const Vertex* v1 = &m_data->vertices[hit.triangle->a];
+  const Vertex* v2 = &m_data->vertices[hit.triangle->b];
+  const Vertex* v3 = &m_data->vertices[hit.triangle->c];
 
   // Interpolation weighting factors.
   scalar w1 = scalar(1.0) - hit.tri_uv.u - hit.tri_uv.v;

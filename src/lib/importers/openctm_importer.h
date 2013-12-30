@@ -35,7 +35,7 @@ namespace mageray {
 
 class OpenCTMImporter : public MeshImporter {
   public:
-    OpenCTMImporter(MeshData& data) : MeshImporter(data) {}
+    OpenCTMImporter(MeshData* data) : MeshImporter(data) {}
 
     static bool Detect(std::istream& stream);
 
