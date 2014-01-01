@@ -63,13 +63,13 @@ class Node {
     }
 
     /// @returns The first child node of a branch node.
-    Node* FirstChild() const {
+    const Node* FirstChild() const {
       ASSERT(!IsLeafNode(), "This is a leaf node.");
       return m_branch.first;
     }
 
     /// @returns The second child node of a branch node.
-    Node* SecondChild() const {
+    const Node* SecondChild() const {
       ASSERT(!IsLeafNode(), "This is a leaf node.");
       return m_branch.second;
     }
@@ -77,7 +77,7 @@ class Node {
     /// Define the node properties.
     // TODO(m): This should be part of the constructor. Then all the members
     // could be turned into const.
-    void Define(const AABB& aabb, Node* first, Node* second) {
+    void Define(const AABB& aabb, const Node* first, const Node* second) {
       m_aabb = aabb;
       m_branch.first = first;
       m_branch.second = second;
@@ -86,15 +86,19 @@ class Node {
   protected:
     AABB m_aabb;
 
+    struct BranchInfo {
+      const Node* first;
+      const Node* second;
+    };
+
+    struct LeafInfo {
+      const void* item;
+      const void* dummy;
+    };
+
     union {
-      struct {
-        Node* first;
-        Node* second;
-      } m_branch;
-      struct {
-        const void* item;
-        void* dummy;
-      } m_leaf;
+      BranchInfo m_branch;
+      LeafInfo m_leaf;
     };
 };
 
@@ -194,7 +198,7 @@ class TriangleTree : public Tree {
   public:
     /// Build a triangle tree from raw mesh data.
     /// @param data The mesh data (triangle and vertex arrays).
-    void Build(const MeshData* data);
+    TriangleTree(const MeshData* data);
 
   protected:
     virtual bool RecursiveIntersect(const Node* node, const Ray& ray,

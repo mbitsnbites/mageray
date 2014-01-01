@@ -37,8 +37,7 @@
 
 namespace mageray {
 
-Mesh::Mesh(MeshData* data) : m_data(data) {
-  m_tree.Build(m_data.get());
+Mesh::Mesh(MeshData* data) : m_data(data), m_tree(new TriangleTree(data)) {
 }
 
 Mesh* Mesh::Load(std::istream& stream) {

@@ -230,7 +230,7 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
 
 bool Tree::Intersect(const Ray& ray, HitInfo& hit) const {
   // Nothing to do?
-  if (Empty()) {
+  if (UNLIKELY(Empty())) {
     return false;
   }
 
@@ -246,7 +246,7 @@ bool Tree::Intersect(const Ray& ray, HitInfo& hit) const {
   return RecursiveIntersect(m_root, ray, hit);
 }
 
-void TriangleTree::Build(const MeshData* data) {
+TriangleTree::TriangleTree(const MeshData* data) {
   ScopedPerf _perf = ScopedPerf("Build triangle tree");
 
   // We keep a reference to the vertices.
@@ -365,7 +365,7 @@ bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
   }
 
   // Check intersection with children bounding boxes.
-  Node* children[2];
+  const Node* children[2];
   children[0] = node->FirstChild();
   children[1] = node->SecondChild();
   scalar t1 = hit.t, t2 = hit.t;
@@ -446,7 +446,7 @@ bool ObjectTree::RecursiveIntersect(const Node* node, const Ray& ray,
   }
 
   // Check intersection with children bounding boxes.
-  Node* children[2];
+  const Node* children[2];
   children[0] = node->FirstChild();
   children[1] = node->SecondChild();
   scalar t1 = hit.t, t2 = hit.t;

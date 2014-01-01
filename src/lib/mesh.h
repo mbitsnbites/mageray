@@ -60,7 +60,7 @@ class Mesh {
     /// @param[in,out] hit Current closest hit information.
     /// @returns True if the ray intersects with the mesh.
     bool Intersect(const Ray& ray, HitInfo& hit) const {
-      return m_tree.Intersect(ray, hit);
+      return m_tree->Intersect(ray, hit);
     }
 
     /// Calculate the normal for the given hit.
@@ -69,17 +69,17 @@ class Mesh {
 
     /// @returns The bounding box for the mesh.
     const AABB& BoundingBox() const {
-      return m_tree.BoundingBox();
+      return m_tree->BoundingBox();
     }
 
   private:
     Mesh(MeshData* data);
 
     /// The raw mesh data.
-    std::unique_ptr<MeshData> m_data;
+    const std::unique_ptr<const MeshData> m_data;
 
     /// The triangle tree (referencing the raw mesh data).
-    TriangleTree m_tree;
+    const std::unique_ptr<const TriangleTree> m_tree;
 };
 
 } // namespace mageray
