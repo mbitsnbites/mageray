@@ -228,24 +228,6 @@ void Tree::Build(std::vector<Node*>& leaves, const AABB& aabb) {
   ASSERT(m_branch_nodes_idx == m_branch_nodes.size(), "Badly built tree!");
 }
 
-bool Tree::Intersect(const Ray& ray, HitInfo& hit) const {
-  // Nothing to do?
-  if (UNLIKELY(Empty())) {
-    return false;
-  }
-
-  // Check intersection against root node bounding box.
-  // TODO(mage): In most cases we already know that we have a hit against the
-  // root node, so we should be able to skip this check.
-  scalar aabb_t = hit.t;
-  if (!m_root->BoundingBox().Intersect(ray, aabb_t)) {
-    return false;
-  }
-
-  // Recursively intersect with the entire tree.
-  return RecursiveIntersect(m_root, ray, hit);
-}
-
 TriangleTree::TriangleTree(const MeshData* data) {
   ScopedPerf _perf = ScopedPerf("Build triangle tree");
 
@@ -296,6 +278,59 @@ TriangleTree::TriangleTree(const MeshData* data) {
   Tree::Build(leaves, aabb);
 
   _perf.Done();
+}
+
+bool TriangleTree::Intersect(const Ray& ray, HitInfo& hit) const {
+  // Nothing to do?
+  if (UNLIKELY(Empty())) {
+    return false;
+  }
+
+  // Note: Since we usually get here from ObjectTree::RecursiveIntersect(), the
+  // root node bounding box of the triangle tree (which equals the object tree
+  // leaf node bounding box), has already been checked for intersection.
+  // Therefore, we do not have to check intersection against the root node
+  // bounding box.
+
+  // Recursively intersect with the entire tree.
+  return RecursiveIntersect(m_root, ray, hit);
+}
+
+bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
+    HitInfo& hit) const {
+  // Was this a leaf node?
+  if (node->IsLeafNode()) {
+    // Get the triangle of this leaf node.
+    const Triangle* triangle =
+        reinterpret_cast<const TriangleNode*>(node)->Item();
+
+    // Calculate intersection with the triangle.
+    return IntersectTriangle(ray, triangle, hit);
+  }
+
+  // Check intersection with children bounding boxes.
+  const Node* children[2];
+  children[0] = node->FirstChild();
+  children[1] = node->SecondChild();
+  scalar t1 = hit.t, t2 = hit.t;
+  bool got_hit[2];
+  got_hit[0] = children[0]->BoundingBox().Intersect(ray, t1);
+  got_hit[1] = children[1]->BoundingBox().Intersect(ray, t2);
+
+  // Select optimal recursion based on bounding box intersection results.
+  int first = 0, second = 1;
+  if (t2 < t1) {
+    first = 1;
+    second = 0;
+  }
+  if (got_hit[first]) {
+    got_hit[first] = RecursiveIntersect(children[first], ray, hit);
+  }
+  if (got_hit[second]) {
+    got_hit[second] = RecursiveIntersect(children[second], ray, hit);
+  }
+
+  return got_hit[0] || got_hit[1];
 }
 
 bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
@@ -352,43 +387,6 @@ bool TriangleTree::IntersectTriangle(const Ray& ray, const Triangle* triangle,
   return false;
 }
 
-bool TriangleTree::RecursiveIntersect(const Node* node, const Ray& ray,
-    HitInfo& hit) const {
-  // Was this a leaf node?
-  if (node->IsLeafNode()) {
-    // Get the triangle of this leaf node.
-    const Triangle* triangle =
-        reinterpret_cast<const TriangleNode*>(node)->Item();
-
-    // Calculate intersection with the triangle.
-    return IntersectTriangle(ray, triangle, hit);
-  }
-
-  // Check intersection with children bounding boxes.
-  const Node* children[2];
-  children[0] = node->FirstChild();
-  children[1] = node->SecondChild();
-  scalar t1 = hit.t, t2 = hit.t;
-  bool got_hit[2];
-  got_hit[0] = children[0]->BoundingBox().Intersect(ray, t1);
-  got_hit[1] = children[1]->BoundingBox().Intersect(ray, t2);
-
-  // Select optimal recursion based on bounding box intersection results.
-  int first = 0, second = 1;
-  if (t2 < t1) {
-    first = 1;
-    second = 0;
-  }
-  if (got_hit[first]) {
-    got_hit[first] = RecursiveIntersect(children[first], ray, hit);
-  }
-  if (got_hit[second]) {
-    got_hit[second] = RecursiveIntersect(children[second], ray, hit);
-  }
-
-  return got_hit[0] || got_hit[1];
-}
-
 void ObjectTree::Build(const std::list<std::unique_ptr<Object> >& objects) {
   ScopedPerf _perf = ScopedPerf("Build object tree");
 
@@ -431,6 +429,22 @@ void ObjectTree::Build(const std::list<std::unique_ptr<Object> >& objects) {
   Tree::Build(leaves, aabb_union);
 
   _perf.Done();
+}
+
+bool ObjectTree::Intersect(const Ray& ray, HitInfo& hit) const {
+  // Nothing to do?
+  if (UNLIKELY(Empty())) {
+    return false;
+  }
+
+  // Check intersection against root node bounding box.
+  scalar aabb_t = hit.t;
+  if (!m_root->BoundingBox().Intersect(ray, aabb_t)) {
+    return false;
+  }
+
+  // Recursively intersect with the entire tree.
+  return RecursiveIntersect(m_root, ray, hit);
 }
 
 bool ObjectTree::RecursiveIntersect(const Node* node, const Ray& ray,

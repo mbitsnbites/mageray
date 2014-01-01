@@ -134,12 +134,6 @@ class Tree {
       return m_root->BoundingBox();
     }
 
-    /// Find intersection between tree and ray.
-    /// @param ray The ray to shoot into the tree.
-    /// @param[in,out] hit Current closest hit information.
-    /// @returns true if the ray intersects with a primitive in the tree.
-    bool Intersect(const Ray& ray, HitInfo& hit) const;
-
     /// @returns true if the tree is empty (uninitialized).
     bool Empty() const {
       return m_leaf_nodes.size() == 0;
@@ -162,16 +156,6 @@ class Tree {
     ///  parallelism).
     Node* BuildSubtree(std::vector<Node*>& leaves, const AABB& aabb,
         unsigned start, unsigned stop, int threaded_depth);
-
-    /// Recursively intersect a ray against a sub tree.
-    /// @param node The root node of the sub tree to intersect.
-    /// @param ray The ray to shoot into the tree.
-    /// @param[in,out] hit Current closest hit information.
-    /// @returns True if the ray intersects with a primitive in the tree.
-    /// @note This method assumes that the bounding box for the node has
-    /// already been positively checked for intersection with the ray.
-    virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
-        HitInfo& hit) const = 0;
 
     // Pointer to the root node (which resides in m_branch_nodes).
     Node* m_root;
@@ -200,11 +184,22 @@ class TriangleTree : public Tree {
     /// @param data The mesh data (triangle and vertex arrays).
     TriangleTree(const MeshData* data);
 
-  protected:
-    virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
-       HitInfo& hit) const;
+    /// Find intersection between tree and ray.
+    /// @param ray The ray to shoot into the tree.
+    /// @param[in,out] hit Current closest hit information.
+    /// @returns true if the ray intersects with a primitive in the tree.
+    bool Intersect(const Ray& ray, HitInfo& hit) const;
 
   private:
+    /// Recursively intersect a ray against a sub tree.
+    /// @param node The root node of the sub tree to intersect.
+    /// @param ray The ray to shoot into the tree.
+    /// @param[in,out] hit Current closest hit information.
+    /// @returns True if the ray intersects with a primitive in the tree.
+    /// @note This method assumes that the bounding box for the node has
+    /// already been positively checked for intersection with the ray.
+    bool RecursiveIntersect(const Node* node, const Ray& ray, HitInfo& hit) const;
+
     /// Check intersection between ray and triangle.
     /// @param ray The ray.
     /// @param triangle The triangle to intersect.
@@ -226,9 +221,21 @@ class ObjectTree : public Tree {
     /// @param objects A list of the objects to put into the tree.
     void Build(const std::list<std::unique_ptr<Object> >& objects);
 
-  protected:
-    virtual bool RecursiveIntersect(const Node* node, const Ray& ray,
-       HitInfo& hit) const;
+    /// Find intersection between tree and ray.
+    /// @param ray The ray to shoot into the tree.
+    /// @param[in,out] hit Current closest hit information.
+    /// @returns true if the ray intersects with a primitive in the tree.
+    bool Intersect(const Ray& ray, HitInfo& hit) const;
+
+  private:
+    /// Recursively intersect a ray against a sub tree.
+    /// @param node The root node of the sub tree to intersect.
+    /// @param ray The ray to shoot into the tree.
+    /// @param[in,out] hit Current closest hit information.
+    /// @returns True if the ray intersects with a primitive in the tree.
+    /// @note This method assumes that the bounding box for the node has
+    /// already been positively checked for intersection with the ray.
+    bool RecursiveIntersect(const Node* node, const Ray& ray, HitInfo& hit) const;
 };
 
 } // namespace mageray
