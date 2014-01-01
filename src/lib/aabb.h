@@ -48,45 +48,41 @@ class AABB {
 
     AABB() {}
 
-    AABB(const vec3& min, const vec3& max) : m_min(min), m_max(max) {}
+    AABB(const vec3& min, const vec3& max) : m_min_max({min, max}) {}
 
     AABB(const scalar minx, const scalar miny, const scalar minz,
-         const scalar maxx, const scalar maxy, const scalar maxz) {
-      m_min.x = minx;
-      m_min.y = miny;
-      m_min.z = minz;
-      m_max.x = maxx;
-      m_max.y = maxy;
-      m_max.z = maxz;
-    }
-
-    /// Minimum coordinate for this bounding box.
-    vec3& Min() {
-      return m_min;
-    }
+         const scalar maxx, const scalar maxy, const scalar maxz)
+        : m_min_max({vec3(minx, miny, minz), vec3(maxx, maxy, maxz)}) {}
 
     /// Minimum coordinate for this bounding box.
     const vec3& Min() const {
-      return m_min;
-    }
-
-    /// Maxium coordinate for this bounding box.
-    vec3& Max() {
-      return m_max;
+      return m_min_max[MIN];
     }
 
     /// Maxium coordinate for this bounding box.
     const vec3& Max() const {
-      return m_max;
+      return m_min_max[MAX];
+    }
+
+    /// Minimum coordinate for this bounding box.
+    // TODO(m): Get rid of this (in favor of const-only references).
+    vec3& Min() {
+      return m_min_max[MIN];
+    }
+
+    /// Maxium coordinate for this bounding box.
+    // TODO(m): Get rid of this (in favor of const-only references).
+    vec3& Max() {
+      return m_min_max[MAX];
     }
 
     const vec3& Bound(const MinMax m) const {
-      return m ? m_max : m_min;
+      return m_min_max[m];
     }
 
     /// Maxium side axis.
     vec3::Axis LargestAxis() const {
-      vec3 d = m_max - m_min;
+      vec3 d = Max() - Min();
       if (d.x >= d.y) {
         return d.x >= d.z ? vec3::X : vec3::Z;
       } else {
@@ -96,23 +92,23 @@ class AABB {
 
     /// Union of two bounding boxes.
     AABB& operator+=(const AABB& other) {
-      if (other.m_min.x < m_min.x) m_min.x = other.m_min.x;
-      if (other.m_min.y < m_min.y) m_min.y = other.m_min.y;
-      if (other.m_min.z < m_min.z) m_min.z = other.m_min.z;
-      if (other.m_max.x > m_max.x) m_max.x = other.m_max.x;
-      if (other.m_max.y > m_max.y) m_max.y = other.m_max.y;
-      if (other.m_max.z > m_max.z) m_max.z = other.m_max.z;
+      if (other.m_min_max[MIN].x < m_min_max[MIN].x) m_min_max[MIN].x = other.m_min_max[MIN].x;
+      if (other.m_min_max[MIN].y < m_min_max[MIN].y) m_min_max[MIN].y = other.m_min_max[MIN].y;
+      if (other.m_min_max[MIN].z < m_min_max[MIN].z) m_min_max[MIN].z = other.m_min_max[MIN].z;
+      if (other.m_min_max[MAX].x > m_min_max[MAX].x) m_min_max[MAX].x = other.m_min_max[MAX].x;
+      if (other.m_min_max[MAX].y > m_min_max[MAX].y) m_min_max[MAX].y = other.m_min_max[MAX].y;
+      if (other.m_min_max[MAX].z > m_min_max[MAX].z) m_min_max[MAX].z = other.m_min_max[MAX].z;
       return *this;
     }
 
     /// Extend the bounding box to include a new point.
     AABB& operator+=(const vec3& p) {
-      if (p.x < m_min.x) m_min.x = p.x;
-      if (p.y < m_min.y) m_min.y = p.y;
-      if (p.z < m_min.z) m_min.z = p.z;
-      if (p.x > m_max.x) m_max.x = p.x;
-      if (p.y > m_max.y) m_max.y = p.y;
-      if (p.z > m_max.z) m_max.z = p.z;
+      if (p.x < m_min_max[MIN].x) m_min_max[MIN].x = p.x;
+      if (p.y < m_min_max[MIN].y) m_min_max[MIN].y = p.y;
+      if (p.z < m_min_max[MIN].z) m_min_max[MIN].z = p.z;
+      if (p.x > m_min_max[MAX].x) m_min_max[MAX].x = p.x;
+      if (p.y > m_min_max[MAX].y) m_min_max[MAX].y = p.y;
+      if (p.z > m_min_max[MAX].z) m_min_max[MAX].z = p.z;
       return *this;
     }
 
@@ -126,19 +122,18 @@ class AABB {
     /// @param point The point to check.
     /// @returns true if the point is inside the bounding box.
     bool PointInside(const vec3& point) const {
-      return point.x >= m_min.x && point.x <= m_max.x &&
-          point.y >= m_min.y && point.y <= m_max.y &&
-          point.z >= m_min.z && point.z <= m_max.z;
+      return point.x >= m_min_max[MIN].x && point.x <= m_min_max[MAX].x &&
+          point.y >= Min().y && point.y <= Max().y &&
+          point.z >= Min().z && point.z <= Max().z;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const AABB& aabb) {
-      os << aabb.m_min << "->" << aabb.m_max;
+      os << aabb.Min() << "->" << aabb.Max();
       return os;
     }
 
   private:
-    vec3 m_min;
-    vec3 m_max;
+    vec3 m_min_max[2];
 };
 
 } // namespace mageray

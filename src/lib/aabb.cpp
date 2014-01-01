@@ -36,31 +36,30 @@ namespace mageray {
 bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
   // Calculate the intersections with the three closest sides of the bounding
   // box.
-  vec3 aabb_closest(Bound(ray.CloseMinMax()[vec3::X]).x,
-                    Bound(ray.CloseMinMax()[vec3::Y]).y,
-                    Bound(ray.CloseMinMax()[vec3::Z]).z);
-  scalar t_x = (aabb_closest.x - ray.Origin().x) * ray.InvDirection().x;
-  scalar t_y = (aabb_closest.y - ray.Origin().y) * ray.InvDirection().y;
-  scalar t_z = (aabb_closest.z - ray.Origin().z) * ray.InvDirection().z;
+  const vec3 aabb_closest(Bound(ray.CloseMinMax()[vec3::X]).x,
+                          Bound(ray.CloseMinMax()[vec3::Y]).y,
+                          Bound(ray.CloseMinMax()[vec3::Z]).z);
+
+  const vec3 t3 = (aabb_closest - ray.Origin()) * ray.InvDirection();
 
   // The farthest hit is our candidate.
   vec3::Axis axis;
   scalar t;
-  if (t_x > t_y) {
-    if (t_x > t_z) {
+  if (t3.x > t3.y) {
+    if (t3.x > t3.z) {
       axis = vec3::X;
-      t = t_x;
+      t = t3.x;
     } else {
       axis = vec3::Z;
-      t = t_z;
+      t = t3.z;
     }
   } else {
-    if (t_y > t_z) {
+    if (t3.y > t3.z) {
       axis = vec3::Y;
-      t = t_y;
+      t = t3.y;
     } else {
       axis = vec3::Z;
-      t = t_z;
+      t = t3.z;
     }
   }
 
@@ -75,11 +74,11 @@ bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
   vec3::Axis axis2 = vec3::NextAxis(axis);
   vec3::Axis axis3 = vec3::NextAxis(axis2);
   scalar a = ray.Origin()[axis2] + t * ray.Direction()[axis2];
-  if (a < m_min[axis2] || a > m_max[axis2]) {
+  if (a < Min()[axis2] || a > Max()[axis2]) {
     return false;
   }
   scalar b = ray.Origin()[axis3] + t * ray.Direction()[axis3];
-  if (b < m_min[axis3] || b > m_max[axis3]) {
+  if (b < Min()[axis3] || b > Max()[axis3]) {
     return false;
   }
 
