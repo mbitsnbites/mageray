@@ -55,6 +55,11 @@ class Mesh {
     /// @returns A Mesh object if the operation succeeded, or NULL.
     static Mesh* MakeSphere(int res, scalar radius);
 
+    /// Build a plane mesh.
+    /// @param size The plane size (the plane has the area size.u x size.v).
+    /// @returns A Mesh object if the operation succeeded, or NULL.
+    static Mesh* MakePlane(const vec2& size);
+
     /// Find intersection between mesh and ray.
     /// @param ray The ray to shoot into the tree.
     /// @param[in,out] hit Current closest hit information.

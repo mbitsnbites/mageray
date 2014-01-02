@@ -66,6 +66,19 @@ class scene_parse_error : public std::exception {
 
 namespace {
 
+vec2 ParseVec2String(const char* str) {
+  std::istringstream ss(str);
+  vec2 v;
+  ss >> v.u;
+  ss >> v.v;
+  if (ss.fail()) {
+    std::string msg = std::string("Unable to parse \"") +
+        str + std::string("\" as a vec2.");
+    throw scene_parse_error(NULL, msg.c_str());
+  }
+  return v;
+}
+
 vec3 ParseVec3String(const char* str) {
   std::istringstream ss(str);
   vec3 v;
@@ -401,6 +414,39 @@ void Scene::LoadSphereObject(tinyxml2::XMLElement* element) {
   m_objects.push_back(std::move(object));
 }
 
+void Scene::LoadPlaneObject(tinyxml2::XMLElement* element) {
+  const char* size_str = element->Attribute("size");
+  if (!size_str) {
+    throw scene_parse_error(element, "Missing size attribute.");
+  }
+  vec2 size = ParseVec2String(size_str);
+
+  // Find existing sphere mesh.
+  std::string mesh_name = std::string("plane_") + std::string(size_str);
+  auto it = m_generated_meshes.find(mesh_name);
+  if (it == m_generated_meshes.end()) {
+    // Create a new plane mesh.
+    std::unique_ptr<Mesh> mesh(Mesh::MakePlane(size));
+    if (!mesh.get()) {
+      throw scene_parse_error(element, "Unable to create sphere mesh.");
+    }
+    m_generated_meshes[mesh_name] = std::move(mesh);
+    it = m_generated_meshes.find(mesh_name);
+  }
+
+  // Create an object from the mesh.
+  std::unique_ptr<Object> object(new Object(it->second.get()));
+  if (!object.get()) {
+    throw scene_parse_error(element, "Out of memory?");
+  }
+
+  // Collect generic object information.
+  LoadObject(element, object.get());
+
+  // Add the object to the object list.
+  m_objects.push_back(std::move(object));
+}
+
 void Scene::LoadLight(tinyxml2::XMLElement* element) {
   std::unique_ptr<Light> light(new Light());
   if (!light.get()) {
@@ -521,6 +567,9 @@ bool Scene::LoadFromXML(std::istream& stream) {
         }
         else if (std::string(node->Value()) == "sphereobject") {
           LoadSphereObject(node);
+        }
+        else if (std::string(node->Value()) == "planeobject") {
+          LoadPlaneObject(node);
         }
         node = node->NextSiblingElement();
       }

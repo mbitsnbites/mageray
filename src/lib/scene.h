@@ -135,6 +135,7 @@ class Scene {
     void LoadObject(tinyxml2::XMLElement* element, Object* object);
     void LoadMeshObject(tinyxml2::XMLElement* element);
     void LoadSphereObject(tinyxml2::XMLElement* element);
+    void LoadPlaneObject(tinyxml2::XMLElement* element);
     void LoadLight(tinyxml2::XMLElement* element);
 
     void InitDefaultShaders();

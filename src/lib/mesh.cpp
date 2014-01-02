@@ -121,6 +121,44 @@ Mesh* Mesh::MakeSphere(int res, scalar radius) {
   return mesh;
 }
 
+Mesh* Mesh::MakePlane(const vec2& size) {
+  ScopedPerf _perf = ScopedPerf(__FUNCTION__);
+
+  std::unique_ptr<MeshData> data(new MeshData());
+
+  // Make vertices.
+  int num_vertices = 4;
+  const vec2 sides = size * scalar(0.5);
+  data->vertices.resize(num_vertices);
+  data->vertices[0].normal = vec3(0.0, 0.0, 1.0);
+  data->vertices[0].position = vec3(-sides.u, -sides.v, scalar(0.0));
+  data->vertices[0].uv = vec2(0.0, 0.0);
+  data->vertices[1].normal = vec3(0.0, 0.0, 1.0);
+  data->vertices[1].position = vec3(sides.u, -sides.v, scalar(0.0));
+  data->vertices[1].uv = vec2(1.0, 0.0);
+  data->vertices[2].normal = vec3(0.0, 0.0, 1.0);
+  data->vertices[2].position = vec3(-sides.u, sides.v, scalar(0.0));
+  data->vertices[2].uv = vec2(0.0, 1.0);
+  data->vertices[3].normal = vec3(0.0, 0.0, 1.0);
+  data->vertices[3].position = vec3(sides.u, sides.v, scalar(0.0));
+  data->vertices[3].uv = vec2(1.0, 1.0);
+
+  // Make triangles.
+  int num_triangles = 2;
+  data->triangles.resize(num_triangles);
+  data->triangles[0].a = data->triangles[1].a = 0;
+  data->triangles[0].b = 1;
+  data->triangles[0].c = data->triangles[1].b = 3;
+  data->triangles[1].c = 2;
+
+  // Build triangle tree.
+  Mesh* mesh = new Mesh(data.release());
+
+  _perf.Done();
+
+  return mesh;
+}
+
 void Mesh::CompleteHitInfo(HitInfo& hit) const {
   // Pick the three triangle vertices.
   const Vertex* v1 = &m_data->vertices[hit.triangle->a];
