@@ -127,6 +127,7 @@ class Scene {
 
   private:
     void LoadConfig(tinyxml2::XMLElement* element);
+    void LoadAssets(tinyxml2::XMLElement* element);
     void LoadCamera(tinyxml2::XMLElement* element);
     void LoadImage(tinyxml2::XMLElement* element);
     void LoadMesh(tinyxml2::XMLElement* element);

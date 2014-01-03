@@ -1,12 +1,14 @@
 <?xml version="1.0"?>
 <mageray version="1">
-  <scene>
-    <camera position="1 -8 2" lookat="0 0 2.5" fov="90" />
-
+  <assets>
     <meshes>
       <mesh name="happy" file="happy.ctm" />
       <spheremesh name="sphere" radius="1" resolution="32" />
     </meshes>
+  </assets>
+
+  <scene>
+    <camera position="1 -8 2" lookat="0 0 2.5" fov="90" />
 
     <materials>
       <material name="glass" diffuse="0.8 0.8 1" ambient="0.03 0.03 0.05" specular="0.7 0.7 0.7" mirror="1" hardness="60" />
@@ -94,7 +96,6 @@
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
       </object>
-
     </objects>
   </scene>
 </mageray>

@@ -178,6 +178,36 @@ void Scene::LoadConfig(tinyxml2::XMLElement* element) {
   }
 }
 
+void Scene::LoadAssets(tinyxml2::XMLElement* element) {
+  // Load images.
+  if (tinyxml2::XMLElement* images_node = element->FirstChildElement("images")) {
+    tinyxml2::XMLElement* node = images_node->FirstChildElement();
+    while (node) {
+      if (std::string(node->Value()) == "image") {
+        LoadImage(node);
+      }
+      node = node->NextSiblingElement();
+    }
+  }
+
+  // Load meshes.
+  if (tinyxml2::XMLElement* meshes_node = element->FirstChildElement("meshes")) {
+    tinyxml2::XMLElement* node = meshes_node->FirstChildElement();
+    while (node) {
+      if (std::string(node->Value()) == "mesh") {
+        LoadMesh(node);
+      }
+      else if (std::string(node->Value()) == "spheremesh") {
+        LoadSphereMesh(node);
+      }
+      else if (std::string(node->Value()) == "planemesh") {
+        LoadPlaneMesh(node);
+      }
+      node = node->NextSiblingElement();
+    }
+  }
+}
+
 void Scene::LoadCamera(tinyxml2::XMLElement* element) {
   if (const char* str = element->Attribute("position")) {
     m_camera.SetPosition(ParseVec3String(str));
@@ -496,6 +526,11 @@ bool Scene::LoadFromXML(std::istream& stream) {
       LoadConfig(node);
     }
 
+    // Load assets node (if any).
+    if (tinyxml2::XMLElement* node = mageray_node->FirstChildElement("assets")) {
+      LoadAssets(node);
+    }
+
     // Load scene node.
     tinyxml2::XMLElement* scene_node = mageray_node->FirstChildElement("scene");
     if (!scene_node) {
@@ -505,34 +540,6 @@ bool Scene::LoadFromXML(std::istream& stream) {
     // Load the camera.
     if (tinyxml2::XMLElement* node = scene_node->FirstChildElement("camera")) {
       LoadCamera(node);
-    }
-
-    // Load images.
-    if (tinyxml2::XMLElement* images_node = scene_node->FirstChildElement("images")) {
-      tinyxml2::XMLElement* node = images_node->FirstChildElement();
-      while (node) {
-        if (std::string(node->Value()) == "image") {
-          LoadImage(node);
-        }
-        node = node->NextSiblingElement();
-      }
-    }
-
-    // Load meshes.
-    if (tinyxml2::XMLElement* meshes_node = scene_node->FirstChildElement("meshes")) {
-      tinyxml2::XMLElement* node = meshes_node->FirstChildElement();
-      while (node) {
-        if (std::string(node->Value()) == "mesh") {
-          LoadMesh(node);
-        }
-        else if (std::string(node->Value()) == "spheremesh") {
-          LoadSphereMesh(node);
-        }
-        else if (std::string(node->Value()) == "planemesh") {
-          LoadPlaneMesh(node);
-        }
-        node = node->NextSiblingElement();
-      }
     }
 
     // Load materials.
