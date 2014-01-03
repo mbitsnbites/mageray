@@ -130,12 +130,11 @@ class Scene {
     void LoadCamera(tinyxml2::XMLElement* element);
     void LoadImage(tinyxml2::XMLElement* element);
     void LoadMesh(tinyxml2::XMLElement* element);
+    void LoadSphereMesh(tinyxml2::XMLElement* element);
+    void LoadPlaneMesh(tinyxml2::XMLElement* element);
     void LoadMaterialSampler(tinyxml2::XMLElement* element, Sampler& sampler);
     void LoadMaterial(tinyxml2::XMLElement* element);
-    void LoadObject(tinyxml2::XMLElement* element, Object* object);
-    void LoadMeshObject(tinyxml2::XMLElement* element);
-    void LoadSphereObject(tinyxml2::XMLElement* element);
-    void LoadPlaneObject(tinyxml2::XMLElement* element);
+    void LoadObject(tinyxml2::XMLElement* element);
     void LoadLight(tinyxml2::XMLElement* element);
 
     void InitDefaultShaders();
@@ -148,7 +147,6 @@ class Scene {
 
     std::map<std::string, std::unique_ptr<Image> > m_images;
     std::map<std::string, std::unique_ptr<Mesh> > m_meshes;
-    std::map<std::string, std::unique_ptr<Mesh> > m_generated_meshes;
     std::map<std::string, std::unique_ptr<Shader> > m_shaders;
     std::map<std::string, std::unique_ptr<Material> > m_materials;
 

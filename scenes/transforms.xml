@@ -5,6 +5,7 @@
 
     <meshes>
       <mesh name="happy" file="happy.ctm" />
+      <spheremesh name="sphere" radius="1" resolution="32" />
     </meshes>
 
     <materials>
@@ -21,78 +22,78 @@
 
     <objects>
       <!-- Some spheres -->
-      <sphereobject radius="1" material="glass">
+      <object mesh="sphere" material="glass">
         <translate>3.0 0.0 0.0</translate>
-      </sphereobject>
-      <sphereobject radius="1" material="glass">
+      </object>
+      <object mesh="sphere" material="glass">
         <rotate>0 0 45</rotate>
         <translate>3.0 0.0 0.0</translate>
-      </sphereobject>
-      <sphereobject radius="1" material="glass">
+      </object>
+      <object mesh="sphere" material="glass">
         <rotate>0 0 90</rotate>
         <translate>3.0 0.0 0.0</translate>
-      </sphereobject>
-      <sphereobject radius="1" material="glass">
+      </object>
+      <object mesh="sphere" material="glass">
         <rotate>0 0 135</rotate>
         <translate>3.0 0.0 0.0</translate>
-      </sphereobject>
-      <sphereobject radius="1" material="glass">
+      </object>
+      <object mesh="sphere" material="glass">
         <rotate>0 0 180</rotate>
         <translate>3.0 0.0 0.0</translate>
-      </sphereobject>
-      <sphereobject radius="1" material="glass">
+      </object>
+      <object mesh="sphere" material="glass">
         <rotate>0 0 225</rotate>
         <translate>3.0 0.0 0.0</translate>
-      </sphereobject>
-      <sphereobject radius="1" material="glass">
+      </object>
+      <object mesh="sphere" material="glass">
         <rotate>0 0 270</rotate>
         <translate>3.0 0.0 0.0</translate>
-      </sphereobject>
-      <sphereobject radius="1" material="glass">
+      </object>
+      <object mesh="sphere" material="glass">
         <rotate>0 0 315</rotate>
         <translate>3.0 0.0 0.0</translate>
-      </sphereobject>
+      </object>
 
       <!-- Some happy buddhas -->
-      <meshobject mesh="happy" material="white">
+      <object mesh="happy" material="white">
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
-      </meshobject>
-      <meshobject mesh="happy" material="red">
+      </object>
+      <object mesh="happy" material="red">
         <rotate>0 0 45</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
-      </meshobject>
-      <meshobject mesh="happy" material="white">
+      </object>
+      <object mesh="happy" material="white">
         <rotate>0 0 90</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
-      </meshobject>
-      <meshobject mesh="happy" material="green">
+      </object>
+      <object mesh="happy" material="green">
         <rotate>0 0 135</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
-      </meshobject>
-      <meshobject mesh="happy" material="white">
+      </object>
+      <object mesh="happy" material="white">
         <rotate>0 0 180</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
-      </meshobject>
-      <meshobject mesh="happy" material="red">
+      </object>
+      <object mesh="happy" material="red">
         <rotate>0 0 225</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
-      </meshobject>
-      <meshobject mesh="happy" material="white">
+      </object>
+      <object mesh="happy" material="white">
         <rotate>0 0 270</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
-      </meshobject>
-      <meshobject mesh="happy" material="green">
+      </object>
+      <object mesh="happy" material="green">
         <rotate>0 0 315</rotate>
         <translate>3.0 0.0 0.0</translate>
         <rotate>0 0 -90</rotate>
-      </meshobject>
+      </object>
 
     </objects>
   </scene>

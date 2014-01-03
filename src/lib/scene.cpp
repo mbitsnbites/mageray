@@ -105,6 +105,18 @@ scalar ParseScalarString(const char* str) {
   return s;
 }
 
+int ParseIntString(const char* str) {
+  std::istringstream ss(str);
+  int i;
+  ss >> i;
+  if (ss.fail()) {
+    std::string msg = std::string("Unable to parse \"") +
+        str + std::string("\" as an integer.");
+    throw scene_parse_error(NULL, msg.c_str());
+  }
+  return i;
+}
+
 bool ParseBoolString(const char* str) {
   std::istringstream ss(str);
   bool b;
@@ -234,6 +246,59 @@ void Scene::LoadMesh(tinyxml2::XMLElement* element) {
   m_meshes[name] = std::move(mesh);
 }
 
+void Scene::LoadSphereMesh(tinyxml2::XMLElement* element) {
+  const char* name = element->Attribute("name");
+  const char* radius_str = element->Attribute("radius");
+  const char* resolution_str = element->Attribute("resolution");
+  if (!name) {
+    throw scene_parse_error(element, "Missing name attribute.");
+  }
+  if (!radius_str) {
+    throw scene_parse_error(element, "Missing radius attribute.");
+  }
+  if (!resolution_str) {
+    throw scene_parse_error(element, "Missing resolution attribute.");
+  }
+  scalar radius = ParseScalarString(radius_str);
+  int resolution = ParseIntString(resolution_str);
+
+  // Create a new sphere mesh.
+  std::unique_ptr<Mesh> mesh(Mesh::MakeSphere(resolution, radius));
+  if (!mesh.get()) {
+    throw scene_parse_error(element, "Unable to create sphere mesh.");
+  }
+
+#ifdef _DEBUG
+  std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
+#endif
+
+  m_meshes[name] = std::move(mesh);
+}
+
+void Scene::LoadPlaneMesh(tinyxml2::XMLElement* element) {
+  const char* name = element->Attribute("name");
+  const char* size_str = element->Attribute("size");
+  if (!name) {
+    throw scene_parse_error(element, "Missing name attribute.");
+  }
+  if (!size_str) {
+    throw scene_parse_error(element, "Missing size attribute.");
+  }
+  vec2 size = ParseVec2String(size_str);
+
+  // Create a new plane mesh.
+  std::unique_ptr<Mesh> mesh(Mesh::MakePlane(size));
+  if (!mesh.get()) {
+    throw scene_parse_error(element, "Unable to create sphere mesh.");
+  }
+
+#ifdef _DEBUG
+  std::cout << "Mesh bounding box: " << mesh->BoundingBox() << std::endl;
+#endif
+
+  m_meshes[name] = std::move(mesh);
+}
+
 void Scene::LoadMaterialSampler(tinyxml2::XMLElement* element, Sampler& sampler) {
   const char* image_name = element->Attribute("image");
   if (!image_name) {
@@ -316,7 +381,23 @@ void Scene::LoadMaterial(tinyxml2::XMLElement* element) {
   m_materials[name] = std::move(material);
 }
 
-void Scene::LoadObject(tinyxml2::XMLElement* element, Object* object) {
+void Scene::LoadObject(tinyxml2::XMLElement* element) {
+  const char* mesh = element->Attribute("mesh");
+  if (!mesh) {
+    throw scene_parse_error(element, "Missing mesh attribute.");
+  }
+
+  // Find the named mesh.
+  auto it = m_meshes.find(mesh);
+  if (it == m_meshes.end()) {
+    std::string msg = std::string("Unable to find mesh \"") +
+        mesh + std::string("\" (wrong name?).");
+    throw scene_parse_error(element, msg.c_str());
+  }
+
+  // Create an object from the mesh.
+  std::unique_ptr<Object> object(new Object(it->second.get()));
+
   // Get the objec material (if any)?
   const char* material = element->Attribute("material");
   if (material) {
@@ -354,94 +435,6 @@ void Scene::LoadObject(tinyxml2::XMLElement* element, Object* object) {
 
     node = node->NextSiblingElement();
   }
-}
-
-void Scene::LoadMeshObject(tinyxml2::XMLElement* element) {
-  const char* mesh = element->Attribute("mesh");
-  if (!mesh) {
-    throw scene_parse_error(element, "Missing mesh attribute.");
-  }
-
-  // Find the named mesh.
-  auto it = m_meshes.find(mesh);
-  if (it == m_meshes.end()) {
-    std::string msg = std::string("Unable to find mesh \"") +
-        mesh + std::string("\" (wrong name?).");
-    throw scene_parse_error(element, msg.c_str());
-  }
-
-  // Create an object from the mesh.
-  std::unique_ptr<Object> object(new Object(it->second.get()));
-
-  // Collect generic object information.
-  LoadObject(element, object.get());
-
-  // Add the object to the object list.
-  m_objects.push_back(std::move(object));
-}
-
-void Scene::LoadSphereObject(tinyxml2::XMLElement* element) {
-  const char* radius_str = element->Attribute("radius");
-  if (!radius_str) {
-    throw scene_parse_error(element, "Missing radius attribute.");
-  }
-  scalar radius = ParseScalarString(radius_str);
-
-  // Find existing sphere mesh.
-  std::string mesh_name = std::string("sphere_") + std::string(radius_str);
-  auto it = m_generated_meshes.find(mesh_name);
-  if (it == m_generated_meshes.end()) {
-    // Create a new sphere mesh.
-    // FIXME(m): Magic number 32 - it's the sphere resolution.
-    std::unique_ptr<Mesh> mesh(Mesh::MakeSphere(32, radius));
-    if (!mesh.get()) {
-      throw scene_parse_error(element, "Unable to create sphere mesh.");
-    }
-    m_generated_meshes[mesh_name] = std::move(mesh);
-    it = m_generated_meshes.find(mesh_name);
-  }
-
-  // Create an object from the mesh.
-  std::unique_ptr<Object> object(new Object(it->second.get()));
-  if (!object.get()) {
-    throw scene_parse_error(element, "Out of memory?");
-  }
-
-  // Collect generic object information.
-  LoadObject(element, object.get());
-
-  // Add the object to the object list.
-  m_objects.push_back(std::move(object));
-}
-
-void Scene::LoadPlaneObject(tinyxml2::XMLElement* element) {
-  const char* size_str = element->Attribute("size");
-  if (!size_str) {
-    throw scene_parse_error(element, "Missing size attribute.");
-  }
-  vec2 size = ParseVec2String(size_str);
-
-  // Find existing sphere mesh.
-  std::string mesh_name = std::string("plane_") + std::string(size_str);
-  auto it = m_generated_meshes.find(mesh_name);
-  if (it == m_generated_meshes.end()) {
-    // Create a new plane mesh.
-    std::unique_ptr<Mesh> mesh(Mesh::MakePlane(size));
-    if (!mesh.get()) {
-      throw scene_parse_error(element, "Unable to create sphere mesh.");
-    }
-    m_generated_meshes[mesh_name] = std::move(mesh);
-    it = m_generated_meshes.find(mesh_name);
-  }
-
-  // Create an object from the mesh.
-  std::unique_ptr<Object> object(new Object(it->second.get()));
-  if (!object.get()) {
-    throw scene_parse_error(element, "Out of memory?");
-  }
-
-  // Collect generic object information.
-  LoadObject(element, object.get());
 
   // Add the object to the object list.
   m_objects.push_back(std::move(object));
@@ -532,6 +525,12 @@ bool Scene::LoadFromXML(std::istream& stream) {
         if (std::string(node->Value()) == "mesh") {
           LoadMesh(node);
         }
+        else if (std::string(node->Value()) == "spheremesh") {
+          LoadSphereMesh(node);
+        }
+        else if (std::string(node->Value()) == "planemesh") {
+          LoadPlaneMesh(node);
+        }
         node = node->NextSiblingElement();
       }
     }
@@ -562,14 +561,8 @@ bool Scene::LoadFromXML(std::istream& stream) {
     if (tinyxml2::XMLElement* objects_node = scene_node->FirstChildElement("objects")) {
       tinyxml2::XMLElement* node = objects_node->FirstChildElement();
       while (node) {
-        if (std::string(node->Value()) == "meshobject") {
-          LoadMeshObject(node);
-        }
-        else if (std::string(node->Value()) == "sphereobject") {
-          LoadSphereObject(node);
-        }
-        else if (std::string(node->Value()) == "planeobject") {
-          LoadPlaneObject(node);
+        if (std::string(node->Value()) == "object") {
+          LoadObject(node);
         }
         node = node->NextSiblingElement();
       }
