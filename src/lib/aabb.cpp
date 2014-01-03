@@ -83,12 +83,12 @@ bool AABB::Intersect(const Ray& ray, scalar& closest_t) const {
   }
 
   // If the intersection point was behind the ray origin, check that the
-  // bounding box is not completely behind the ray origin.
+  // ray origin is inside the bounding box (otherwise the bounding box is
+  // behind the ray).
+  // TODO(m): If we do inside AABB tests before intersection tests, this check
+  // should be unnecessary.
   if (UNLIKELY(t < 0)) {
-    vec3 aabb_far(Bound(ray.FarMinMax()[vec3::X]).x,
-                  Bound(ray.FarMinMax()[vec3::Y]).y,
-                  Bound(ray.FarMinMax()[vec3::Z]).z);
-    if (ray.PointBehind(aabb_far)) {
+    if (!PointInside(ray.Origin())) {
       return false;
     }
   }
