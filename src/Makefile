@@ -40,10 +40,13 @@ CPPFLAGS = -c -std=c++0x \
            -Ofast -funroll-loops \
            -W -Wall -Wextra -Wdouble-promotion \
            -I$(LIB_PATH) -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) \
-           -DSCALAR_IS_FLOAT \
-           -fopenmp
-LFLAGS = -L$(OPENCTM_PATH) -fopenmp
-LIBS = -lpng -lopenctm2 -lpthread -lm
+           -DSCALAR_IS_FLOAT
+LFLAGS = -L$(OPENCTM_PATH)
+LIBS = -lopenctm2 -lpthread -lm
+
+# Use OpenMP
+CPPFLAGS += -DUSE_OPENMP -fopenmp
+LFLAGS += -fopenmp
 
 # Automatically generate dependency files
 CPPFLAGS += -MMD -MP

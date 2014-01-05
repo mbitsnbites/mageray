@@ -239,7 +239,9 @@ TriangleTree::TriangleTree(const MeshData* data) {
   // Create a vector of leaf nodes.
   m_leaf_nodes.resize(m_data->triangles.size());
   std::vector<Node*> leaves(m_data->triangles.size());
+#ifdef USE_OPENMP
   #pragma omp parallel for
+#endif // USE_OPENMP
   for (unsigned i = 0; i < m_data->triangles.size(); i++) {
     // Get the triangle.
     const Triangle* triangle = &m_data->triangles[i];

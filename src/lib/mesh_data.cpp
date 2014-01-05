@@ -36,7 +36,9 @@ void MeshData::CalculateNormals() {
   ScopedPerf _perf = ScopedPerf("Calculate normals");
 
   // Start by clearing the normals.
+#ifdef USE_OPENMP
   #pragma omp parallel for
+#endif // USE_OPENMP
   for (unsigned i = 0; i < vertices.size(); ++i) {
     vertices[i].normal = vec3(0);
   }
@@ -62,7 +64,9 @@ void MeshData::CalculateNormals() {
   }
 
   // Normalize all the normals.
+#ifdef USE_OPENMP
   #pragma omp parallel for
+#endif // USE_OPENMP
   for (unsigned i = 0; i < vertices.size(); ++i) {
     vertices[i].normal = vertices[i].normal.Normalize();
   }
