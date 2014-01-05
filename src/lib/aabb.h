@@ -48,11 +48,11 @@ class AABB {
 
     AABB() {}
 
-    AABB(const vec3& min, const vec3& max) : m_min_max({min, max}) {}
+    AABB(const vec3& min, const vec3& max) : m_min_max{min, max} {}
 
     AABB(const scalar minx, const scalar miny, const scalar minz,
          const scalar maxx, const scalar maxy, const scalar maxz)
-        : m_min_max({vec3(minx, miny, minz), vec3(maxx, maxy, maxz)}) {}
+        : m_min_max{vec3(minx, miny, minz), vec3(maxx, maxy, maxz)} {}
 
     /// Minimum coordinate for this bounding box.
     const vec3& Min() const {

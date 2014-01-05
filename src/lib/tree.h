@@ -44,7 +44,7 @@
 namespace mageray {
 
 class Object;
-class Triangle;
+struct Triangle;
 
 /// Generic tree node class.
 /// @note This class is intended to be extended.

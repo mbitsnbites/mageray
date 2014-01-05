@@ -35,7 +35,7 @@
 namespace mageray {
 
 class Object;
-class Triangle;
+struct Triangle;
 
 struct HitInfo {
   /// Create a new HitInfo object.
