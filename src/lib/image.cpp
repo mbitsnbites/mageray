@@ -34,7 +34,13 @@
 #include <vector>
 #include <memory>
 
-#include <png.h>
+#if defined(USE_LIBPNG)
+# include <png.h>
+#elif defined(USE_LODEPNG)
+# include <lodepng.h>
+#else
+# error "Define USE_LIBPNG or USE_LODEPNG!"
+#endif
 
 #include "base/log.h"
 
@@ -49,10 +55,11 @@ bool MatchingSignature(std::istream& stream, const unsigned char* signature) {
   stream.read(reinterpret_cast<char*>(buf), len);
   stream.seekg(old_pos);
 
-  // Compate signature to the read buffer.
+  // Compare signature to the read buffer.
   return std::equal(buf, buf + len, signature);
 }
 
+#ifdef USE_LIBPNG
 void MyPNGRead(png_structp png_ptr, png_bytep data, png_size_t len) {
   std::istream* stream = static_cast<std::istream*>(png_get_io_ptr(png_ptr));
   ASSERT(stream, "No input stream found.");
@@ -70,6 +77,18 @@ void MyPNGFlush(png_structp png_ptr) {
   ASSERT(stream, "No output stream found.");
   stream->flush();
 }
+#endif // USE_LIBPNG
+
+#ifdef USE_LODEPNG
+void SwapRedBlue(mageray::Pixel* out, const mageray::Pixel* in, size_t count) {
+  while (count--) {
+    mageray::Pixel::Composite p = *in++;
+    mageray::Pixel::Composite ag = p & 0xff00ff00;
+    mageray::Pixel::Composite br = p & 0x00ff00ff;
+    *out++ = ag | (br << 16) | (br >> 16);
+  }
+}
+#endif // USE_LODEPNG
 
 }
 
@@ -111,6 +130,7 @@ bool Image::LoadPNG(std::istream& stream) {
 
   DLOG("Identified PNG file format.");
 
+#ifdef USE_LIBPNG
   // Initialize PNG data structures.
   png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL,
       NULL, NULL);
@@ -181,6 +201,35 @@ bool Image::LoadPNG(std::istream& stream) {
   png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
 
   return success;
+#endif // USE_LIBPNG
+
+#ifdef USE_LODEPNG
+  // Load stream into memory.
+  std::streampos start_pos = stream.tellg();
+  stream.seekg(0, std::ios_base::end);
+  size_t file_size = stream.tellg() - start_pos;
+  stream.seekg(start_pos);
+  std::vector<unsigned char> data(file_size);
+  stream.read(reinterpret_cast<char*>(&data[0]), file_size);
+
+  // Decode the PNG from memory.
+  std::vector<unsigned char> image;
+  unsigned width, height;
+  unsigned error = lodepng::decode(image, width, height, data);
+  if (error) {
+    return false;
+  }
+  DLOG("PNG size: %d x %d", width, height);
+
+  // Copy the data to the internal image representation.
+  // TODO(m): Decode directly to internal memory.
+  if (!Allocate(width, height)) {
+    return false;
+  }
+  SwapRedBlue(m_data.get(), reinterpret_cast<mageray::Pixel*>(&image[0]), width * height);
+
+  return true;
+#endif // USE_LODEPNG
 }
 
 bool Image::LoadJPEG(std::istream& stream) {
@@ -191,7 +240,7 @@ bool Image::LoadJPEG(std::istream& stream) {
 
   DLOG("Identified JPEG file format.");
 
-  // TODO(mage): Implement me!
+  // TODO(m): Implement me!
   LOG("JPEG reading support not yet implemented.");
   return false;
 }
@@ -224,6 +273,7 @@ bool Image::Load(const char* file_name) {
 bool Image::SavePNG(std::ostream& stream) {
   ASSERT(!Empty(), "No image data to write.");
 
+#ifdef USE_LIBPNG
   // Initialize PNG data structures.
   png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL,
       NULL, NULL);
@@ -266,6 +316,23 @@ bool Image::SavePNG(std::ostream& stream) {
 
   // Free up resources.
   png_destroy_write_struct(&png_ptr, &info_ptr);
+#endif // USE_LIBPNG
+
+#ifdef USE_LODEPNG
+  // Swap R & G.
+  std::vector<Pixel> pixels(m_width * m_height);
+  SwapRedBlue(&pixels[0], m_data.get(), m_width * m_height);
+
+  // Encode to an in-memory array.
+  std::vector<unsigned char> data;
+  unsigned error = lodepng::encode(data, reinterpret_cast<unsigned char*>(&pixels[0]), m_width, m_height);
+  if (error) {
+    return false;
+  }
+
+  // Write to the output stream.
+  stream.write(reinterpret_cast<char*>(&data[0]), data.size());
+#endif // USE_LODEPNG
 
   return true;
 }

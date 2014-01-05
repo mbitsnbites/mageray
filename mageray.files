@@ -46,3 +46,5 @@ src/lib/base/threads.h
 src/lib/photon_map.h
 src/lib/photon_map.cpp
 src/lib/base/random.h
+src/third_party/lodepng/lodepng.cpp
+src/third_party/lodepng/lodepng.h

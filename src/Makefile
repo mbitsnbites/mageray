@@ -26,6 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #------------------------------------------------------------------------------
 
+DEBUG ?= YES
+OPENMP ?= YES
+LIBPNG ?= YES
+
 LIB_PATH = lib
 OUT_PATH = out
 OBJ_PATH = $(OUT_PATH)/obj
@@ -34,26 +38,16 @@ BIN_PATH = $(OUT_PATH)/bin
 OPENCTM_PATH = third_party/openctm/lib
 LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.a
 TINYXML2_PATH = third_party/tinyxml2
+LODEPNG_PATH = third_party/lodepng
 
 CPP = g++
 CPPFLAGS = -c -std=c++0x \
            -Ofast -funroll-loops \
-           -W -Wall -Wextra -Wdouble-promotion \
+           -W -Wall -Wextra \
            -I$(LIB_PATH) -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) \
            -DSCALAR_IS_FLOAT
 LFLAGS = -L$(OPENCTM_PATH)
 LIBS = -lopenctm2 -lpthread -lm
-
-# Use OpenMP
-CPPFLAGS += -DUSE_OPENMP -fopenmp
-LFLAGS += -fopenmp
-
-# Automatically generate dependency files
-CPPFLAGS += -MMD -MP
-
-# Debug flags
-CPPFLAGS += -D_DEBUG -g
-LFLAGS += -g
 
 LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/camera.o \
@@ -73,6 +67,31 @@ LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/tinyxml2.o \
            $(OBJ_PATH)/tree.o \
            $(OBJ_PATH)/tracer.o
+
+# Use libpng or lodepng?
+ifeq ($(LIBPNG), YES)
+CPPFLAGS += -DUSE_LIBPNG
+LIBS += -lpng
+else
+CPPFLAGS += -DUSE_LODEPNG
+CPPFLAGS += -I$(LODEPNG_PATH)
+LIB_OBJS += $(OBJ_PATH)/lodepng.o
+endif
+
+# Use OpenMP?
+ifeq ($(OPENMP), YES)
+CPPFLAGS += -DUSE_OPENMP -fopenmp
+LFLAGS += -fopenmp
+endif
+
+# Enable debugging?
+ifeq ($(DEBUG), YES)
+CPPFLAGS += -D_DEBUG -g
+LFLAGS += -g
+endif
+
+# Automatically generate dependency files
+CPPFLAGS += -MMD -MP
 
 MAGERAY = $(BIN_PATH)/mageray
 
@@ -103,6 +122,9 @@ $(OBJ_PATH)/%.o: $(LIB_PATH)/importers/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 $(OBJ_PATH)/%.o: third_party/tinyxml2/%.cpp
+	$(CPP) $(CPPFLAGS) -o $@ $<
+
+$(OBJ_PATH)/%.o: third_party/lodepng/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 # These dependency files are generated automatically when building the object
