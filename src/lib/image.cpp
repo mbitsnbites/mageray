@@ -270,7 +270,7 @@ bool Image::Load(const char* file_name) {
   return false;
 }
 
-bool Image::SavePNG(std::ostream& stream) {
+bool Image::SavePNG(std::ostream& stream) const {
   ASSERT(!Empty(), "No image data to write.");
 
 #ifdef USE_LIBPNG
@@ -337,7 +337,7 @@ bool Image::SavePNG(std::ostream& stream) {
   return true;
 }
 
-bool Image::SavePNG(const char* file_name) {
+bool Image::SavePNG(const char* file_name) const {
   std::ofstream os(file_name, std::ios_base::out | std::ios_base::binary);
   if (os.good()) {
     return SavePNG(os);

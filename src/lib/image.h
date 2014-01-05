@@ -67,12 +67,12 @@ class Image {
     /// Save an image as a PNG file to a stream.
     /// @param[in] stream The stream to which to write the image.
     /// @returns true if the operation succeeded.
-    bool SavePNG(std::ostream& stream);
+    bool SavePNG(std::ostream& stream) const;
 
     /// Save an image as a PNG file.
     /// @param[in] file_name The name of the file to save.
     /// @returns true if the operation succeeded.
-    bool SavePNG(const char* file_name);
+    bool SavePNG(const char* file_name) const;
 
     /// Clear the entire image with a solid color.
     /// @param[in] color The color to fill the image with.
