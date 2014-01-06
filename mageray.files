@@ -48,3 +48,6 @@ src/lib/photon_map.cpp
 src/lib/base/random.h
 src/third_party/lodepng/lodepng.cpp
 src/third_party/lodepng/lodepng.h
+src/third_party/exprtk/exprtk.hpp
+src/lib/expression_parser.h
+src/lib/expression_parser.cpp

@@ -37,6 +37,7 @@
 
 #include "base/types.h"
 #include "camera.h"
+#include "expression_parser.h"
 #include "image.h"
 #include "mesh.h"
 #include "material.h"
@@ -145,6 +146,8 @@ class Scene {
     mageray::Camera m_camera;
 
     mageray::ObjectTree m_object_tree;
+
+    ExpressionParser m_expression_parser;
 
     std::map<std::string, std::unique_ptr<Image> > m_images;
     std::map<std::string, std::unique_ptr<Mesh> > m_meshes;

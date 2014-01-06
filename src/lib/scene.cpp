@@ -54,82 +54,19 @@ class scene_parse_error : public std::exception {
     virtual ~scene_parse_error() noexcept {}
 
     virtual const char* what() const noexcept {
+      return "A scene parser error occured.";
+    }
+
+    std::string message() const {
       std::ostringstream ss;
       ss << "In XML node " << m_name << ": " << m_msg;
-      return ss.str().c_str();
+      return ss.str();
     }
 
   private:
     std::string m_msg;
     std::string m_name;
 };
-
-namespace {
-
-vec2 ParseVec2String(const char* str) {
-  std::istringstream ss(str);
-  vec2 v;
-  ss >> v.u;
-  ss >> v.v;
-  if (ss.fail()) {
-    std::string msg = std::string("Unable to parse \"") +
-        str + std::string("\" as a vec2.");
-    throw scene_parse_error(NULL, msg.c_str());
-  }
-  return v;
-}
-
-vec3 ParseVec3String(const char* str) {
-  std::istringstream ss(str);
-  vec3 v;
-  ss >> v.x;
-  ss >> v.y;
-  ss >> v.z;
-  if (ss.fail()) {
-    std::string msg = std::string("Unable to parse \"") +
-        str + std::string("\" as a vec3.");
-    throw scene_parse_error(NULL, msg.c_str());
-  }
-  return v;
-}
-
-scalar ParseScalarString(const char* str) {
-  std::istringstream ss(str);
-  scalar s;
-  ss >> s;
-  if (ss.fail()) {
-    std::string msg = std::string("Unable to parse \"") +
-        str + std::string("\" as a scalar.");
-    throw scene_parse_error(NULL, msg.c_str());
-  }
-  return s;
-}
-
-int ParseIntString(const char* str) {
-  std::istringstream ss(str);
-  int i;
-  ss >> i;
-  if (ss.fail()) {
-    std::string msg = std::string("Unable to parse \"") +
-        str + std::string("\" as an integer.");
-    throw scene_parse_error(NULL, msg.c_str());
-  }
-  return i;
-}
-
-bool ParseBoolString(const char* str) {
-  std::istringstream ss(str);
-  bool b;
-  ss >> b;
-  if (ss.fail()) {
-    std::string msg = std::string("Unable to parse \"") +
-        str + std::string("\" as a boolean value.");
-    throw scene_parse_error(NULL, msg.c_str());
-  }
-  return b;
-}
-
-}
 
 void Scene::Reset() {
   m_camera.Reset();
@@ -156,25 +93,25 @@ void Scene::Reset() {
 
 void Scene::LoadConfig(tinyxml2::XMLElement* element) {
   if (const char* str = element->Attribute("max_recursions")) {
-    m_config.max_recursions = ParseScalarString(str);
+    m_config.max_recursions = m_expression_parser.ToScalar(str);
   }
   if (const char* str = element->Attribute("antialias_depth")) {
-    m_config.antialias_depth = ParseScalarString(str);
+    m_config.antialias_depth = m_expression_parser.ToScalar(str);
   }
   if (const char* str = element->Attribute("soft_shadow_depth")) {
-    m_config.soft_shadow_depth = ParseScalarString(str);
+    m_config.soft_shadow_depth = m_expression_parser.ToScalar(str);
   }
   if (const char* str = element->Attribute("max_photons")) {
-    m_config.max_photons = ParseScalarString(str);
+    m_config.max_photons = m_expression_parser.ToScalar(str);
   }
   if (const char* str = element->Attribute("max_photon_depth")) {
-    m_config.max_photon_depth = ParseScalarString(str);
+    m_config.max_photon_depth = m_expression_parser.ToScalar(str);
   }
   if (const char* str = element->Attribute("photon_energy")) {
-    m_config.photon_energy = ParseScalarString(str);
+    m_config.photon_energy = m_expression_parser.ToScalar(str);
   }
   if (const char* str = element->Attribute("direct_lighting")) {
-    m_config.direct_lighting = ParseScalarString(str) != scalar(0.0);
+    m_config.direct_lighting = m_expression_parser.ToBool(str);
   }
 }
 
@@ -210,16 +147,16 @@ void Scene::LoadAssets(tinyxml2::XMLElement* element) {
 
 void Scene::LoadCamera(tinyxml2::XMLElement* element) {
   if (const char* str = element->Attribute("position")) {
-    m_camera.SetPosition(ParseVec3String(str));
+    m_camera.SetPosition(m_expression_parser.ToVec3(str));
   }
   if (const char* str = element->Attribute("lookat")) {
-    m_camera.SetLookAt(ParseVec3String(str));
+    m_camera.SetLookAt(m_expression_parser.ToVec3(str));
   }
   if (const char* str = element->Attribute("nominalup")) {
-    m_camera.SetNominalUp(ParseVec3String(str));
+    m_camera.SetNominalUp(m_expression_parser.ToVec3(str));
   }
   if (const char* str = element->Attribute("fov")) {
-    m_camera.SetFOV(ParseScalarString(str));
+    m_camera.SetFOV(m_expression_parser.ToScalar(str));
   }
 }
 
@@ -289,8 +226,8 @@ void Scene::LoadSphereMesh(tinyxml2::XMLElement* element) {
   if (!resolution_str) {
     throw scene_parse_error(element, "Missing resolution attribute.");
   }
-  scalar radius = ParseScalarString(radius_str);
-  int resolution = ParseIntString(resolution_str);
+  scalar radius = m_expression_parser.ToScalar(radius_str);
+  int resolution = m_expression_parser.ToInt(resolution_str);
 
   // Create a new sphere mesh.
   std::unique_ptr<Mesh> mesh(Mesh::MakeSphere(resolution, radius));
@@ -314,7 +251,7 @@ void Scene::LoadPlaneMesh(tinyxml2::XMLElement* element) {
   if (!size_str) {
     throw scene_parse_error(element, "Missing size attribute.");
   }
-  vec2 size = ParseVec2String(size_str);
+  vec2 size = m_expression_parser.ToVec2(size_str);
 
   // Create a new plane mesh.
   std::unique_ptr<Mesh> mesh(Mesh::MakePlane(size));
@@ -357,25 +294,25 @@ void Scene::LoadMaterial(tinyxml2::XMLElement* element) {
   }
 
   if (const char* str = element->Attribute("ambient")) {
-    material->SetAmbient(ParseScalarString(str));
+    material->SetAmbient(m_expression_parser.ToScalar(str));
   }
   if (const char* str = element->Attribute("diffuse")) {
-    material->SetDiffuse(ParseVec3String(str));
+    material->SetDiffuse(m_expression_parser.ToVec3(str));
   }
   if (const char* str = element->Attribute("specular")) {
-    material->SetSpecular(ParseVec3String(str));
+    material->SetSpecular(m_expression_parser.ToVec3(str));
   }
   if (const char* str = element->Attribute("transparency")) {
-    material->SetTransparency(ParseVec3String(str));
+    material->SetTransparency(m_expression_parser.ToVec3(str));
   }
   if (const char* str = element->Attribute("mirror")) {
-    material->SetMirror(ParseBoolString(str));
+    material->SetMirror(m_expression_parser.ToBool(str));
   }
   if (const char* str = element->Attribute("hardness")) {
-    material->SetHardness(ParseScalarString(str));
+    material->SetHardness(m_expression_parser.ToScalar(str));
   }
   if (const char* str = element->Attribute("ior")) {
-    material->SetIor(ParseScalarString(str));
+    material->SetIor(m_expression_parser.ToScalar(str));
   }
 
   // Select shader (fall back to @phong if none given).
@@ -445,17 +382,17 @@ void Scene::LoadObject(tinyxml2::XMLElement* element) {
   while (node) {
     // Translate transformation?
     if (std::string(node->Value()) == "translate") {
-      object->Translate(ParseVec3String(node->GetText()));
+      object->Translate(m_expression_parser.ToVec3(node->GetText()));
     }
 
     // Scale transformation?
     else if (std::string(node->Value()) == "scale") {
-      object->Scale(ParseVec3String(node->GetText()));
+      object->Scale(m_expression_parser.ToVec3(node->GetText()));
     }
 
     // Rotate transformation?
     else if (std::string(node->Value()) == "rotate") {
-      object->Rotate(ParseVec3String(node->GetText()));
+      object->Rotate(m_expression_parser.ToVec3(node->GetText()));
     }
 
     // Material
@@ -477,16 +414,16 @@ void Scene::LoadLight(tinyxml2::XMLElement* element) {
   }
 
   if (const char* str = element->Attribute("color")) {
-    light->SetColor(ParseVec3String(str));
+    light->SetColor(m_expression_parser.ToVec3(str));
   }
   if (const char* str = element->Attribute("position")) {
-    light->SetPosition(ParseVec3String(str));
+    light->SetPosition(m_expression_parser.ToVec3(str));
   }
   if (const char* str = element->Attribute("distance")) {
-    light->SetDistance(ParseScalarString(str));
+    light->SetDistance(m_expression_parser.ToScalar(str));
   }
   if (const char* str = element->Attribute("size")) {
-    light->SetSize(ParseScalarString(str));
+    light->SetSize(m_expression_parser.ToScalar(str));
   }
 
   // Add the object to the object list.
@@ -575,8 +512,14 @@ bool Scene::LoadFromXML(std::istream& stream) {
       }
     }
   }
-  catch (scene_parse_error err) {
-    LOG("Error loading XML scene: %s", err.what());
+  catch (const scene_parse_error& err) {
+    std::string msg = err.message();
+    LOG("Error loading XML scene: %s", msg.c_str());
+    success = false;
+  }
+  catch (const ExpressionParser::error& err) {
+    std::string msg = err.message();
+    LOG("Error loading XML scene: %s", msg.c_str());
     success = false;
   }
   catch (...) {
