@@ -1,12 +1,15 @@
 <?xml version="1.0"?>
 <mageray version="1">
+  <assets>
+    <meshes>
+      <mesh name="bunny" file="models/bunny.ctm" />
+      <mesh name="happy" file="models/happy.ctm" />
+      <spheremesh name="sphere" radius="1" resolution="32" />
+    </meshes>
+  </assets>
+
   <scene>
     <camera position="3 -6 4" lookat="0.8 0 2.7" fov="90" />
-
-    <meshes>
-      <mesh name="bunny" file="bunny.ctm" />
-      <mesh name="happy" file="happy.ctm" />
-    </meshes>
 
     <materials>
     </materials>
@@ -16,77 +19,77 @@
 
     <objects>
       <!-- Some spheres -->
-      <sphereobject radius="1">
+      <object mesh="sphere">
         <translate>-2.0 -2.0 -1</translate>
-      </sphereobject>
-      <sphereobject radius="1">
+      </object>
+      <object mesh="sphere">
         <translate>0.0 -2.0 -1</translate>
-      </sphereobject>
-      <sphereobject radius="1">
+      </object>
+      <object mesh="sphere">
         <translate>2.0 -2.0 -1</translate>
-      </sphereobject>
-      <sphereobject radius="1">
+      </object>
+      <object mesh="sphere">
         <translate>-2.0 0.0 -1</translate>
-      </sphereobject>
-      <sphereobject radius="1">
+      </object>
+      <object mesh="sphere">
         <translate>0.0 0.0 -1</translate>
-      </sphereobject>
-      <sphereobject radius="1">
+      </object>
+      <object mesh="sphere">
         <translate>2.0 0.0 -1</translate>
-      </sphereobject>
-      <sphereobject radius="1">
+      </object>
+      <object mesh="sphere">
         <translate>-2.0 2.0 -1</translate>
-      </sphereobject>
-      <sphereobject radius="1">
+      </object>
+      <object mesh="sphere">
         <translate>0.0 2.0 -1</translate>
-      </sphereobject>
-      <sphereobject radius="1">
+      </object>
+      <object mesh="sphere">
         <translate>2.0 2.0 -1</translate>
-      </sphereobject>
+      </object>
 
       <!-- Some bunnies -->
-      <meshobject mesh="bunny">
+      <object mesh="bunny">
         <translate>-4.0 2.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="bunny">
+      </object>
+      <object mesh="bunny">
         <translate>-2.0 0.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="bunny">
+      </object>
+      <object mesh="bunny">
         <translate>0.0 2.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="bunny">
+      </object>
+      <object mesh="bunny">
         <translate>2.0 0.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="bunny">
+      </object>
+      <object mesh="bunny">
         <translate>4.0 2.0 0.0</translate>
-      </meshobject>
+      </object>
 
       <!-- Some happy buddhas -->
-      <meshobject mesh="happy">
+      <object mesh="happy">
         <translate>-3.0 4.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="happy">
+      </object>
+      <object mesh="happy">
         <scale>1.5 1.5 1.5</scale>
         <translate>0.0 4.0 -1.0</translate>
-      </meshobject>
-      <meshobject mesh="happy">
+      </object>
+      <object mesh="happy">
         <translate>3.0 4.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="happy">
+      </object>
+      <object mesh="happy">
         <translate>-5.0 6.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="happy">
+      </object>
+      <object mesh="happy">
         <translate>-3.0 7.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="happy">
+      </object>
+      <object mesh="happy">
         <translate>0.0 8.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="happy">
+      </object>
+      <object mesh="happy">
         <translate>3.0 7.0 0.0</translate>
-      </meshobject>
-      <meshobject mesh="happy">
+      </object>
+      <object mesh="happy">
         <translate>5.0 6.0 0.0</translate>
-      </meshobject>
+      </object>
     </objects>
   </scene>
 </mageray>
