@@ -49,6 +49,7 @@ void ShowUsage(const char* prg_name) {
   std::cout << "Options:" << std::endl;
   std::cout << " -w width" << std::endl;
   std::cout << " -h height" << std::endl;
+  std::cout << " -i iterations (for profiling)" << std::endl;
 }
 
 }
@@ -64,6 +65,7 @@ int main(int argc, const char* argv[]) {
   // Collect command line arguments.
   unsigned width = 1024;
   unsigned height = 768;
+  unsigned iterations = 1;
   const char* file_names[2];
   int file_name_idx = 0;
   for (int i = 1; i < argc; ++i) {
@@ -85,6 +87,15 @@ int main(int argc, const char* argv[]) {
       }
       ++i;
       height = std::stoi(argv[i]);
+    }
+    else if (a == "-i") {
+      if ((i + 1) == argc) {
+        std::cerr << "Too few arguments." << std::endl;
+        ShowUsage(argv[0]);
+        return 0;
+      }
+      ++i;
+      iterations = std::stoi(argv[i]);
     }
     else {
       if (file_name_idx >= 2) {
@@ -127,7 +138,12 @@ int main(int argc, const char* argv[]) {
 
   // Ray trace image.
   std::cout << std::endl << "[Rendering image (" << width << "x" << height << ")]" << std::endl;
-  tracer.GenerateImage(img);
+  for (unsigned i = 1; i <= iterations; ++i) {
+    if (iterations > 1) {
+      std::cout << "Render iteration " << i << "/" << iterations << std::endl;
+    }
+    tracer.GenerateImage(img);
+  }
 
   // Save image.
   img.SavePNG(image_file.c_str());
