@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_BASE_TYPES_H_
-#define RAYMAGE_BASE_TYPES_H_
+#ifndef MAGERAY_BASE_TYPES_H_
+#define MAGERAY_BASE_TYPES_H_
 
 // Floating point type used throughout the program.
 #if !defined(SCALAR_IS_FLOAT) && !defined(SCALAR_IS_DOUBLE)
@@ -67,4 +67,4 @@ typedef double scalar;
   x(const x&) = delete; \
   void operator=(const x&) = delete
 
-#endif // RAYMAGE_BASE_TYPES_H_
+#endif // MAGERAY_BASE_TYPES_H_

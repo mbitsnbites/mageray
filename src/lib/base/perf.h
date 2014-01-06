@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_BASE_PERF_H_
-#define RAYMAGE_BASE_PERF_H_
+#ifndef MAGERAY_BASE_PERF_H_
+#define MAGERAY_BASE_PERF_H_
 
 namespace mageray {
 
@@ -86,4 +86,4 @@ class CumulativePerf {
 
 } // namespace mageray
 
-#endif // RAYMAGE_BASE_PERF_H_
+#endif // MAGERAY_BASE_PERF_H_

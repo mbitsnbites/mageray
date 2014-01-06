@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_BASE_THREADS_H_
-#define RAYMAGE_BASE_THREADS_H_
+#ifndef MAGERAY_BASE_THREADS_H_
+#define MAGERAY_BASE_THREADS_H_
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(__WINDOWS__)
 #include <process.h>
@@ -63,4 +63,4 @@ class Thread {
 
 } // namespace mageray
 
-#endif // RAYMAGE_BASE_THREADS_H_
+#endif // MAGERAY_BASE_THREADS_H_

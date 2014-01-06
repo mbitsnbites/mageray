@@ -26,8 +26,8 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifndef RAYMAGE_BASE_LOG_H_
-#define RAYMAGE_BASE_LOG_H_
+#ifndef MAGERAY_BASE_LOG_H_
+#define MAGERAY_BASE_LOG_H_
 
 #include <cstdio>
 #include <iostream>
@@ -64,4 +64,4 @@
 # define ASSERT(x, msg, ...)
 #endif
 
-#endif // RAYMAGE_BASE_LOG_H_
+#endif // MAGERAY_BASE_LOG_H_
