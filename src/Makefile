@@ -39,12 +39,13 @@ OPENCTM_PATH = third_party/openctm/lib
 LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.a
 TINYXML2_PATH = third_party/tinyxml2
 LODEPNG_PATH = third_party/lodepng
+EXPRTK_PATH = third_party/exprtk
 
 CPP = g++
 CPPFLAGS = -c -std=c++0x \
            -Ofast -funroll-loops \
            -W -Wall -Wextra \
-           -I$(LIB_PATH) -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) \
+           -I$(LIB_PATH) -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) -I$(EXPRTK_PATH) \
            -DSCALAR_IS_FLOAT
 LFLAGS = -L$(OPENCTM_PATH)
 LIBS = -lopenctm2 -lpthread -lm
