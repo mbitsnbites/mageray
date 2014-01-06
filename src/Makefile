@@ -52,6 +52,7 @@ LIBS = -lopenctm2 -lpthread -lm
 
 LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/camera.o \
+           $(OBJ_PATH)/expression_parser.o \
            $(OBJ_PATH)/image.o \
            $(OBJ_PATH)/light.o \
            $(OBJ_PATH)/mat.o \
