@@ -27,10 +27,14 @@
 //------------------------------------------------------------------------------
 
 #include <algorithm>
+#include <iomanip>
 #include <iostream>
+#include <condition_variable>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <sstream>
-#include <iomanip>
+#include <thread>
 
 #include "scene.h"
 #include "tracer.h"
@@ -38,6 +42,85 @@
 using namespace mageray;
 
 namespace {
+
+// This is a threaded image saver that will save images to disk using a worker
+// thread.
+class AsyncImageSaver {
+  public:
+    AsyncImageSaver() : m_terminate(false) {
+      // Start the worker thread.
+      m_thread = std::thread(&AsyncImageSaver::Worker, this);
+    }
+
+    ~AsyncImageSaver() {
+      // Tell the worker to terminate ASAP.
+      m_saves_lock.lock();
+      m_terminate = true;
+      m_saves_lock.unlock();
+      m_saves_cond.notify_all();
+
+      // Wait for the worker to terminate.
+      m_thread.join();
+    }
+
+    void SaveImage(std::unique_ptr<Image> image, const std::string& file_name) {
+      std::unique_lock<std::mutex> guard(m_saves_lock);
+
+      // TODO(m): We might want to block here if the save queue has more than N
+      // commands in it (prevent ridiculous memory consumption). That should
+      // only be an issue if PNG encoding takes longer than ray-tracing, though,
+      // which is quite unlikely.
+
+      // Create a new save command.
+      SaveImageCmd* cmd = new SaveImageCmd;
+      cmd->image = std::move(image);
+      cmd->file_name = file_name;
+      m_saves.push_back(cmd);
+
+      // Tell the worker to save the image ASAP.
+      m_saves_cond.notify_all();
+    }
+
+  private:
+    void Worker() {
+      std::unique_lock<std::mutex> guard(m_saves_lock);
+      while (m_saves.size() > 0 || !m_terminate) {
+        // Wait for new save commands.
+        while (m_saves.size() == 0 && !m_terminate) {
+          m_saves_cond.wait(guard);
+        }
+
+        if (m_saves.size() > 0) {
+          // Pick up the next save command.
+          SaveImageCmd* cmd = m_saves.front();
+          m_saves.pop_front();
+
+          // Do not block calls to SaveImage() while saving.
+          guard.unlock();
+
+          // Save the image to a file.
+          cmd->image->SavePNG(cmd->file_name.c_str());
+
+          // Delete the command (including the image).
+          delete cmd;
+
+          guard.lock();
+        }
+      }
+    }
+
+    struct SaveImageCmd {
+      std::unique_ptr<Image> image;
+      std::string file_name;
+    };
+
+    std::thread m_thread;
+
+    std::list<SaveImageCmd*> m_saves;
+    std::mutex m_saves_lock;
+    std::condition_variable m_saves_cond;
+    bool m_terminate;
+};
 
 std::string ExtractBasePath(const std::string& file_name) {
   size_t separator_pos = file_name.find_last_of("/\\");
@@ -147,12 +230,8 @@ int main(int argc, const char* argv[]) {
   Tracer tracer;
   tracer.SetScene(&scene);
 
-  // Create a target image.
-  Image img;
-  if (!img.Allocate(width, height)) {
-    std::cerr << "Unable to create target image (out of memory?)." << std::endl;
-    return 0;
-  }
+  // Start the asynchronous image saver.
+  AsyncImageSaver img_saver;
 
   // Animation configuration: time per frame.
   unsigned num_frames = std::max(scene.Config().num_frames, unsigned(1));
@@ -174,13 +253,17 @@ int main(int argc, const char* argv[]) {
     std::cout << std::endl << "[Generating photon map]" << std::endl;
     tracer.GeneratePhotonMap();
 
+    // Create a target image.
+    std::unique_ptr<Image> img(new Image);
+    img->Allocate(width, height);
+
     // Ray trace image.
     std::cout << std::endl << "[Rendering image (" << width << "x" << height << ")]" << std::endl;
     for (unsigned i = 1; i <= iterations; ++i) {
       if (iterations > 1) {
         std::cout << "Render iteration " << i << "/" << iterations << std::endl;
       }
-      tracer.GenerateImage(img);
+      tracer.GenerateImage(img.get());
     }
 
     // Save image.
@@ -191,7 +274,7 @@ int main(int argc, const char* argv[]) {
     else {
       image_file_anim = image_file;
     }
-    img.SavePNG(image_file_anim.c_str());
+    img_saver.SaveImage(std::move(img), image_file_anim);
   }
 
   return 0;

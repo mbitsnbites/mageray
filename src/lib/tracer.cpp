@@ -605,7 +605,7 @@ void Tracer::GeneratePhotonMap() {
   _photon_map.Done();
 }
 
-void Tracer::GenerateImage(Image& image) const {
+void Tracer::GenerateImage(Image* image) const {
   ASSERT(m_scene, "The scene is undefined.");
   ScopedPerf _raytrace = ScopedPerf("Raytrace image");
 
@@ -614,10 +614,10 @@ void Tracer::GenerateImage(Image& image) const {
   DLOG("Using %d threads to render image.", concurrency);
 
   // Start threads.
-  ThreadController controller(image.Width(), image.Height());
+  ThreadController controller(image->Width(), image->Height());
   std::list<std::thread> threads;
   for (int i = 0; i < concurrency; ++i) {
-    threads.push_back(std::thread(&Tracer::DoWork, this, &controller, &image));
+    threads.push_back(std::thread(&Tracer::DoWork, this, &controller, image));
   }
 
   // Wait for threads to finish.

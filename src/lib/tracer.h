@@ -54,7 +54,7 @@ class Tracer {
 
     /// Generate an image of the current scene.
     /// @param image The image to render to.
-    void GenerateImage(Image& image) const;
+    void GenerateImage(Image* image) const;
 
     void SetScene(const Scene* scene) {
       m_scene = scene;
