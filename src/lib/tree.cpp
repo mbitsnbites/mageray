@@ -394,6 +394,10 @@ void ObjectTree::Build(const std::list<std::unique_ptr<Object> >& objects) {
 
   ScopedPerf _leaf_perf = ScopedPerf("Generate leaf nodes");
 
+  // Clear tree.
+  m_leaf_nodes.clear();
+  m_branch_nodes.clear();
+
   // Create a vector of leaf nodes, and calculate the total bounding box while
   // we're at it.
   AABB aabb_union;

@@ -26,8 +26,11 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
+#include <algorithm>
 #include <iostream>
 #include <string>
+#include <sstream>
+#include <iomanip>
 
 #include "scene.h"
 #include "tracer.h"
@@ -42,6 +45,26 @@ std::string ExtractBasePath(const std::string& file_name) {
     return "";
   }
   return file_name.substr(0, separator_pos + 1);
+}
+
+std::string MakeAnimName(const std::string& file_name, unsigned frame) {
+  std::string base, ext;
+  size_t ext_pos = file_name.find_last_of(".");
+  if (ext_pos == std::string::npos) {
+    base = file_name;
+    ext = ".png";
+  }
+  else {
+    base = file_name.substr(0, ext_pos);
+    ext = file_name.substr(ext_pos);
+  }
+  std::stringstream ss;
+  std::ios_base::fmtflags flags = ss.flags();
+  ss << base << "_";
+  ss << std::setfill('0') << std::setw(6) << frame;
+  ss.flags(flags);
+  ss << ext;
+  return ss.str();
 }
 
 void ShowUsage(const char* prg_name) {
@@ -114,13 +137,15 @@ int main(int argc, const char* argv[]) {
   // Determine resource folder.
   const std::string file_path = ExtractBasePath(scene_file);
 
-  // Load scene.
-  std::cout << std::endl << "[Loading scene]" << std::endl;
+  // Load scene assets.
+  std::cout << std::endl << "[Loading scene assets]" << std::endl;
   Scene scene;
   scene.SetFilePath(file_path.c_str());
-  if (!scene.LoadFromXML(scene_file.c_str())) {
+  if (!scene.LoadAssets(scene_file.c_str())) {
     return 0;
   }
+  Tracer tracer;
+  tracer.SetScene(&scene);
 
   // Create a target image.
   Image img;
@@ -129,24 +154,45 @@ int main(int argc, const char* argv[]) {
     return 0;
   }
 
-  Tracer tracer;
-  tracer.SetScene(&scene);
+  // Animation configuration: time per frame.
+  unsigned num_frames = std::max(scene.Config().num_frames, unsigned(1));
+  scalar time_per_frame = (scene.Config().stop_t - scene.Config().start_t)
+      / scalar(std::max(num_frames - 1, unsigned(1)));
 
-  // Generate photon map.
-  std::cout << std::endl << "[Generating photon map]" << std::endl;
-  tracer.GeneratePhotonMap();
+  // Animation loop.
+  for (unsigned frame = 1; frame <= scene.Config().num_frames; ++frame) {
+    // Calculate current animation time.
+    scene.SetTime(scene.Config().start_t + (frame - 1) * time_per_frame);
 
-  // Ray trace image.
-  std::cout << std::endl << "[Rendering image (" << width << "x" << height << ")]" << std::endl;
-  for (unsigned i = 1; i <= iterations; ++i) {
-    if (iterations > 1) {
-      std::cout << "Render iteration " << i << "/" << iterations << std::endl;
+    // Load scene definition.
+    std::cout << std::endl << "[Loading scene definition]" << std::endl;
+    if (!scene.LoadDefinition(scene_file.c_str())) {
+      return 0;
     }
-    tracer.GenerateImage(img);
-  }
 
-  // Save image.
-  img.SavePNG(image_file.c_str());
+    // Generate photon map.
+    std::cout << std::endl << "[Generating photon map]" << std::endl;
+    tracer.GeneratePhotonMap();
+
+    // Ray trace image.
+    std::cout << std::endl << "[Rendering image (" << width << "x" << height << ")]" << std::endl;
+    for (unsigned i = 1; i <= iterations; ++i) {
+      if (iterations > 1) {
+        std::cout << "Render iteration " << i << "/" << iterations << std::endl;
+      }
+      tracer.GenerateImage(img);
+    }
+
+    // Save image.
+    std::string image_file_anim;
+    if (scene.Config().num_frames > 1) {
+      image_file_anim = MakeAnimName(image_file, frame);
+    }
+    else {
+      image_file_anim = image_file;
+    }
+    img.SavePNG(image_file_anim.c_str());
+  }
 
   return 0;
 }

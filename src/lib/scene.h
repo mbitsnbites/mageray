@@ -78,6 +78,15 @@ struct TraceConfig {
   /// If direct lighting is not enabled, the photon map is used for the direct
   /// lighting.
   bool direct_lighting;
+
+  /// Animation starting time (in seconds).
+  scalar start_t;
+
+  /// Animation ending time (in seconds).
+  scalar stop_t;
+
+  /// Number of animation frames.
+  unsigned num_frames;
 };
 
 
@@ -96,15 +105,25 @@ class Scene {
       m_file_path = std::string(path);
     }
 
-    /// Load a scene from a file.
+    /// Load assets from a scene file.
     /// @param file_name The name of the file to load.
     /// @returns true if successful.
-    bool LoadFromXML(const char* file_name);
+    bool LoadAssets(const char* file_name);
 
-    /// Load a scene from a stream.
+    /// Load assets from a scene stream.
     /// @param stream The stream to load.
     /// @returns true if successful.
-    bool LoadFromXML(std::istream& stream);
+    bool LoadAssets(std::istream& stream);
+
+    /// Load scene (excluding assets) from a scene file.
+    /// @param file_name The name of the file to load.
+    /// @returns true if successful.
+    bool LoadDefinition(const char* file_name);
+
+    /// Load scene (excluding assets) from a scene stream.
+    /// @param stream The stream to load.
+    /// @returns true if successful.
+    bool LoadDefinition(std::istream& stream);
 
     /// Get the camera for this scene.
     const mageray::Camera& Camera() const {
@@ -126,7 +145,12 @@ class Scene {
       return m_config;
     }
 
+    /// Set the current frame time.
+    void SetTime(scalar t);
+
   private:
+    void ClearDefinition();
+
     void LoadConfig(tinyxml2::XMLElement* element);
     void LoadAssets(tinyxml2::XMLElement* element);
     void LoadCamera(tinyxml2::XMLElement* element);

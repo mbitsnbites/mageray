@@ -69,15 +69,11 @@ class scene_parse_error : public std::exception {
 };
 
 void Scene::Reset() {
-  m_camera.Reset();
-
   m_images.clear();
   m_meshes.clear();
   m_shaders.clear();
-  m_materials.clear();
 
-  m_lights.clear();
-  m_objects.clear();
+  ClearDefinition();
 
   // Default configuration.
   m_config.max_recursions = 4;
@@ -87,8 +83,22 @@ void Scene::Reset() {
   m_config.max_photon_depth = 4;
   m_config.photon_energy = scalar(1000.0);
   m_config.direct_lighting = true;
+  m_config.start_t = 0.0f;
+  m_config.stop_t = 0.0f;
+  m_config.num_frames = 1;
 
   InitDefaultShaders();
+}
+
+void Scene::SetTime(scalar t) {
+  m_expression_parser.SetTime(t);
+}
+
+void Scene::ClearDefinition() {
+  m_camera.Reset();
+  m_materials.clear();
+  m_lights.clear();
+  m_objects.clear();
 }
 
 void Scene::LoadConfig(tinyxml2::XMLElement* element) {
@@ -112,6 +122,17 @@ void Scene::LoadConfig(tinyxml2::XMLElement* element) {
   }
   if (const char* str = element->Attribute("direct_lighting")) {
     m_config.direct_lighting = m_expression_parser.ToBool(str);
+  }
+
+  // Animation.
+  if (const char* str = element->Attribute("start_t")) {
+    m_config.start_t = m_expression_parser.ToScalar(str);
+  }
+  if (const char* str = element->Attribute("stop_t")) {
+    m_config.stop_t = m_expression_parser.ToScalar(str);
+  }
+  if (const char* str = element->Attribute("num_frames")) {
+    m_config.num_frames = m_expression_parser.ToInt(str);
   }
 }
 
@@ -430,16 +451,16 @@ void Scene::LoadLight(tinyxml2::XMLElement* element) {
   m_lights.push_back(std::move(light));
 }
 
-bool Scene::LoadFromXML(const char* file_name) {
+bool Scene::LoadAssets(const char* file_name) {
   std::ifstream is(file_name, std::ios_base::in);
   if (is.good()) {
-    return LoadFromXML(is);
+    return LoadAssets(is);
   }
   LOG("Unable to open XML file %s", file_name);
   return false;
 }
 
-bool Scene::LoadFromXML(std::istream& stream) {
+bool Scene::LoadAssets(std::istream& stream) {
   Reset();
 
   bool success = true;
@@ -467,6 +488,52 @@ bool Scene::LoadFromXML(std::istream& stream) {
     if (tinyxml2::XMLElement* node = mageray_node->FirstChildElement("assets")) {
       LoadAssets(node);
     }
+  }
+  catch (const scene_parse_error& err) {
+    std::string msg = err.message();
+    LOG("Error loading XML scene: %s", msg.c_str());
+    success = false;
+  }
+  catch (const ExpressionParser::error& err) {
+    std::string msg = err.message();
+    LOG("Error loading XML scene: %s", msg.c_str());
+    success = false;
+  }
+  catch (...) {
+    LOG("Error loading XML scene.");
+    success = false;
+  }
+
+  return success;
+}
+
+bool Scene::LoadDefinition(const char* file_name) {
+  std::ifstream is(file_name, std::ios_base::in);
+  if (is.good()) {
+    return LoadDefinition(is);
+  }
+  LOG("Unable to open XML file %s", file_name);
+  return false;
+}
+
+bool Scene::LoadDefinition(std::istream& stream) {
+  ClearDefinition();
+
+  bool success = true;
+  try {
+    // Load and parse XML file.
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLError err = doc.LoadFile(stream);
+    if (err != tinyxml2::XML_NO_ERROR) {
+      throw scene_parse_error(&doc, "Unable to load XML stream.");
+    }
+
+    // Load mageray node.
+    tinyxml2::XMLElement* mageray_node = doc.FirstChildElement("mageray");
+    if (!mageray_node) {
+      throw scene_parse_error(&doc, "Missing mageray element.");
+    }
+    // TODO(mage): Check version number.
 
     // Load scene node.
     tinyxml2::XMLElement* scene_node = mageray_node->FirstChildElement("scene");
