@@ -313,6 +313,7 @@ bool Image::SavePNG(std::ostream& stream) const {
 
   // Write the PNG file to the image data buffer.
   png_write_image(png_ptr, row_pointers.get());
+  png_write_end(png_ptr, NULL);
 
   // Free up resources.
   png_destroy_write_struct(&png_ptr, &info_ptr);
