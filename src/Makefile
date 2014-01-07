@@ -29,6 +29,7 @@
 DEBUG ?= YES
 OPENMP ?= YES
 LIBPNG ?= YES
+EXPRTK ?= YES
 
 LIB_PATH = lib
 OUT_PATH = out
@@ -45,7 +46,7 @@ CPP = g++
 CPPFLAGS = -c -std=c++0x \
            -Ofast -funroll-loops \
            -W -Wall -Wextra \
-           -I$(LIB_PATH) -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) -I$(EXPRTK_PATH) \
+           -I$(LIB_PATH) -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) \
            -DSCALAR_IS_FLOAT
 LFLAGS = -L$(OPENCTM_PATH)
 LIBS = -lopenctm2 -lpthread -lm
@@ -75,8 +76,7 @@ ifeq ($(LIBPNG), YES)
 CPPFLAGS += -DUSE_LIBPNG
 LIBS += -lpng
 else
-CPPFLAGS += -DUSE_LODEPNG
-CPPFLAGS += -I$(LODEPNG_PATH)
+CPPFLAGS += -DUSE_LODEPNG -I$(LODEPNG_PATH)
 LIB_OBJS += $(OBJ_PATH)/lodepng.o
 endif
 
@@ -84,6 +84,11 @@ endif
 ifeq ($(OPENMP), YES)
 CPPFLAGS += -DUSE_OPENMP -fopenmp
 LFLAGS += -fopenmp
+endif
+
+# Use ExprTK?
+ifeq ($(EXPRTK), YES)
+CPPFLAGS += -DUSE_EXPRTK -I$(EXPRTK_PATH)
 endif
 
 # Enable debugging?
