@@ -51,3 +51,5 @@ src/third_party/lodepng/lodepng.h
 src/third_party/exprtk/exprtk.hpp
 src/lib/expression_parser.h
 src/lib/expression_parser.cpp
+src/lib/async_image_saver.h
+src/lib/async_image_saver.cpp

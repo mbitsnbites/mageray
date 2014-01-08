@@ -29,98 +29,17 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
-#include <condition_variable>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <sstream>
-#include <thread>
 
+#include "async_image_saver.h"
 #include "scene.h"
 #include "tracer.h"
 
 using namespace mageray;
 
 namespace {
-
-// This is a threaded image saver that will save images to disk using a worker
-// thread.
-class AsyncImageSaver {
-  public:
-    AsyncImageSaver() : m_terminate(false) {
-      // Start the worker thread.
-      m_thread = std::thread(&AsyncImageSaver::Worker, this);
-    }
-
-    ~AsyncImageSaver() {
-      // Tell the worker to terminate ASAP.
-      m_saves_lock.lock();
-      m_terminate = true;
-      m_saves_lock.unlock();
-      m_saves_cond.notify_all();
-
-      // Wait for the worker to terminate.
-      m_thread.join();
-    }
-
-    void SaveImage(std::unique_ptr<Image> image, const std::string& file_name) {
-      std::unique_lock<std::mutex> guard(m_saves_lock);
-
-      // TODO(m): We might want to block here if the save queue has more than N
-      // commands in it (prevent ridiculous memory consumption). That should
-      // only be an issue if PNG encoding takes longer than ray-tracing, though,
-      // which is quite unlikely.
-
-      // Create a new save command.
-      SaveImageCmd* cmd = new SaveImageCmd;
-      cmd->image = std::move(image);
-      cmd->file_name = file_name;
-      m_saves.push_back(cmd);
-
-      // Tell the worker to save the image ASAP.
-      m_saves_cond.notify_all();
-    }
-
-  private:
-    void Worker() {
-      std::unique_lock<std::mutex> guard(m_saves_lock);
-      while (m_saves.size() > 0 || !m_terminate) {
-        // Wait for new save commands.
-        while (m_saves.size() == 0 && !m_terminate) {
-          m_saves_cond.wait(guard);
-        }
-
-        if (m_saves.size() > 0) {
-          // Pick up the next save command.
-          SaveImageCmd* cmd = m_saves.front();
-          m_saves.pop_front();
-
-          // Do not block calls to SaveImage() while saving.
-          guard.unlock();
-
-          // Save the image to a file.
-          cmd->image->SavePNG(cmd->file_name.c_str());
-
-          // Delete the command (including the image).
-          delete cmd;
-
-          guard.lock();
-        }
-      }
-    }
-
-    struct SaveImageCmd {
-      std::unique_ptr<Image> image;
-      std::string file_name;
-    };
-
-    std::thread m_thread;
-
-    std::list<SaveImageCmd*> m_saves;
-    std::mutex m_saves_lock;
-    std::condition_variable m_saves_cond;
-    bool m_terminate;
-};
 
 std::string ExtractBasePath(const std::string& file_name) {
   size_t separator_pos = file_name.find_last_of("/\\");
@@ -274,7 +193,7 @@ int main(int argc, const char* argv[]) {
     else {
       image_file_anim = image_file;
     }
-    img_saver.SaveImage(std::move(img), image_file_anim);
+    img_saver.SavePNG(std::move(img), image_file_anim);
   }
 
   return 0;
