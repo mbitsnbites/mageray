@@ -50,6 +50,11 @@ void AsyncImageSaver::SavePNG(
     std::unique_ptr<Image> image, const std::string& file_name) {
   std::unique_lock<std::mutex> guard(m_cmds_lock);
 
+  // BLock until we have trimmed down the command queue, if necessary.
+  while (m_cmds.size() >= kMaxPendingCommands) {
+    m_cmds_cond.wait(guard);
+  }
+
   // Create a new save command.
   m_cmds.push_back(new SavePNGCommand(std::move(image), file_name));
 
@@ -72,6 +77,9 @@ void AsyncImageSaver::Worker() {
 
       // Do not block the main thread while executing the command.
       guard.unlock();
+
+      // Tell the main thread that the command queue is now shortened.
+      m_cmds_cond.notify_all();
 
       // Execute the command.
       cmd->Execute();

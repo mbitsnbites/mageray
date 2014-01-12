@@ -72,6 +72,10 @@ class AsyncImageSaver {
 
     std::thread m_thread;
 
+    // Limit the number of pending commands (prevent runaway memory
+    // consumption).
+    static const unsigned kMaxPendingCommands = 5;
+
     std::list<Command*> m_cmds;
     std::mutex m_cmds_lock;
     std::condition_variable m_cmds_cond;
