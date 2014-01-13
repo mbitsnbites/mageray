@@ -94,6 +94,7 @@ class Tracer {
 
     /// Result information for a single traced ray.
     struct TraceInfo {
+      TraceInfo() : color(scalar(0.0)), alpha(scalar(0.0)), distance(scalar(0.0)) {}
       vec3 color;
       scalar alpha;
       scalar distance;

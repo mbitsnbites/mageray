@@ -140,6 +140,16 @@ struct vec3 {
     return (&x)[idx];
   }
 
+  /// @returns The element wise minimum of a and b.
+  static vec3 Min(const vec3& a, const vec3& b) {
+    return vec3(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
+  }
+
+  /// @returns The element wise maximum of a and b.
+  static vec3 Max(const vec3& a, const vec3& b) {
+    return vec3(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
+  }
+
   /// @returns The negative vector (scaled by -1).
   vec3 Neg() const {
     return vec3(-x, -y, -z);

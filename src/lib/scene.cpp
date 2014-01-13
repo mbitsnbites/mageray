@@ -77,7 +77,8 @@ void Scene::Reset() {
 
   // Default configuration.
   m_config.max_recursions = 4;
-  m_config.antialias_depth = 0;
+  m_config.rays_per_pixel = 1;
+  m_config.min_rays_per_pixel = 4;
   m_config.soft_shadow_depth = 3;
   m_config.start_t = 0.0f;
   m_config.stop_t = 0.0f;
@@ -99,13 +100,16 @@ void Scene::ClearDefinition() {
 
 void Scene::LoadConfig(tinyxml2::XMLElement* element) {
   if (const char* str = element->Attribute("max_recursions")) {
-    m_config.max_recursions = m_expression_parser.ToScalar(str);
+    m_config.max_recursions = m_expression_parser.ToInt(str);
   }
-  if (const char* str = element->Attribute("antialias_depth")) {
-    m_config.antialias_depth = m_expression_parser.ToScalar(str);
+  if (const char* str = element->Attribute("rays_per_pixel")) {
+    m_config.rays_per_pixel = m_expression_parser.ToInt(str);
+  }
+  if (const char* str = element->Attribute("min_rays_per_pixel")) {
+    m_config.min_rays_per_pixel = m_expression_parser.ToInt(str);
   }
   if (const char* str = element->Attribute("soft_shadow_depth")) {
-    m_config.soft_shadow_depth = m_expression_parser.ToScalar(str);
+    m_config.soft_shadow_depth = m_expression_parser.ToInt(str);
   }
 
   // Animation.

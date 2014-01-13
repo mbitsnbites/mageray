@@ -35,6 +35,7 @@
 
 #include "base/log.h"
 #include "base/perf.h"
+#include "base/random.h"
 #include "base/threads.h"
 #include "hitinfo.h"
 #include "light.h"
@@ -255,6 +256,9 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
   vec3 u_step = right * (scalar(1.0) / img_height);
   vec3 v_step = up * (scalar(-1.0) / img_height);
 
+  // We need a random number generator for the jittering.
+  Random rand;
+
   // As long as there is work to do...
   int left, top, width, height;
   while (controller->NextArea(left, top, width, height)) {
@@ -266,7 +270,8 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
       // Every second row we do right to left.
       int u0 = j & 1 ? left + width - 1 : left;
 
-      vec3 dir = forward +
+      // Nominal ray direction for the first/last pixel in the row.
+      vec3 dir0 = forward +
           u_step * (static_cast<scalar>(u0) - scalar(0.5) * img_width) +
           v_step * (static_cast<scalar>(v) - scalar(0.5) * img_height);
 
@@ -274,24 +279,69 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
       for (int  i = 0; i < width; ++i) {
         int u = j & 1 ? u0 - i : u0 + i;
 
-        // Construct a ray.
-        Ray ray(cam_pos, dir);
+        // Perform antialiasing loop (use several rays per pixel).
+        TraceInfo min, max;
+        TraceInfo sum;
+        unsigned num_rays = 0;
+        while (num_rays < m_scene->Config().rays_per_pixel) {
+          // Jitter the ray direction.
+          vec3 dir;
+          if (m_scene->Config().rays_per_pixel > 1) {
+            scalar rnd_u = rand.Scalar() - scalar(0.5);
+            scalar rnd_v = rand.Scalar() - scalar(0.5);
+            dir = dir0 + u_step * rnd_u + v_step * rnd_v;
+          }
+          else {
+            dir = dir0;
+          }
 
-        // Trace a ray into the scene.
-        Pixel result(0);
-        TraceInfo info;
-        if (TraceRay(ray, info, 0)) {
-          result = Pixel(std::min(scalar(1.0), info.color.x),
-                         std::min(scalar(1.0), info.color.y),
-                         std::min(scalar(1.0), info.color.z),
-                         info.alpha);
+          // Construct a ray.
+          Ray ray(cam_pos, dir);
+
+          // Trace a ray into the scene.
+          TraceInfo info;
+          if (TraceRay(ray, info, 0)) {
+            sum.color += info.color;
+            sum.alpha += info.alpha;
+          }
+          num_rays++;
+
+          // Determine min/max.
+          if (num_rays == 1) {
+            min = max = info;
+          }
+          else if (num_rays <= m_scene->Config().min_rays_per_pixel) {
+            min.color = vec3::Min(min.color, info.color);
+            min.alpha = std::min(min.alpha, info.alpha);
+            max.color = vec3::Max(max.color, info.color);
+            max.alpha = std::max(min.alpha, info.alpha);
+
+            // Check if we should bail out.
+            if (num_rays == m_scene->Config().min_rays_per_pixel) {
+              static const scalar threshold(0.02);
+              scalar delta = max.color.x - min.color.x +
+                             max.color.y - min.color.y +
+                             max.color.z - min.color.z +
+                             max.alpha - min.alpha;
+              if (delta < threshold) {
+                break;
+              }
+            }
+          }
         }
-        image->PixelAt(u, v) = result;
 
+        // Construct final pixel color.
+        const scalar scale = scalar(1.0) / scalar(num_rays);
+        image->PixelAt(u, v) = Pixel(std::min(scalar(1.0), sum.color.x * scale),
+                                     std::min(scalar(1.0), sum.color.y * scale),
+                                     std::min(scalar(1.0), sum.color.z * scale),
+                                     sum.alpha * scale);
+
+        // Nominal direction for the next pixel in the row.
         if (j & 1) {
-          dir -= u_step;
+          dir0 -= u_step;
         } else {
-          dir += u_step;
+          dir0 += u_step;
         }
       }
     }

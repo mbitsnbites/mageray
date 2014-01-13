@@ -59,8 +59,12 @@ struct TraceConfig {
   /// Maximum number of trace recursions.
   unsigned max_recursions;
 
-  /// Anti aliasing depth (0 = no anti aliasing).
-  unsigned antialias_depth;
+  /// Maximum number of rays per pixel (1 = a single ray per pixel).
+  unsigned rays_per_pixel;
+
+  /// Minimum number of rays per pixel.
+  /// If this is larger than rays_per_pixel, rays_per_pixel sets the limit.
+  unsigned min_rays_per_pixel;
 
   /// Soft shadow recursion depth (0 = no soft shadows).
   unsigned soft_shadow_depth;
