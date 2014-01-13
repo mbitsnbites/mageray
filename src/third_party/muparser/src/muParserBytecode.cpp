@@ -305,6 +305,8 @@ namespace mu
               }
               break;
               
+        default:
+              break;
         } // switch a_Oprt
       }
     }
