@@ -36,7 +36,6 @@
 #include "base/random.h"
 #include "base/types.h"
 #include "image.h"
-#include "photon_map.h"
 #include "ray.h"
 #include "vec.h"
 
@@ -48,9 +47,6 @@ class Scene;
 class Tracer {
   public:
     Tracer();
-
-    /// Generate a photon map for the current scene.
-    void GeneratePhotonMap();
 
     /// Generate an image of the current scene.
     /// @param image The image to render to.
@@ -107,14 +103,9 @@ class Tracer {
     scalar Shadow(const Light* light, const vec3& position) const;
 
     /// Trace a single ray.
-    bool TraceRay(const Ray& ray, TraceInfo& info,
-                  PhotonMap::Collector& collector,
-                  const unsigned depth) const;
+    bool TraceRay(const Ray& ray, TraceInfo& info, const unsigned depth) const;
 
     const Scene* m_scene;
-
-    PhotonMap m_photon_map;
-    scalar m_photon_scale;
 
     FORBID_COPY(Tracer);
 };

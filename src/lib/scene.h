@@ -65,20 +65,6 @@ struct TraceConfig {
   /// Soft shadow recursion depth (0 = no soft shadows).
   unsigned soft_shadow_depth;
 
-  /// Number of photons to use in the photon map (0 = no photon mapping).
-  unsigned max_photons;
-
-  /// Maximum recursion depth for tracing photons.
-  unsigned max_photon_depth;
-
-  /// Photon energy scale factor.
-  scalar photon_energy;
-
-  /// Enable direct lighting during ray tracing pass.
-  /// If direct lighting is not enabled, the photon map is used for the direct
-  /// lighting.
-  bool direct_lighting;
-
   /// Animation starting time (in seconds).
   scalar start_t;
 

@@ -238,252 +238,6 @@ bool Tracer::ThreadController::NextArea(int& left, int& top, int& width,
 
 
 //------------------------------------------------------------------------------
-// Threaded photon mapping.
-//------------------------------------------------------------------------------
-
-/// Photon tracer thread worker.
-class PhotonWorker {
-  public:
-    /// Photon tracer thread controller.
-    class Controller {
-      public:
-        Controller(const mageray::Scene* scene, unsigned max_rays);
-
-        Light* GetNextLight(Random &random, unsigned& num_rays);
-
-        const mageray::Scene* Scene() const {
-          return m_scene;
-        }
-
-        const TraceConfig& Config() const {
-          return m_scene->Config();
-        }
-
-        unsigned TotalRays() {
-          return m_total_rays;
-        }
-
-      private:
-        std::mutex m_lock;
-        const mageray::Scene* m_scene;
-        unsigned m_rays_left;
-        unsigned m_total_rays;
-        std::vector<Light*> m_lights;
-    };
-
-    PhotonWorker(unsigned seed, Controller* controller, PhotonMap* photon_map);
-    ~PhotonWorker();
-
-    void Wait();
-
-  private:
-    void Run();
-
-    /// Trace a single photon.
-    void TracePhoton(const Ray& ray, const unsigned depth, const vec3& color);
-
-    Random m_random;
-    Controller* m_controller;
-    PhotonMap* m_photon_map;
-    std::thread* m_thread;
-};
-
-PhotonWorker::Controller::Controller(const mageray::Scene *scene,
-    unsigned max_rays) : m_scene(scene), m_rays_left(max_rays),
-    m_total_rays(0) {
-  // Set up a random-access vector for all the light sources.
-  m_lights.reserve(m_scene->Lights().size());
-  for (auto it = m_scene->Lights().begin(); it != m_scene->Lights().end();
-      it++) {
-    m_lights.push_back(it->get());
-  }
-}
-
-Light* PhotonWorker::Controller::GetNextLight(Random& random, unsigned& num_rays) {
-  Light* light = NULL;
-  num_rays = 0;
-
-  m_lock.lock();
-
-  if (m_rays_left > 0) {
-    // Select a random light source.
-    light = m_lights[random.Int(0, m_lights.size() - 1)];
-
-    // Number of rays to shoot from this light source in this batch.
-    num_rays = std::min(unsigned(100), m_rays_left);
-    m_rays_left -= num_rays;
-
-    // Total number of rays dispatched so far.
-    m_total_rays += num_rays;
-  }
-
-  m_lock.unlock();
-
-  return light;
-}
-
-PhotonWorker::PhotonWorker(unsigned seed, Controller* controller,
-    PhotonMap* photon_map) : m_controller(controller),
-    m_photon_map(photon_map) {
-  // Initialize random number generator.
-  m_random.Seed(seed);
-
-  // Start thread.
-  m_thread = new std::thread(&PhotonWorker::Run, this);
-}
-
-PhotonWorker::~PhotonWorker() {
-  delete m_thread;
-}
-
-void PhotonWorker::Wait() {
-  m_thread->join();
-}
-
-void PhotonWorker::Run() {
-  unsigned num_rays;
-  while (Light* light = m_controller->GetNextLight(m_random, num_rays)) {
-    // Do several rays for this light source (better cache performance).
-    for (unsigned j = num_rays; j; --j) {
-      // Select a random direction.
-      vec3 dir = m_random.SignedVec3().Normalize();
-
-      // Shoot a ray into the scene.
-      Ray ray(light->Position(), dir);
-      TracePhoton(ray, 1, light->Color());
-    }
-
-    if (m_photon_map->IsFull()) {
-      break;
-    }
-  }
-}
-
-void PhotonWorker::TracePhoton(const Ray& ray, const unsigned depth,
-    const vec3& color) {
-  // Intersect scene.
-  HitInfo hit = HitInfo::CreateNoHit();
-  if (!m_controller->Scene()->ObjectTree().Intersect(ray, hit)) {
-    return;
-  }
-
-  // Get surface properties.
-  hit.object->CompleteHitInfo(ray, hit);
-
-  // Get material.
-  const Material* material = hit.object->Material();
-
-  // Uh, nothing much to do here...
-  if (UNLIKELY(!material || !material->Shader())) {
-    return;
-  }
-
-  // View direction.
-  vec3 view_dir = ray.Direction().Normalize();
-
-  // Get the shader for this material.
-  const Shader* shader = material->Shader();
-  ASSERT(shader, "Missing shader.");
-
-  Shader::SurfaceParam surface_param;
-  surface_param.material = material;
-  surface_param.position = hit.point;
-  surface_param.normal = hit.normal;
-  surface_param.uv = hit.uv;
-  surface_param.view_dir = view_dir;
-
-  // Get material properties.
-  Shader::MaterialParam material_param;
-  shader->MaterialPass(surface_param, material_param);
-
-  // Get probabilities for reflection, diffuse and transparency.
-  scalar p_reflection = material_param.specular.Abs();
-  scalar p_diffuse = material_param.diffuse.Abs();
-  scalar p_transparency = material_param.transparency.Abs();
-
-  // Preserve energy.
-  p_transparency *= scalar(1.0) - p_reflection;
-  p_diffuse *= (scalar(1.0) - p_transparency) * (scalar(1.0) - p_reflection);
-
-  // Monte-carlo, select which direction to take from here...
-  scalar selection = m_random.Scalar();
-
-  // If direct lighting is handled in the ray tracing pass, we're not interested
-  // in photons that come directly from the light source.
-  if ((depth > 1 || !m_controller->Config().direct_lighting) &&
-      p_diffuse > scalar(0.0)) {
-    // Produce a photon.
-    Photon* photon = m_photon_map->NextPhoton();
-    if (UNLIKELY(!photon)) {
-      // TODO(mage): Have a way of reporting that the photon map is full...
-      return;
-    }
-
-    // Fill out photon information.
-    photon->position = hit.point;
-    photon->direction = view_dir;
-    photon->color = color;
-  }
-
-  // Was this the final recursion?LoadConfig
-  if (depth >= m_controller->Config().max_photon_depth) {
-    return;
-  }
-
-  // Reflection?
-  if (selection < p_reflection) {
-    // Reflected direction.
-    vec3 reflect_dir = ray.Direction() -
-        material_param.normal *
-        (scalar(2.0) * material_param.normal.Dot(ray.Direction()));
-
-    // Nudge origin point in order to avoid re-intersecting the origin surface.
-    // TODO(mage): The "nudge distance" should be relative to object scale
-    // somehow.
-    vec3 reflect_start = hit.point + reflect_dir * scalar(0.0001);
-
-    // Trace photon.
-    Ray reflect_ray(reflect_start, reflect_dir);
-    TracePhoton(reflect_ray, depth + 1, color * material_param.specular);
-    return;
-  }
-  selection -= p_reflection;
-
-  // Transparency?
-  if (selection < p_transparency) {
-    // Refracted direction.
-    vec3 refract_dir = ray.Direction().Normalize().Refract(material_param.normal, material->Ior());
-
-    // Nudge origin point in order to avoid re-intersecting the origin surface.
-    // TODO(mage): The "nudge distance" should be relative to object scale
-    // somehow.LoadConfig
-    vec3 refract_start = hit.point + refract_dir * scalar(0.0001);
-
-    // Trace photon.
-    Ray refract_ray(refract_start, refract_dir);
-    TracePhoton(refract_ray, depth + 1, color);
-    return;
-  }
-  selection -= p_transparency;
-
-  // Diffuse reflection?
-  if (selection < p_diffuse) {
-    vec3 diffuse_dir = m_random.SignedVec3().Normalize();
-    scalar cos_alpha = diffuse_dir.Dot(material_param.normal);
-    if (cos_alpha < scalar(0.0)) {
-      diffuse_dir = diffuse_dir -
-          material_param.normal * (scalar(2.0) * cos_alpha);
-    }
-    diffuse_dir = (diffuse_dir +
-                   material_param.normal * scalar(0.1)).Normalize();
-    vec3 diffuse_start = hit.point + diffuse_dir * scalar(0.0001);
-    Ray diffuse_ray(diffuse_start, diffuse_dir);
-    TracePhoton(diffuse_ray, depth + 1, color * material_param.diffuse);
-  }
-}
-
-
-//------------------------------------------------------------------------------
 // Ray tracer.
 //------------------------------------------------------------------------------
 
@@ -500,17 +254,6 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
   scalar img_height = static_cast<scalar>(image->Height());
   vec3 u_step = right * (scalar(1.0) / img_height);
   vec3 v_step = up * (scalar(-1.0) / img_height);
-
-  // Create a photon collector for this thread.
-#if 0
-  unsigned max_photons = 100;
-  scalar max_r = scalar(50.0) * std::sqrt(scalar(max_photons) / PI) *
-      m_photon_map.MedianDistance();
-#else
-  unsigned max_photons = 10;
-  scalar max_r(0.5);
-#endif
-  PhotonMap::Collector collector(m_photon_map, max_photons, max_r);
 
   // As long as there is work to do...
   int left, top, width, height;
@@ -537,7 +280,7 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
         // Trace a ray into the scene.
         Pixel result(0);
         TraceInfo info;
-        if (TraceRay(ray, info, collector, 0)) {
+        if (TraceRay(ray, info, 0)) {
           result = Pixel(std::min(scalar(1.0), info.color.x),
                          std::min(scalar(1.0), info.color.y),
                          std::min(scalar(1.0), info.color.z),
@@ -553,56 +296,6 @@ void Tracer::DoWork(ThreadController* controller, Image* image) const {
       }
     }
   }
-}
-
-void Tracer::GeneratePhotonMap() {
-  ASSERT(m_scene, "The scene is undefined.");
-
-  if (m_scene->Config().max_photons < 1) {
-    DLOG("Photon mapping disabled.");
-    return;
-  }
-
-  ScopedPerf _photon_map = ScopedPerf("Generate photon map");
-
-  // Allocate memory for the photons.
-  m_photon_map.SetCapacity(m_scene->Config().max_photons);
-
-  // Get level of hardware concurrency.
-  int concurrency = Thread::hardware_concurrency();
-  DLOG("Using %d threads to generate photon map.", concurrency);
-
-  // Set up the thread controller.
-  unsigned max_rays = m_scene->Config().max_photons * 500;
-  PhotonWorker::Controller controller(m_scene, max_rays);
-
-  // Start threads.
-  std::list<PhotonWorker*> workers;
-  unsigned seed = 54234;
-  for (int i = 0; i < concurrency; ++i) {
-    workers.push_back(new PhotonWorker(seed, &controller, &m_photon_map));
-    seed = seed * 654611 + 31231;
-  }
-
-  // Wait for threads to finish.
-  for (auto it = workers.begin(); it != workers.end(); it++) {
-    PhotonWorker* worker = *it;
-    worker->Wait();
-    delete worker;
-  }
-
-  int num_rays = controller.TotalRays();
-
-  // Adjust photon energy scale based on number of emitted light rays.
-  m_photon_scale = m_scene->Config().photon_energy /
-      static_cast<scalar>(num_rays);
-  DLOG("Number of light rays shot: %d", num_rays);
-  DLOG("Photon intensity scale: %f", double(m_photon_scale));
-
-  // Build the KD tree.
-  m_photon_map.BuildKDTree();
-
-  _photon_map.Done();
 }
 
 void Tracer::GenerateImage(Image* image) const {
@@ -648,8 +341,8 @@ scalar Tracer::Shadow(const Light* light, const vec3& position) const {
   }
 }
 
-bool Tracer::TraceRay(const Ray& ray, TraceInfo& info,
-    PhotonMap::Collector& collector, const unsigned depth) const {
+bool Tracer::TraceRay(
+    const Ray& ray, TraceInfo& info, const unsigned depth) const {
   if (depth > m_scene->Config().max_recursions) {
     return false;
   }
@@ -723,7 +416,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info,
     // Trace ray.
     Ray reflect_ray(reflect_start, reflect_dir);
     TraceInfo reflect_info;
-    if (TraceRay(reflect_ray, reflect_info, collector, depth + 1)) {
+    if (TraceRay(reflect_ray, reflect_info, depth + 1)) {
       info.color += reflect_info.color * reflection;
     }
   }
@@ -742,7 +435,7 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info,
     scalar filter = material_param.transparency.Abs();
     Ray refract_ray(refract_start, refract_dir);
     TraceInfo refract_info;
-    if (TraceRay(refract_ray, refract_info, collector, depth + 1)) {
+    if (TraceRay(refract_ray, refract_info, depth + 1)) {
       info.color += refract_info.color * transparency;
       filter *= scalar(1.0) - refract_info.alpha;
     }
@@ -753,40 +446,32 @@ bool Tracer::TraceRay(const Ray& ray, TraceInfo& info,
   // Light contribution.
   vec3 light_contrib(0);
   if (has_diffuse || has_specular) {
-    if (m_scene->Config().direct_lighting) {
-      // Iterate all the lights in the scene.
-      for (auto it = m_scene->Lights().begin(); it != m_scene->Lights().end();
-          it++) {
-        Light* light = it->get();
+    // Iterate all the lights in the scene.
+    for (auto it = m_scene->Lights().begin(); it != m_scene->Lights().end();
+        it++) {
+      Light* light = it->get();
 
-        // Direction and distance to the light.
-        vec3 light_dir = light->Position() - hit.point;
-        scalar light_dist = light_dir.Abs();
-        light_dir = light_dir * (scalar(1.0) / light_dist);
+      // Direction and distance to the light.
+      vec3 light_dir = light->Position() - hit.point;
+      scalar light_dist = light_dir.Abs();
+      light_dir = light_dir * (scalar(1.0) / light_dist);
 
-        scalar cos_alpha = light_dir.Dot(material_param.normal);
-        if (cos_alpha >= scalar(0.0)) {
-          Shader::LightParam light_param;
-          light_param.light = light;
-          light_param.dir = light_dir;
-          light_param.dist = light_dist;
-          light_param.cos_alpha = cos_alpha;
-          light_param.amount = scalar(1.0);
+      scalar cos_alpha = light_dir.Dot(material_param.normal);
+      if (cos_alpha >= scalar(0.0)) {
+        Shader::LightParam light_param;
+        light_param.light = light;
+        light_param.dir = light_dir;
+        light_param.dist = light_dist;
+        light_param.cos_alpha = cos_alpha;
+        light_param.amount = scalar(1.0);
 
-          // Determine light visibility factor (0.0 for completely shadowed).
-          light_param.amount = Shadow(light, hit.point);
+        // Determine light visibility factor (0.0 for completely shadowed).
+        light_param.amount = Shadow(light, hit.point);
 
-          // Run per-light shader.
-          light_contrib += shader->LightPass(surface_param, material_param,
-              light_param);
-        }
+        // Run per-light shader.
+        light_contrib += shader->LightPass(surface_param, material_param,
+            light_param);
       }
-    }
-
-    // Get light contribtion from photon map.
-    if (m_photon_map.HasPhotons() && has_diffuse) {
-      vec3 photon_color = collector.CollectLight(hit.point, material_param.normal);
-      light_contrib += photon_color * diffuse * m_photon_scale;
     }
   }
 

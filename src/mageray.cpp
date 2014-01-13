@@ -168,10 +168,6 @@ int main(int argc, const char* argv[]) {
       return 0;
     }
 
-    // Generate photon map.
-    std::cout << std::endl << "[Generating photon map]" << std::endl;
-    tracer.GeneratePhotonMap();
-
     // Create a target image.
     std::unique_ptr<Image> img(new Image);
     img->Allocate(width, height);

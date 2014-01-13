@@ -93,7 +93,6 @@ vec3 PhongShader::LightPass(const SurfaceParam& sp,
       std::pow(sp.view_dir.Dot(light_reflect_dir), sp.material->Hardness());
 
   // Light falloff, depnding on distance.
-  // TODO(mage): Make this behave the same way as the photon map.
   scalar falloff = lp.light->Distance() / (lp.light->Distance() + lp.dist);
 
   // Diffuse and specular contribution.

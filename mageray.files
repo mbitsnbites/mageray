@@ -31,8 +31,6 @@ src/lib/mesh_data.h
 src/lib/mesh.h
 src/lib/object.cpp
 src/lib/object.h
-src/lib/photon_map.cpp
-src/lib/photon_map.h
 src/lib/pixel.h
 src/lib/ray.h
 src/lib/sampler.cpp

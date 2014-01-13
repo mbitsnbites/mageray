@@ -79,10 +79,6 @@ void Scene::Reset() {
   m_config.max_recursions = 4;
   m_config.antialias_depth = 0;
   m_config.soft_shadow_depth = 3;
-  m_config.max_photons = 0;
-  m_config.max_photon_depth = 4;
-  m_config.photon_energy = scalar(1000.0);
-  m_config.direct_lighting = true;
   m_config.start_t = 0.0f;
   m_config.stop_t = 0.0f;
   m_config.num_frames = 1;
@@ -110,18 +106,6 @@ void Scene::LoadConfig(tinyxml2::XMLElement* element) {
   }
   if (const char* str = element->Attribute("soft_shadow_depth")) {
     m_config.soft_shadow_depth = m_expression_parser.ToScalar(str);
-  }
-  if (const char* str = element->Attribute("max_photons")) {
-    m_config.max_photons = m_expression_parser.ToScalar(str);
-  }
-  if (const char* str = element->Attribute("max_photon_depth")) {
-    m_config.max_photon_depth = m_expression_parser.ToScalar(str);
-  }
-  if (const char* str = element->Attribute("photon_energy")) {
-    m_config.photon_energy = m_expression_parser.ToScalar(str);
-  }
-  if (const char* str = element->Attribute("direct_lighting")) {
-    m_config.direct_lighting = m_expression_parser.ToBool(str);
   }
 
   // Animation.
