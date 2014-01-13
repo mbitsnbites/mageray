@@ -26,9 +26,7 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //------------------------------------------------------------------------------
 
-#ifdef USE_EXPRTK
-# include <exprtk.hpp>
-#endif // USE_EXPRTK
+#include <muParser.h>
 
 #include "expression_parser.h"
 
@@ -36,45 +34,24 @@ namespace mageray {
 
 class ExpressionParser::Parser {
   public:
-    Parser() {
-#ifdef USE_EXPRTK
-      m_symbol_table.add_constants();
-      m_expression.register_symbol_table(m_symbol_table);
-#endif // USE_EXPRTK
-    }
-
     void AddVariable(const std::string& name, scalar& var) {
-#ifdef USE_EXPRTK
-      m_symbol_table.add_variable(name, var);
-#else
-      // Without ExprTK, we don't support variable names.
-      (void)name; (void)var;
-#endif // USE_EXPRTK
+      // Note: This requires that MUP_BASETYPE is defined to the same type as
+      // scalar (see muParserDef.h).
+      m_parser.DefineVar(name, &var);
     }
 
     scalar Evaluate(const std::string& str) {
-#ifdef USE_EXPRTK
-      if (!m_parser.compile(str, m_expression)) {
-        throw error(str, m_parser.error());
+      m_parser.SetExpr(str);
+      try {
+        return m_parser.Eval();
       }
-      return m_expression.value();
-#else
-      std::stringstream ss(str);
-      scalar value;
-      ss >> value;
-      if (ss.fail()) {
-        throw error(str, "Invalid scalar value");
+      catch (mu::Parser::exception_type &e) {
+        throw error(str, e.GetMsg());
       }
-      return value;
-#endif // USE_EXPRTK
     }
 
-#ifdef USE_EXPRTK
   private:
-    exprtk::symbol_table<scalar> m_symbol_table;
-    exprtk::expression<scalar> m_expression;
-    exprtk::parser<scalar> m_parser;
-#endif // USE_EXPRTK
+    mu::Parser m_parser;
 };
 
 ExpressionParser::ExpressionParser() : m_t(0.0) {

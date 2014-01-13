@@ -29,7 +29,7 @@
 DEBUG ?= YES
 OPENMP ?= YES
 LIBPNG ?= YES
-EXPRTK ?= YES
+DOUBLE_PRECISION ?= NO
 
 LIB_PATH = lib
 OUT_PATH = out
@@ -40,14 +40,14 @@ OPENCTM_PATH = third_party/openctm/lib
 LIBOPENCTM = $(OPENCTM_PATH)/libopenctm2.a
 TINYXML2_PATH = third_party/tinyxml2
 LODEPNG_PATH = third_party/lodepng
-EXPRTK_PATH = third_party/exprtk
+MUPARSER_PATH = third_party/muparser
 
 CPP = g++
-CPPFLAGS = -c -std=c++0x \
+CPPFLAGS = -c -std=c++11 \
            -Ofast -funroll-loops \
            -W -Wall -Wextra \
            -I$(LIB_PATH) -I$(OPENCTM_PATH) -I$(TINYXML2_PATH) \
-           -DSCALAR_IS_FLOAT
+           -I$(MUPARSER_PATH)/include
 LFLAGS = -L$(OPENCTM_PATH)
 LIBS = -lopenctm2 -lpthread -lm
 
@@ -61,6 +61,12 @@ LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/material.o \
            $(OBJ_PATH)/mesh.o \
            $(OBJ_PATH)/mesh_data.o \
+           $(OBJ_PATH)/muParser.o \
+           $(OBJ_PATH)/muParserBase.o \
+           $(OBJ_PATH)/muParserBytecode.o \
+           $(OBJ_PATH)/muParserCallback.o \
+           $(OBJ_PATH)/muParserError.o \
+           $(OBJ_PATH)/muParserTokenReader.o \
            $(OBJ_PATH)/object.o \
            $(OBJ_PATH)/openctm_importer.o \
            $(OBJ_PATH)/perf.o \
@@ -71,6 +77,13 @@ LIB_OBJS = $(OBJ_PATH)/aabb.o \
            $(OBJ_PATH)/tinyxml2.o \
            $(OBJ_PATH)/tree.o \
            $(OBJ_PATH)/tracer.o
+
+# Single or double precision?
+ifeq ($(DOUBLE_PRECISION), YES)
+CPPFLAGS += -DSCALAR_IS_DOUBLE
+else
+CPPFLAGS += -DSCALAR_IS_FLOAT
+endif
 
 # Use libpng or lodepng?
 ifeq ($(LIBPNG), YES)
@@ -85,11 +98,6 @@ endif
 ifeq ($(OPENMP), YES)
 CPPFLAGS += -DUSE_OPENMP -fopenmp
 LFLAGS += -fopenmp
-endif
-
-# Use ExprTK?
-ifeq ($(EXPRTK), YES)
-CPPFLAGS += -DUSE_EXPRTK -I$(EXPRTK_PATH)
 endif
 
 # Enable debugging?
@@ -129,10 +137,13 @@ $(OBJ_PATH)/%.o: $(LIB_PATH)/base/%.cpp
 $(OBJ_PATH)/%.o: $(LIB_PATH)/importers/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
-$(OBJ_PATH)/%.o: third_party/tinyxml2/%.cpp
+$(OBJ_PATH)/%.o: $(TINYXML2_PATH)/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
-$(OBJ_PATH)/%.o: third_party/lodepng/%.cpp
+$(OBJ_PATH)/%.o: $(LODEPNG_PATH)/%.cpp
+	$(CPP) $(CPPFLAGS) -o $@ $<
+
+$(OBJ_PATH)/%.o: $(MUPARSER_PATH)/src/%.cpp
 	$(CPP) $(CPPFLAGS) -o $@ $<
 
 # These dependency files are generated automatically when building the object

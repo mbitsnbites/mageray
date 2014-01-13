@@ -49,7 +49,11 @@
   This datatype must be a built in value type. You can not use custom classes.
   It should be working with all types except "int"!
 */
-#define MUP_BASETYPE double
+#if defined(SCALAR_IS_DOUBLE)
+  #define MUP_BASETYPE double
+#else
+  #define MUP_BASETYPE float
+#endif
 
 /** \brief Activate this option in order to compile with OpenMP support. 
 
