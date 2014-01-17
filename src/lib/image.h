@@ -39,59 +39,26 @@
 
 namespace mageray {
 
-/// An image data container.
-class Image {
+/// A generic image template class.
+template <class T>
+class BaseImage {
   public:
-    Image() : m_width(0), m_height(0) {}
-    ~Image() {}
+    BaseImage(int width, int height)
+        : m_data(new T[width * height]), m_width(width), m_height(height) {
+      ASSERT(m_width > 0 && m_height > 0,
+          "Bad dimensions (%d x %d).", m_width, m_height);
+    }
 
-    /// Reset the image to its default (empty) state.
-    void Reset();
-
-    /// Allocate memory for a width x height image.
-    /// @param[in] width The width of the image.
-    /// @param[in] height The height of the image.
-    /// @returns true if the operation succeeded.
-    bool Allocate(int width, int height);
-
-    /// Load an image from a stream (PNG or JPEG).
-    /// @param[in] stream The stream from which to read the image.
-    /// @returns true if the operation succeeded.
-    bool Load(std::istream& stream);
-
-    /// Load an image from a file (PNG or JPEG).
-    /// @param[in] file_name The name of the file to load.
-    /// @returns true if the operation succeeded.
-    bool Load(const char* file_name);
-
-    /// Save an image as a PNG file to a stream.
-    /// @param[in] stream The stream to which to write the image.
-    /// @returns true if the operation succeeded.
-    bool SavePNG(std::ostream& stream) const;
-
-    /// Save an image as a PNG file.
-    /// @param[in] file_name The name of the file to save.
-    /// @returns true if the operation succeeded.
-    bool SavePNG(const char* file_name) const;
-
-    /// Clear the entire image with a solid color.
-    /// @param[in] color The color to fill the image with.
-    void Clear(const Pixel& color);
+    ~BaseImage() {}
 
     /// Get a reference to the pixel at the given coordinates.
     /// @param[in] s The s coordinate, in the range [0, width()).
     /// @param[in] t The t coordinate, in the range [0, height()).
     /// @retruns A reference to the pixel, which can be both read and written.
-    Pixel& PixelAt(int s, int t) const {
+    T& PixelAt(int s, int t) const {
       ASSERT(s >= 0 && s < m_width && t >= 0 && t < m_height,
           "Coordinates out of range (%d,%d).", s, t);
       return m_data.get()[t * m_width + s];
-    }
-
-    /// Check if the image is empty.
-    /// @returns true if the image is empty (i.e. has zero pixels).
-    bool Empty() const {
-      return m_width <= 0 || m_height <= 0;
     }
 
     /// Get image width.
@@ -106,24 +73,43 @@ class Image {
       return m_height;
     }
 
-    /// Get image size.
-    /// @returns The number of bytes occupied by the image data.
-    int Size() const {
-      return m_width * m_height * sizeof(Pixel);
-    }
+  protected:
+    std::unique_ptr<T> m_data;
+    const int m_width;
+    const int m_height;
 
   private:
-    bool LoadPNG(std::istream& stream);
-    bool LoadJPEG(std::istream& stream);
+    FORBID_COPY(BaseImage);
+};
 
-    std::unique_ptr<Pixel> m_data;
-    int m_width;
-    int m_height;
+/// An image data container.
+class Image : public BaseImage<Pixel> {
+  public:
+    Image(int width, int height) : BaseImage<Pixel>(width, height) {}
 
-    float m_s_scale;  // Factor for converting s coordinates to fixed point.
-    float m_t_scale;  // Factor for converting t coordinates to fixed point.
+    /// Load an image from a stream (PNG or JPEG).
+    /// @param[in] stream The stream from which to read the image.
+    /// @returns true if the operation succeeded.
+    static Image* Load(std::istream& stream);
 
-    friend class Sampler;
+    /// Load an image from a file (PNG or JPEG).
+    /// @param[in] file_name The name of the file to load.
+    /// @returns true if the operation succeeded.
+    static Image* Load(const char* file_name);
+
+    /// Save an image as a PNG file to a stream.
+    /// @param[in] stream The stream to which to write the image.
+    /// @returns true if the operation succeeded.
+    bool SavePNG(std::ostream& stream) const;
+
+    /// Save an image as a PNG file.
+    /// @param[in] file_name The name of the file to save.
+    /// @returns true if the operation succeeded.
+    bool SavePNG(const char* file_name) const;
+
+  private:
+    static Image* LoadPNG(std::istream& stream);
+    static Image* LoadJPEG(std::istream& stream);
 
     FORBID_COPY(Image);
 };

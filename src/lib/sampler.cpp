@@ -33,12 +33,14 @@
 
 namespace mageray {
 
+namespace {
+
 // This is a fairly quick version of linear interpolation between two 32-bit
 // colors using an 8-bit fractional weight (0-255). It uses semi-packed
 // multiplication (two color components per multiplication), which means that
 // only two integer multiplications are used in the operation.
-static inline Pixel::Composite Lerp(const Pixel::Composite c1,
-    const Pixel::Composite c2, const int w) {
+inline Pixel::Composite Lerp(
+    const Pixel::Composite c1, const Pixel::Composite c2, const int w) {
   const Pixel::Composite c1_a = c1 & 0x00ff00ff;
   const Pixel::Composite c1_b = c1 & 0xff00ff00;
   const Pixel::Composite c2_a = c2 & 0x00ff00ff;
@@ -47,13 +49,26 @@ static inline Pixel::Composite Lerp(const Pixel::Composite c1,
       (((c1_b + ((c2_b >> 8) - (c1_b >> 8)) * w)) & 0xff00ff00);
 }
 
+} // anonymous namespace
+
+void Sampler::SetImage(const Image* image) {
+  m_image = image;
+
+  if (image) {
+    // Scaling factors for converting normalized s/t coordinates to fixed
+    // point indices.
+    m_s_scale = 256.0f * static_cast<float>(image->Width());
+    m_t_scale = 256.0f * static_cast<float>(image->Height());
+  }
+}
+
 Pixel Sampler::Sample(const vec2& coord) const {
   ASSERT(m_image, "No image.");
 
   // Convert floating point coordinates to fixed point coordinates (8-bit
   // sub-pixel precision).
-  int s_fixed = static_cast<int>(coord.u * m_image->m_s_scale);
-  int t_fixed = static_cast<int>((scalar(1.0) - coord.v) * m_image->m_t_scale);
+  int s_fixed = static_cast<int>(coord.u * m_s_scale);
+  int t_fixed = static_cast<int>((scalar(1.0) - coord.v) * m_t_scale);
   int sw = s_fixed & 0xff;
   int tw = t_fixed & 0xff;
 

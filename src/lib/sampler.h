@@ -41,9 +41,7 @@ class Sampler {
   public:
     Sampler() : m_image(NULL), m_repeat_s(true), m_repeat_t(true) {}
 
-    void SetImage(const Image* image) {
-      m_image = image;
-    }
+    void SetImage(const Image* image);
 
     void SetRepeat(bool repeat_s, bool repeat_t) {
       m_repeat_s = repeat_s;
@@ -62,6 +60,9 @@ class Sampler {
 
   private:
     const Image* m_image;
+
+    float m_s_scale;  // Factor for converting s coordinates to fixed point.
+    float m_t_scale;  // Factor for converting t coordinates to fixed point.
 
     bool m_repeat_s;
     bool m_repeat_t;

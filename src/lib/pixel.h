@@ -69,7 +69,7 @@ class Pixel {
         : m_composite(ToComposite(r, g, b, a)) {}
 
     Pixel(const vec3& v)
-        : m_composite(ToComposite(v.x, v.y, v.z, 1.0f)) {}
+        : m_composite(ToComposite(v.x, v.y, v.z, scalar(1.0))) {}
 
     /// Red component.
     /// @returns The red component of the pixel (0-255).

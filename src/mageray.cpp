@@ -169,8 +169,7 @@ int main(int argc, const char* argv[]) {
     }
 
     // Create a target image.
-    std::unique_ptr<Image> img(new Image);
-    img->Allocate(width, height);
+    std::unique_ptr<Image> img(new Image(width, height));
 
     // Ray trace image.
     std::cout << std::endl << "[Rendering image (" << width << "x" << height << ")]" << std::endl;

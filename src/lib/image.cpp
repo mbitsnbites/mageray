@@ -94,38 +94,10 @@ void SwapRedBlue(mageray::Pixel* out, const mageray::Pixel* in, size_t count) {
 
 namespace mageray {
 
-void Image::Reset() {
-  m_data.reset(NULL);
-  m_width = 0;
-  m_height = 0;
-  m_s_scale = 0.0f;
-  m_t_scale = 0.0f;
-}
-
-bool Image::Allocate(int width, int height) {
-  ASSERT(width > 0 && height > 0,
-      "Bad dimensions (%d x %d).", width, height);
-
-  m_data.reset(new Pixel[width * height]);
-  if (m_data.get() == NULL) {
-    Reset();
-    return false;
-  }
-  m_width = width;
-  m_height = height;
-
-  // Scaling factors for converting normalized s/t coordinates to fixed point
-  // indices (used by the Sampler class).
-  m_s_scale = 256.0f * static_cast<float>(m_width);
-  m_t_scale = 256.0f * static_cast<float>(m_height);
-
-  return true;
-}
-
-bool Image::LoadPNG(std::istream& stream) {
+Image* Image::LoadPNG(std::istream& stream) {
   static const unsigned char signature[] = {137, 80, 78, 71, 13, 10, 26, 10};
   if (!MatchingSignature<sizeof(signature)>(stream, signature)) {
-    return false;
+    return NULL;
   }
 
   DLOG("Identified PNG file format.");
@@ -135,12 +107,12 @@ bool Image::LoadPNG(std::istream& stream) {
   png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL,
       NULL, NULL);
   if (!png_ptr) {
-    return false;
+    return NULL;
   }
   png_infop info_ptr = png_create_info_struct(png_ptr);
   if (!info_ptr) {
     png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-    return false;
+    return NULL;
   }
 
   // Set up file interface.
@@ -183,24 +155,21 @@ bool Image::LoadPNG(std::istream& stream) {
   }
 
   // Allocate memory for the image data.
-  bool success = false;
-  if (Allocate(width, height)) {
-    // Set up row pointers.
-    std::unique_ptr<png_bytep> row_pointers(new png_bytep[height]);
-    for (int i = 0; i < height; ++i) {
-      row_pointers.get()[i] = reinterpret_cast<png_bytep>(&PixelAt(0, i));
-    }
+  Image* image = new Image(width, height);
 
-    // Read the PNG file to the image data buffer.
-    png_read_image(png_ptr, row_pointers.get());
-
-    success = true;
+  // Set up row pointers.
+  std::unique_ptr<png_bytep> row_pointers(new png_bytep[height]);
+  for (int i = 0; i < height; ++i) {
+    row_pointers.get()[i] = reinterpret_cast<png_bytep>(&image->PixelAt(0, i));
   }
+
+  // Read the PNG file to the image data buffer.
+  png_read_image(png_ptr, row_pointers.get());
 
   // Free up resources.
   png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
 
-  return success;
+  return image;
 #endif // USE_LIBPNG
 
 #ifdef USE_LODEPNG
@@ -213,66 +182,59 @@ bool Image::LoadPNG(std::istream& stream) {
   stream.read(reinterpret_cast<char*>(&data[0]), file_size);
 
   // Decode the PNG from memory.
-  std::vector<unsigned char> image;
+  std::vector<unsigned char> raw_data;
   unsigned width, height;
-  unsigned error = lodepng::decode(image, width, height, data);
+  unsigned error = lodepng::decode(raw_data, width, height, data);
   if (error) {
-    return false;
+    return NULL;
   }
   DLOG("PNG size: %d x %d", width, height);
 
   // Copy the data to the internal image representation.
   // TODO(m): Decode directly to internal memory.
-  if (!Allocate(width, height)) {
-    return false;
-  }
-  SwapRedBlue(m_data.get(), reinterpret_cast<mageray::Pixel*>(&image[0]), width * height);
+  Image* image = new Image(width, height);
+  SwapRedBlue(&image->PixelAt(0, 0), reinterpret_cast<mageray::Pixel*>(&raw_data[0]), width * height);
 
-  return true;
+  return image;
 #endif // USE_LODEPNG
 }
 
-bool Image::LoadJPEG(std::istream& stream) {
+Image* Image::LoadJPEG(std::istream& stream) {
   static const unsigned char signature[] = {255, 216};
   if (!MatchingSignature<sizeof(signature)>(stream, signature)) {
-    return false;
+    return NULL;
   }
 
   DLOG("Identified JPEG file format.");
 
   // TODO(m): Implement me!
   LOG("JPEG reading support not yet implemented.");
-  return false;
+  return NULL;
 }
 
 
-bool Image::Load(std::istream& stream) {
+Image* Image::Load(std::istream& stream) {
   // Try different file formats.
-  if (LoadPNG(stream)) {
-    return true;
-  } else if (LoadJPEG(stream)) {
-    return true;
+  Image* image = LoadPNG(stream);
+  if (image) {
+    return image;
   }
+  image = LoadJPEG(stream);
 
-  LOG("Unable to load image file.");
-  Reset();
-  return false;
+  return image;
 }
 
-bool Image::Load(const char* file_name) {
+Image* Image::Load(const char* file_name) {
   std::ifstream is(file_name, std::ios_base::in | std::ios_base::binary);
   if (is.good()) {
     return Load(is);
   }
 
   LOG("Unable to open image file %s.", file_name);
-  Reset();
-  return false;
+  return NULL;
 }
 
 bool Image::SavePNG(std::ostream& stream) const {
-  ASSERT(!Empty(), "No image data to write.");
-
 #ifdef USE_LIBPNG
   // Initialize PNG data structures.
   png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL,
@@ -344,24 +306,6 @@ bool Image::SavePNG(const char* file_name) const {
     return SavePNG(os);
   }
   return false;
-}
-
-void Image::Clear(const Pixel& color) {
-  Pixel* ptr = m_data.get();
-  if (!ptr) {
-    return;
-  }
-
-  // Can we use memset (e.g. for black or white)? It's generally faster than
-  // std::fill or a plain loop, since it's usually assembler optimized.
-  int c = color.a();
-  if (color.r() == c && color.g() == c && color.b() == c) {
-    std::memset(ptr, c, sizeof(Pixel) * m_width * m_height);
-    return;
-  }
-
-  // Use std::fill for setting all pixels to the same color.
-  std::fill(ptr, ptr + m_width * m_height, color);
 }
 
 } // namespace mageray

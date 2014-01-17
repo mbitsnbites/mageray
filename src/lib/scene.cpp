@@ -180,13 +180,10 @@ void Scene::LoadImage(tinyxml2::XMLElement* element) {
   }
 
   // Load the image.
-  std::unique_ptr<Image> image(new Image());
-  if (!image.get()) {
-    throw scene_parse_error(element, "Out of memory?");
-  }
   std::string file_name = m_file_path + file;
   DLOG("Loading image file %s.", file_name.c_str());
-  if (!image->Load(file_name.c_str())) {
+  std::unique_ptr<Image> image(Image::Load(file_name.c_str()));
+  if (!image.get()) {
     std::string msg = std::string("Unable to load image file \"") +
         file_name + std::string("\".");
     throw scene_parse_error(element, msg.c_str());
